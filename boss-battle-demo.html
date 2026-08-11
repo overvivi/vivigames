@@ -52,6 +52,23 @@
     font-size:10px; color:#fff8ec; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,0.8);
   }
   .stageTag{ color:#c9a877; font-size:10px; letter-spacing:2px; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
+  .challengeScoreBar{
+    display:none; gap:16px; margin-top:2px;
+  }
+  .challengeScoreBar .csItem{
+    background:rgba(10,8,14,0.7); border:1px solid var(--gold); border-radius:6px;
+    padding:4px 12px; text-align:center;
+  }
+  .challengeScoreBar .csItem small{ display:block; font-size:8px; color:#c9a877; letter-spacing:1px; }
+  .challengeScoreBar .csItem span{ color:var(--gold); font-size:14px; font-weight:bold; }
+  .msgBanner{
+    position:absolute; top:70px; left:50%; transform:translateX(-50%) translateY(-10px) scale(0.94);
+    background:rgba(10,8,14,0.92); border:2px solid var(--gold); border-radius:8px;
+    padding:10px 20px; text-align:center; opacity:0; transition:opacity 0.3s, transform 0.3s;
+    pointer-events:none; z-index:6; max-width:80%;
+  }
+  .msgBanner.show{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+  .msgBanner span{ color:var(--gold); font-size:14px; letter-spacing:1px; text-shadow:0 0 12px rgba(224,178,79,0.7); }
 
   .bottomUI{
     position:absolute; bottom:0; left:0; right:0; padding:16px;
@@ -144,7 +161,51 @@
     border:1px dashed #6b5a42; border-radius:8px;
     font-size:28px; color:#7a6a52; text-shadow:0 0 10px rgba(0,0,0,0.7);
   }
+  .stageCard2.challengeCard{ border-color:#4a6a8a; }
+  .stageCard2.challengeCard .cIcon{
+    width:64px;height:64px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;
+    font-size:30px; background:radial-gradient(circle at 35% 30%, rgba(120,180,255,0.25), rgba(0,0,0,0.3));
+    border-radius:8px; border:1px solid rgba(120,180,255,0.4);
+  }
+  .stageCard2.challengeCard.selected{
+    border-color:#7fb8ff;
+    box-shadow:0 0 0 1px #7fb8ff, 0 0 18px rgba(127,184,255,0.45), inset 0 0 14px rgba(127,184,255,0.14);
+  }
+  .stageCard2.challengeCard .sName{ color:#9fc8ff; }
   .btn:disabled{ opacity:0.4; cursor:default; box-shadow:none; transform:none; }
+
+  .rulesBtn{ font-size:11px; padding:8px 18px; margin-bottom:6px; }
+  .dataHint{ color:#8f7a5c; font-size:10px; line-height:1.6; max-width:360px; margin:0 auto 12px; }
+  .dataRow{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; }
+  .dataRow .btn{ font-size:11px; padding:9px 16px; }
+  label.btn{ display:inline-block; }
+
+  .rulesFlow{ display:flex; flex-direction:column; gap:10px; max-width:400px; margin-bottom:18px; text-align:left; }
+  .ruleStep{
+    display:flex; align-items:flex-start; gap:12px;
+    background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
+    border:2px solid #6b4f2e; border-radius:10px; padding:12px 14px;
+    box-shadow:inset 0 0 0 1px rgba(224,178,79,0.14);
+  }
+  .ruleStep .rNum{
+    flex-shrink:0; width:30px; height:30px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(224,178,79,0.35), rgba(0,0,0,0.3));
+    border:1px solid var(--gold); color:var(--gold); font-weight:bold;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+  }
+  .ruleStep .rBody{ flex:1; }
+  .ruleStep .rTitle{ color:var(--gold); font-size:13px; letter-spacing:1px; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .ruleStep .rTitle .rIcon{ font-size:16px; }
+  .ruleStep .rDesc{ color:#d8c39a; font-size:11.5px; line-height:1.7; }
+  .ruleStep .rDiagram{
+    margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    font-size:11px; color:#f0e4c8;
+  }
+  .rDiagram .box{
+    background:rgba(0,0,0,0.35); border:1px solid rgba(224,178,79,0.4); border-radius:6px;
+    padding:4px 9px; white-space:nowrap;
+  }
+  .rDiagram .arrow{ color:var(--gold); font-size:13px; }
 </style>
 </head>
 <body>
@@ -153,22 +214,43 @@
 
   <div class="topBar">
     <div class="bossName" id="bossNameEl">魔王</div>
-    <div class="hpOuter">
+    <div class="hpOuter" id="hpOuter">
       <div class="hpFillBg"></div>
       <div class="hpFill" id="hpFill"></div>
       <div class="hpText" id="hpText">8000 / 8000</div>
     </div>
+    <div class="challengeScoreBar" id="challengeScoreBar">
+      <div class="csItem"><small>記録</small><span id="challengeScoreVal">0</span></div>
+      <div class="csItem"><small>自己ベスト</small><span id="challengeBestVal">0</span></div>
+    </div>
     <div class="stageTag" id="stageTag">STAGE 1 — 目標: 64 を1回出す</div>
   </div>
+
+  <div class="msgBanner" id="msgBanner"><span id="msgBannerText"></span></div>
 
   <div class="overlay show" id="selectScreen">
     <h1>ホーム</h1>
     <p>勇者とステージを選んで出発</p>
+    <button class="btn btnGhost rulesBtn" id="rulesBtn">？ 遊び方を見る</button>
     <div class="sectionLabel">勇者を選択</div>
     <div class="heroList" id="heroList"></div>
     <div class="sectionLabel">ステージを選択</div>
     <div class="stageList2" id="stageSelectList"></div>
     <button class="btn" id="startBattleBtn" disabled>出発する</button>
+
+    <div class="sectionLabel">データ管理</div>
+    <p class="dataHint">解放状況やベスト記録はこの端末のブラウザに保存されます。消えるのが心配な場合はバックアップを取っておいてください。</p>
+    <div class="dataRow">
+      <button class="btn btnGhost" id="exportBtn">バックアップを保存</button>
+      <label class="btn btnGhost" id="importLabel" for="importInput">バックアップから復元</label>
+      <input type="file" id="importInput" accept="application/json" style="display:none;">
+    </div>
+  </div>
+
+  <div class="overlay" id="rulesOverlay">
+    <h1>遊び方</h1>
+    <div class="rulesFlow" id="rulesFlow"></div>
+    <button class="btn" id="closeRulesBtn">閉じる</button>
   </div>
 
   <div class="overlay" id="winOverlay">
@@ -178,8 +260,10 @@
   </div>
 
   <div class="overlay" id="loseOverlay">
-    <h1 style="color:#c0392b; text-shadow:0 0 18px rgba(192,57,43,0.5);">退却…</h1>
-    <p>盤面が埋まってしまった</p>
+    <h1 id="loseTitle" style="color:#c0392b; text-shadow:0 0 18px rgba(192,57,43,0.5);">退却…</h1>
+    <p id="loseSub">盤面が埋まってしまった</p>
+    <p class="score-line" id="loseScoreLine" style="display:none; color:#f0e4c8; font-size:14px;">今回の記録 <b id="loseScoreVal" style="color:var(--gold); font-size:20px;">0</b></p>
+    <p class="score-line" id="loseBestLine" style="display:none; color:#f0e4c8; font-size:12px;">自己ベスト <b id="loseBestVal" style="color:var(--gold);">0</b></p>
     <button class="btn" id="retryStageBtn">このステージをやり直す</button>
     <button class="btn btnGhost" id="loseHomeBtn" style="background:transparent;color:#c9b28a;border:1px solid #6b5a42;box-shadow:none;">ホームに戻る</button>
   </div>
@@ -192,6 +276,24 @@
   const stageEl = document.getElementById('stage');
   const hpFill = document.getElementById('hpFill');
   const hpText = document.getElementById('hpText');
+  const hpOuterEl = document.getElementById('hpOuter');
+  const challengeScoreBar = document.getElementById('challengeScoreBar');
+  const challengeScoreValEl = document.getElementById('challengeScoreVal');
+  const challengeBestValEl = document.getElementById('challengeBestVal');
+  const msgBanner = document.getElementById('msgBanner');
+  const msgBannerText = document.getElementById('msgBannerText');
+  const loseTitle = document.getElementById('loseTitle');
+  const loseSub = document.getElementById('loseSub');
+  const loseScoreLine = document.getElementById('loseScoreLine');
+  const loseBestLine = document.getElementById('loseBestLine');
+  const loseScoreVal = document.getElementById('loseScoreVal');
+  const loseBestVal = document.getElementById('loseBestVal');
+  const rulesBtn = document.getElementById('rulesBtn');
+  const rulesOverlay = document.getElementById('rulesOverlay');
+  const rulesFlow = document.getElementById('rulesFlow');
+  const closeRulesBtn = document.getElementById('closeRulesBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const importInput = document.getElementById('importInput');
   const bossNameEl = document.getElementById('bossNameEl');
   const winOverlay = document.getElementById('winOverlay');
   const winTitle = document.getElementById('winTitle');
@@ -218,6 +320,23 @@
   });
   let currentHero = null;
   let inBattle = false; // 「出発する」を押して戦闘中かどうか(選択画面でのタップ誤反応を防ぐ)
+  let challengeMode = false; // ホーム画面でチャレンジモードを選んでいるか
+  let bossHealed = false; // このステージ挑戦中にヒールを使ったか(1回だけ)
+  let challengeScore = 0;
+  let challengeBest = 0;
+  try{ challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest'),10)||0; }catch(e){}
+  function persistChallengeBest(){ try{ localStorage.setItem('bossDemoChallengeBest', String(challengeBest)); }catch(e){} }
+  function updateChallengeUI(){
+    challengeScoreValEl.textContent = challengeScore;
+    challengeBestValEl.textContent = challengeBest;
+  }
+  let msgBannerTimer = null;
+  function flashMessage(text, duration){
+    msgBannerText.textContent = text;
+    msgBanner.classList.add('show');
+    if(msgBannerTimer) clearTimeout(msgBannerTimer);
+    msgBannerTimer = setTimeout(()=> msgBanner.classList.remove('show'), duration||2200);
+  }
   let selectedStageIndex = 0;
   let unlockedStages = 1;
   try{ unlockedStages = parseInt(localStorage.getItem('bossDemoUnlockedStages'),10)||1; }catch(e){}
@@ -253,7 +372,7 @@
     STAGES.forEach((s,i)=>{
       const locked = i >= unlockedStages;
       const card = document.createElement('div');
-      card.className = 'stageCard2' + (locked?' locked':'') + (!locked && selectedStageIndex===i ? ' selected':'');
+      card.className = 'stageCard2' + (locked?' locked':'') + (!locked && !challengeMode && selectedStageIndex===i ? ' selected':'');
       if(locked){
         const lockIcon = document.createElement('div');
         lockIcon.className = 'lockedThumb';
@@ -275,11 +394,33 @@
       card.addEventListener('click', ()=>{
         if(locked) return;
         selectedStageIndex = i;
+        challengeMode = false;
         buildStageSelect();
         updateStartBtnState();
       });
       stageSelectListEl.appendChild(card);
     });
+    // チャレンジモードも同じ並びの4枚目として配置する(バランス良く並ぶように)
+    const cCard = document.createElement('div');
+    cCard.className = 'stageCard2 challengeCard' + (challengeMode ? ' selected' : '');
+    const icon = document.createElement('div');
+    icon.className = 'cIcon';
+    icon.textContent = '♾️';
+    const cName = document.createElement('div');
+    cName.className = 'sName';
+    cName.textContent = 'チャレンジ';
+    const cTarget = document.createElement('div');
+    cTarget.className = 'sTarget';
+    cTarget.textContent = `最高 ${challengeBest}`;
+    cCard.appendChild(icon);
+    cCard.appendChild(cName);
+    cCard.appendChild(cTarget);
+    cCard.addEventListener('click', ()=>{
+      challengeMode = true;
+      buildStageSelect();
+      updateStartBtnState();
+    });
+    stageSelectListEl.appendChild(cCard);
   }
   function updateStartBtnState(){
     startBattleBtn.disabled = !currentHero;
@@ -287,16 +428,21 @@
   startBattleBtn.addEventListener('click', ()=>{
     if(!currentHero) return;
     selectScreen.classList.remove('show');
-    loadStage(selectedStageIndex);
     inBattle = true;
-    playBGM('stage' + (selectedStageIndex+1)); // 「出発する」を押した瞬間だけBGMを鳴らす
+    if(challengeMode){
+      loadChallenge();
+      playBGM('stage3');
+    } else {
+      loadStage(selectedStageIndex);
+      playBGM('stage' + (selectedStageIndex+1)); // 「出発する」を押した瞬間だけBGMを鳴らす
+    }
   });
 
   // ---------- ステージ(ボス)データ ----------
   const STAGES = [
-    { name:'ミミック', imgSrc:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAITCAYAAADxf+4tAAAAAXNSR0IArs4c6QAACwRJREFUeJzt17GKZQcdx/FzzEBSLCPKeAmbRHaIsNU22SpdOFVESDePskVqy30EH2G7BdE0N+nSuBZaLSgjapYwLoYsUySwcn0J9S/f8/m8wO9/Zu69X8667NhPf/Ljse2//uOfp7FxgLC7P/rhOrX94ptvp6aXH4wtAwD/MYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAev9+/dHD3j+/Plp9IAhn159PH3CLr2+92Bs++wvfxzbZsbk5+3555+NbU97+rs/jG0fDod1atsbOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AASsy7KcJg949OjR5DxA0rNnz0b377x6ObZ9e34xtn08Hse2vaEDQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAwLosy2n6CABatm2bPmHE8Xgc2/aGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAFn0wecTqex7XVdx7b3+tzLst9n3+tzL8t+n32vz70sy3I8Hse2t20b257kDR0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAs6urq7WyQPWdT1NbW/bNjW9rOvcn/3y8nJse1n2++x7fe5l2e+zTz73tNNp7Kd9t393b+gAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQsE4fcPfu3bHtFy9enKa2Ly8vp6aXP/3mYmx7WZblZz9/ObrPvkx+3vf8Wb++vp4+YXe8oQNAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAenV1NXrAkydPTlPb27ZNTS/X19e73GafLi8vp08Ysefv2uk09tO+rOs6tj3JGzoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAErMuynCYPOJ3m5td1Hdue9PUnH02fMObtp1+Mbfu774/ftxnbto1tH4/HsW1v6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQcDZ9wLqu0yewI1+9+/70CezI5O/btm1j28zwhg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABZ9MHbNs2fcKI4/E4fQLswl5/Y+68ejl9wpjb84vpE0Z4QweAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4CAs+kDJt159XL6BOC/bPJ7fnt+MbbN/nhDB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgICz6QMePnw4tv348eOx7a8/+Whs+/wXH49tL8uyfPPLX41tv/HBe2Pbk95++sXo/qdXs5+5Ka/vPRjbfv75Z2PbzPCGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABZ9MH8L/36te/nT4BiLs9vxjbPh6PY9uHw2Gd2vaGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAFn0wfs1b9+/7ex7Tc+eG9s+/9hf8rk/3za63sPpk/Yndvzi9H94/E4tn04HNap7Zubm6lpb+gAUCDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQsC7Lcpo+Yo++evf96RPYkXf+/ufpE9iZw+GwTm3f3NxMTY/yhg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgAB6/QBkz58862x7S+//+40Ns7ufPjmW6Pf9S+//25yHnbBGzoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAE/BulC6zkLNmqKAAAAABJRU5ErkJggg==', hp:2600, target:'512' },
-    { name:'ドラゴン', imgSrc:'data:image/png;base64,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', hp:6000, target:'2048' },
-    { name:'魔王',     imgSrc:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAIVCAYAAAAnJg0wAAAAAXNSR0IArs4c6QAAC1VJREFUeJzt1zGLpWcZx+F73AE3xA0KFuJswMOmSDcOo4Vg2OK0KeI3SJHSj7PlFvsh0p5iQbAIw8l0Fg5buBvSWUjIWshYLbvRVQIWz+uP6/oEf15enh/3yczczjacrB7Aa+fn56snzPX19Vb+TfiO8/Pz5e/V9fX16gl81/L36gerBwAA/ztBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAgJOZuV09At7mcDisnjAXFxerJ/CG4/G4esLMzOz3+9UT4N+40AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIEDQASBA0AEgQNABIOBkZm5Xj5iZ+ceffr16wibc+fCL1RNmZuZwOKyeMBcXF6snwFsdj8fVE2a/36+e4N1+wxbebhc6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAEnH76y5+crB4xM3Pnwy9uV28A4Pu78+EXqydsxhZa6kIHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAgNMnX/71dvWImZkX9x+snrAJZ89vVk/YjMvLy9UT5urqavUE3rCFf2Jm5vHjx6snbIJ3+7WzL2+Wt9SFDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAacfv/PuyeoRMzNnz29uV294cf/B6glszOXl5eoJMzNzdXW1esJmvgX8q7PnN6snzBZa6kIHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4CAk9UDXvn4nXdXT5jPv/3mdvWGF/cfrJ4wMzNnz29WT5jD4bB6wlxcXKyewBuOx+PqCTMzs9/vV0/YxFuxhXdiZuY3P7y7vGV//PvL1RNc6ABQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABBwunrAK59/+83qCfOrH907Wb3h7PnN7eoNvHY8HldPgLc6e36zesJm3Pnpj1dPmHnx9eoFLnQAKBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAg4WT1gY25XD9jtdqsnbMazZ89WT4DNenH/weoJ894nH62eMDMz9x49WT1hfvfBL5b31IUOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABJ6sHvHL37t3VE+bly5e3qzfsdrvVE9igq6ur1RPm8vJy9YR59uzZ6gkzM/Pi/oPVE+bnf/nz6gnz1fsfrJ4wMzPvffLR6glz79GT1RNc6ABQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABBwunrAKy9fvrxdvWG3262eAPC9fPX+B6snsDEudAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACDhdPQDg+9rtdqsnzMzM2bOb1RPmb7//dPWEzbj36MnqCfPbs5+drN7gQgeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgIDT1QMA/t/sdrvVE+beoyerJ/CGP7z4evUEFzoAFAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAEnK4esCWPHz9ePWEzPvvss9UTgP/icDisnrAZ+/1+9YRNcKEDQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAyeoBrzx8+HD1hHn69Ont6g1bcTgcVk+Yi4uL1RPgrY7H4+oJs9/vV0/YjIcPHy5v2dOnT1dPcKEDQIGgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAyeoBfNf5+fnqCTMzc319fbt6A/CfnZ+fL3+/r6+vV0/gDS50AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAI+CeH/5819GkSeAAAAABJRU5ErkJggg==', hp:12000, target:'4096' }
+    { name:'ミミック', imgSrc:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAITCAYAAADxf+4tAAAAAXNSR0IArs4c6QAACwRJREFUeJzt17GKZQcdx/FzzEBSLCPKeAmbRHaIsNU22SpdOFVESDePskVqy30EH2G7BdE0N+nSuBZaLSgjapYwLoYsUySwcn0J9S/f8/m8wO9/Zu69X8667NhPf/Ljse2//uOfp7FxgLC7P/rhOrX94ptvp6aXH4wtAwD/MYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAev9+/dHD3j+/Plp9IAhn159PH3CLr2+92Bs++wvfxzbZsbk5+3555+NbU97+rs/jG0fDod1atsbOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AASsy7KcJg949OjR5DxA0rNnz0b377x6ObZ9e34xtn08Hse2vaEDQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAwLosy2n6CABatm2bPmHE8Xgc2/aGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAFn0wecTqex7XVdx7b3+tzLst9n3+tzL8t+n32vz70sy3I8Hse2t20b257kDR0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAs6urq7WyQPWdT1NbW/bNjW9rOvcn/3y8nJse1n2++x7fe5l2e+zTz73tNNp7Kd9t393b+gAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQsE4fcPfu3bHtFy9enKa2Ly8vp6aXP/3mYmx7WZblZz9/ObrPvkx+3vf8Wb++vp4+YXe8oQNAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAenV1NXrAkydPTlPb27ZNTS/X19e73GafLi8vp08Ysefv2uk09tO+rOs6tj3JGzoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAErMuynCYPOJ3m5td1Hdue9PUnH02fMObtp1+Mbfu774/ftxnbto1tH4/HsW1v6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQcDZ9wLqu0yewI1+9+/70CezI5O/btm1j28zwhg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABZ9MHbNs2fcKI4/E4fQLswl5/Y+68ejl9wpjb84vpE0Z4QweAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4CAs+kDJt159XL6BOC/bPJ7fnt+MbbN/nhDB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgICz6QMePnw4tv348eOx7a8/+Whs+/wXH49tL8uyfPPLX41tv/HBe2Pbk95++sXo/qdXs5+5Ka/vPRjbfv75Z2PbzPCGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABZ9MH8L/36te/nT4BiLs9vxjbPh6PY9uHw2Gd2vaGDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAFn0wfs1b9+/7ex7Tc+eG9s+/9hf8rk/3za63sPpk/Yndvzi9H94/E4tn04HNap7Zubm6lpb+gAUCDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQsC7Lcpo+Yo++evf96RPYkXf+/ufpE9iZw+GwTm3f3NxMTY/yhg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgABgg4AAYIOAAGCDgAB6/QBkz58862x7S+//+40Ns7ufPjmW6Pf9S+//25yHnbBGzoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAE/BulC6zkLNmqKAAAAABJRU5ErkJggg==', hp:2600, target:'512', targetTier:9 },
+    { name:'ドラゴン', imgSrc:'data:image/png;base64,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', hp:6000, target:'2048', targetTier:11 },
+    { name:'魔王',     imgSrc:'data:image/png;base64,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E+bnf/nz6gnz1fsfrJ4wMzPvffLR6glz79GT1RNc6ABQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABBwunrAKy9fvrxdvWG3262eAPC9fPX+B6snsDEudAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACDhdPQDg+9rtdqsnzMzM2bOb1RPmb7//dPWEzbj36MnqCfPbs5+drN7gQgeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgABBB4AAQQeAAEEHgIDT1QMA/t/sdrvVE+beoyerJ/CGP7z4evUEFzoAFAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAECDoABAg6AAQIOgAEnK4esCWPHz9ePWEzPvvss9UTgP/icDisnrAZ+/1+9YRNcKEDQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAyeoBrzx8+HD1hHn69Ont6g1bcTgcVk+Yi4uL1RPgrY7H4+oJs9/vV0/YjIcPHy5v2dOnT1dPcKEDQIGgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0CAoANAgKADQICgA0DAyeoBfNf5+fnqCTMzc319fbt6A/CfnZ+fL3+/r6+vV0/gDS50AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAIEHQACBB0AAgQdAAI+CeH/5819GkSeAAAAABJRU5ErkJggg==', hp:12000, target:'4096', targetTier:12 }
   ];
   STAGES.forEach(s=>{ s.img = new Image(); s.img.src = s.imgSrc; });
   let stageIndex = 0;
@@ -305,6 +451,134 @@
   buildHeroSelect();
   buildStageSelect();
   updateStartBtnState();
+
+  // ---------- 遊び方(図解) ----------
+  const RULES_STEPS = [
+    {
+      icon:'👆', title:'スワイプでタイルを合体',
+      desc:'上下左右にスワイプすると、同じ数字のタイルがくっついて2倍の数字になります(2048と同じルール)。',
+      diagram:['2','2','→','4']
+    },
+    {
+      icon:'⚔️', title:'合体した数字がそのままダメージに',
+      desc:'合体でできた数字の分だけ、勇者が自動でボスを攻撃します。大きい数字を作るほど大ダメージ。',
+      diagram:['4を作成','→','ボスに4ダメージ']
+    },
+    {
+      icon:'💚', title:'ボスはHPが1割を切ると一度だけヒール',
+      desc:'普通に殴っているだけではボスは倒しきれません。HPが1割以下になると1回だけ回復します。',
+      diagram:['HP 10%','→','ヒール','→','HP 50%']
+    },
+    {
+      icon:'🎯', title:'目標のタイルを作ると必殺技で即撃破',
+      desc:'画面上部の「目標」に書かれた数字(例: 512)を実際に作ると、HPに関係なく必殺技で一撃撃破できます。ボスを倒す本当の方法はこれだけです。',
+      diagram:['512を作成','→','必殺技','→','撃破']
+    },
+    {
+      icon:'⚠️', title:'盤面が埋まると退却',
+      desc:'合体できる場所がなくなって盤面が埋まると「退却」になり、そのステージはやり直しになります。',
+      diagram:['盤面が満杯','→','退却']
+    },
+    {
+      icon:'♾️', title:'チャレンジモードは記録に挑戦',
+      desc:'ボスを倒す必要はなく、詰むまでどこまで大きい数字を作れるかに挑戦します。自己ベストが記録されます。',
+      diagram:['詰むまで継続','→','最高タイルを記録']
+    }
+  ];
+  function buildRulesFlow(){
+    rulesFlow.innerHTML = '';
+    RULES_STEPS.forEach((s,i)=>{
+      const step = document.createElement('div');
+      step.className = 'ruleStep';
+      const num = document.createElement('div');
+      num.className = 'rNum';
+      num.textContent = i+1;
+      const body = document.createElement('div');
+      body.className = 'rBody';
+      const title = document.createElement('div');
+      title.className = 'rTitle';
+      title.innerHTML = `<span class="rIcon">${s.icon}</span>${s.title}`;
+      const desc = document.createElement('div');
+      desc.className = 'rDesc';
+      desc.textContent = s.desc;
+      const diagram = document.createElement('div');
+      diagram.className = 'rDiagram';
+      s.diagram.forEach(part=>{
+        if(part==='→'){
+          const arrow = document.createElement('span');
+          arrow.className = 'arrow';
+          arrow.textContent = '→';
+          diagram.appendChild(arrow);
+        } else {
+          const box = document.createElement('span');
+          box.className = 'box';
+          box.textContent = part;
+          diagram.appendChild(box);
+        }
+      });
+      body.appendChild(title);
+      body.appendChild(desc);
+      body.appendChild(diagram);
+      step.appendChild(num);
+      step.appendChild(body);
+      rulesFlow.appendChild(step);
+    });
+  }
+  buildRulesFlow();
+  function openRules(){ rulesOverlay.classList.add('show'); }
+  function closeRules(){
+    rulesOverlay.classList.remove('show');
+    try{ localStorage.setItem('bossDemoSeenRules','1'); }catch(e){}
+  }
+  rulesBtn.addEventListener('click', openRules);
+  closeRulesBtn.addEventListener('click', closeRules);
+  // 初回訪問時は自動で遊び方を開く
+  try{
+    if(!localStorage.getItem('bossDemoSeenRules')) openRules();
+  }catch(e){}
+
+  // ---------- データのバックアップ/復元 ----------
+  const SAVE_KEYS = ['bossDemoUnlockedStages','bossDemoChallengeBest'];
+  function exportSaveData(){
+    const data = { savedAt: new Date().toISOString() };
+    SAVE_KEYS.forEach(k=>{ try{ data[k] = localStorage.getItem(k); }catch(e){} });
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'boss-battle-demo-save.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+  function importSaveData(file){
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const data = JSON.parse(e.target.result);
+        SAVE_KEYS.forEach(k=>{
+          if(data[k] !== undefined && data[k] !== null){
+            try{ localStorage.setItem(k, data[k]); }catch(err){}
+          }
+        });
+        unlockedStages = parseInt(localStorage.getItem('bossDemoUnlockedStages'),10)||1;
+        challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest'),10)||0;
+        buildStageSelect();
+        updateChallengeUI();
+        flashMessage('復元しました！', 2200);
+      }catch(err){
+        flashMessage('ファイルの読み込みに失敗しました', 2200);
+      }
+    };
+    reader.readAsText(file);
+  }
+  exportBtn.addEventListener('click', exportSaveData);
+  importInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(file) importSaveData(file);
+    importInput.value = '';
+  });
 
 
   let W,H;
@@ -341,6 +615,12 @@
   }
   function playDefeat(){
     [440,330,220,110].forEach((f,i)=>playTone(f,0.4,'sawtooth',0.18,i*0.12));
+  }
+  function playHealSound(){
+    [520,660,880,660].forEach((f,i)=>playTone(f,0.32,'sine',0.15,i*0.09));
+  }
+  function playFinisherSound(){
+    [220,440,660,880,1320].forEach((f,i)=>playTone(f,0.35,'square',0.18,i*0.06));
   }
 
   // ---------- BGM & 攻撃音(base64のogg/mp3をAudioContextでデコードして再生) ----------
@@ -386,7 +666,7 @@
     src.loopStart = meta.loopStart;
     src.loopEnd = meta.loopEnd;
     const gain = audioCtx.createGain();
-    gain.gain.value = 0.32; // 効果音より控えめな音量
+    gain.gain.value = 0.55; // 攻撃音とのバランスを見て引き上げ
     src.connect(gain).connect(audioCtx.destination);
     src.start(0);
     currentBgmSource = src;
@@ -520,14 +800,48 @@
     gridMoveT = 0; // 移動アニメーションを頭出し(全タイルが移動方向から滑り込む見た目にする)
     mergedCells.forEach(c=>gridAnimTiles.push({cell:c, born:false, t:0}));
     spawnTile();
+    if(challengeMode && allMergedTiers.length){
+      // チャレンジモードの記録は「これまでに作った一番大きいタイル」そのもの
+      const maxTier = Math.max(...allMergedTiers);
+      const val = Math.pow(2, maxTier);
+      if(val > challengeScore){
+        challengeScore = val;
+        updateChallengeUI();
+      }
+      if(challengeScore > challengeBest){
+        challengeBest = challengeScore;
+        persistChallengeBest();
+      }
+    }
     if(allMergedTiers.length){
-      resolveAttack(allMergedTiers);
+      const targetTier = !challengeMode && STAGES[stageIndex] ? STAGES[stageIndex].targetTier : null;
+      if(targetTier && !defeated && allMergedTiers.some(t=>t>=targetTier)){
+        triggerFinishingMove();
+      } else {
+        resolveAttack(allMergedTiers);
+      }
     }
     if(isGridStuck() && !gridOver){
       gridOver = true;
       setTimeout(()=>{
         // 最後の一手でボスも倒していた場合は、そちらの勝利演出を優先する
-        if(!defeated) loseOverlay.classList.add('show');
+        if(defeated) return;
+        if(challengeMode){
+          loseTitle.textContent = '記録終了';
+          loseSub.textContent = '盤面が埋まりました';
+          loseScoreLine.style.display = '';
+          loseBestLine.style.display = '';
+          loseScoreVal.textContent = challengeScore;
+          loseBestVal.textContent = challengeBest;
+          retryStageBtn.textContent = 'もう一度挑戦する';
+        } else {
+          loseTitle.textContent = '退却…';
+          loseSub.textContent = '盤面が埋まってしまった';
+          loseScoreLine.style.display = 'none';
+          loseBestLine.style.display = 'none';
+          retryStageBtn.textContent = 'このステージをやり直す';
+        }
+        loseOverlay.classList.add('show');
       }, 500);
     }
   }
@@ -538,19 +852,43 @@
     hpText.textContent = Math.max(0,Math.floor(hp)) + ' / ' + maxHp;
   }
   function loadStage(i){
+    challengeMode = false;
     stageIndex = i;
     const s = STAGES[stageIndex];
     maxHp = s.hp;
     hp = maxHp;
     defeated = false;
+    bossHealed = false;
     bossScale = 1;
     bossFlash = 0;
     bossNameEl.textContent = s.name;
     stageTagEl.textContent = `STAGE ${stageIndex+1} — 目標: ${s.target} を1回出す`;
+    hpOuterEl.style.display = '';
+    bossNameEl.style.display = '';
+    stageTagEl.style.display = '';
+    challengeScoreBar.style.display = 'none';
     updateHPUI();
     resetGrid();
     loseOverlay.classList.remove('show');
     // BGMはここでは鳴らさない(「出発する」を押した時だけ鳴らす。詳細は各ボタンのハンドラを参照)
+  }
+  function loadChallenge(){
+    challengeMode = true;
+    defeated = false;
+    stageIndex = STAGES.length-1; // 魔王を表示(HPは扱わず殴り応え用)
+    bossScale = 1;
+    bossFlash = 0;
+    challengeScore = 0;
+    bossNameEl.textContent = STAGES[stageIndex].name;
+    bossNameEl.style.display = '';
+    hpOuterEl.style.display = '';
+    hpFill.style.width = '100%';
+    hpText.textContent = '∞';
+    stageTagEl.style.display = 'none';
+    challengeScoreBar.style.display = 'flex';
+    updateChallengeUI();
+    resetGrid();
+    loseOverlay.classList.remove('show');
   }
   loadStage(0);
 
@@ -667,13 +1005,16 @@
         const cx0 = boardX + pad + c*(cellSize+pad) + cellSize/2;
         const cy0 = boardY + pad + r*(cellSize+pad) + cellSize/2;
         const rgb = hexToRgb(gridTileColor(tier));
+        const shape = tier>=10 ? 'star' : tier>=8 ? 'diamond' : 'circle';
+        const size = 3 + Math.min(4.5, (tier-5)*0.55);
         particles.push({
           x: cx0 + (Math.random()-0.5)*cellSize*0.7,
           y: cy0 + (Math.random()-0.5)*cellSize*0.7,
-          vx: (Math.random()-0.5)*22,
-          vy: -18-Math.random()*30,
+          vx: (Math.random()-0.5)*(22+tier*2),
+          vy: -18-Math.random()*(30+tier*3),
           life: 0.5+Math.random()*0.4,
-          color: `rgb(${rgb.r},${rgb.g},${rgb.b})`
+          color: `rgb(${rgb.r},${rgb.g},${rgb.b})`,
+          shape, size, rot: Math.random()*Math.PI*2
         });
       }
     }
@@ -828,32 +1169,99 @@
     playBuffer(currentHero.atkBuffer, currentHero.id==='mage' ? 0.42 : 0.55); // 勇者ごとの専用攻撃音(振りの瞬間)
 
     setTimeout(()=>{
-      hp = Math.max(0, hp-dmg);
+      if(challengeMode){
+        // チャレンジモードもHPは扱わないが、魔王を表示しているので殴った手応えは出す
+        bossFlash = 1;
+        shake = big ? 1 : 0.4;
+        spawnFloater(dmg, big);
+        spawnHitParticles(big);
+        triggerHitEffect(big);
+        return;
+      }
+
+      // 通常攻撃だけではボスは倒しきれない(0に達する直前で必ず踏みとどまる/ヒールする)。
+      // 本当に倒すには、目標のタイルを出して必殺技を発動させる必要がある
+      let newHp = hp - dmg;
+      let healedThisHit = false;
+      if(newHp <= 0){
+        if(!bossHealed){
+          bossHealed = true;
+          newHp = Math.max(1, Math.round(maxHp*0.5));
+          healedThisHit = true;
+        } else {
+          newHp = 1;
+        }
+      } else if(newHp <= maxHp*0.10 && !bossHealed){
+        bossHealed = true;
+        newHp = Math.round(maxHp*0.5);
+        healedThisHit = true;
+      }
+      hp = newHp;
       updateHPUI();
       bossFlash = 1;
       shake = big ? 1 : 0.4;
       spawnFloater(dmg, big);
       spawnHitParticles(big);
       triggerHitEffect(big);
-      if(hp<=0 && !defeated){
-        defeated = true;
+      if(healedThisHit){
         setTimeout(()=>{
-          playDefeat();
-          spawnDefeatBurst();
-          setTimeout(()=>{
-            const isLast = stageIndex >= STAGES.length-1;
-            if(stageIndex+2 > unlockedStages){
-              unlockedStages = Math.min(STAGES.length, stageIndex+2);
-              persistUnlock();
-            }
-            winTitle.textContent = '撃破！';
-            winSub.textContent = `STAGE ${stageIndex+1} CLEAR` + (isLast ? '（全ステージクリア！）' : '');
-            winOverlay.classList.add('show');
-            playBGM('result'); // リザルト画面用BGMに切り替え
-          }, 700);
-        }, 250);
+          flashMessage(`${STAGES[stageIndex].name} が ヒールを唱えた！`, 2400);
+          spawnHealParticles();
+          playHealSound();
+        }, 300);
       }
     }, 180);
+  }
+
+  // 目標のタイル(512/2048/4096など)を出した瞬間に発動する必殺技。HPに関係なく即座に撃破する
+  function triggerFinishingMove(){
+    if(defeated || !currentHero || challengeMode) return;
+    heroLungeDir = 1;
+    animateLunge();
+    playBuffer(currentHero.atkBuffer, currentHero.id==='mage' ? 0.55 : 0.7);
+    playFinisherSound();
+
+    setTimeout(()=>{
+      bossFlash = 1;
+      shake = 1.7;
+      floaters.push({ x: W*0.78/devicePixelRatio, y: H*0.16/devicePixelRatio, text:'必殺技！', big:true, life:1.3, vy:-30 });
+      spawnHitParticles(true);
+      spawnHitParticles(true);
+      triggerHitEffect(true);
+      flashMessage('必殺技炸裂！', 2000);
+      hp = 0;
+      updateHPUI();
+      defeated = true;
+      setTimeout(()=>{
+        playDefeat();
+        spawnDefeatBurst();
+        setTimeout(()=>{
+          const isLast = stageIndex >= STAGES.length-1;
+          if(stageIndex+2 > unlockedStages){
+            unlockedStages = Math.min(STAGES.length, stageIndex+2);
+            persistUnlock();
+          }
+          winTitle.textContent = '撃破！';
+          winSub.textContent = `STAGE ${stageIndex+1} CLEAR` + (isLast ? '（全ステージクリア！）' : '');
+          winOverlay.classList.add('show');
+          playBGM('result'); // リザルト画面用BGMに切り替え
+        }, 700);
+      }, 250);
+    }, 180);
+  }
+
+  function spawnHealParticles(){
+    for(let i=0;i<22;i++){
+      particles.push({
+        x: W*0.78/devicePixelRatio + (Math.random()-0.5)*70,
+        y: H*0.20/devicePixelRatio + (Math.random()-0.5)*50,
+        vx:(Math.random()-0.5)*50,
+        vy:-70-Math.random()*90,
+        life:0.8+Math.random()*0.5,
+        color:'#8fe6a0',
+        shape:'star', size:4
+      });
+    }
   }
 
   function animateLunge(){
@@ -873,7 +1281,7 @@
     floaters.push({
       x: W*0.78/devicePixelRatio + (Math.random()-0.5)*30,
       y: H*0.16/devicePixelRatio,
-      text: '-'+dmg,
+      text: (challengeMode ? '+' : '-')+dmg,
       big, life: 1, vy:-38
     });
   }
@@ -914,14 +1322,19 @@
     winOverlay.classList.remove('show');
     buildHeroSelect();
     buildStageSelect();
-    updateStartBtnState();
+      updateStartBtnState();
     selectScreen.classList.add('show');
   });
   retryStageBtn.addEventListener('click', ()=>{
     floaters=[]; particles=[];
-    loadStage(stageIndex); // 同じステージをHP・盤面ともに最初からやり直す
     loseOverlay.classList.remove('show');
-    playBGM('stage' + (stageIndex+1));
+    if(challengeMode){
+      loadChallenge();
+      playBGM('stage3');
+    } else {
+      loadStage(stageIndex); // 同じステージをHP・盤面ともに最初からやり直す
+      playBGM('stage' + (stageIndex+1));
+    }
   });
   loseHomeBtn.addEventListener('click', ()=>{
     floaters=[]; particles=[];
@@ -930,7 +1343,7 @@
     loseOverlay.classList.remove('show');
     buildHeroSelect();
     buildStageSelect();
-    updateStartBtnState();
+      updateStartBtnState();
     selectScreen.classList.add('show');
   });
 
@@ -1049,15 +1462,41 @@
       ctx.fillText(f.text, f.x, f.y);
       ctx.globalAlpha=1;
     });
-    // パーティクル
+    // パーティクル(段階が上がるほど形も変わる: 丸→ひし形→星)
     particles.forEach(p=>{
       ctx.globalAlpha = Math.max(0,p.life);
-      ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+      drawParticleShape(p);
       ctx.globalAlpha=1;
     });
 
     ctx.restore();
+  }
+  function drawParticleShape(p){
+    const s = p.size || 4;
+    ctx.fillStyle = p.color;
+    if(p.shape === 'diamond'){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(Math.PI/4);
+      ctx.fillRect(-s*0.72,-s*0.72,s*1.44,s*1.44);
+      ctx.restore();
+    } else if(p.shape === 'star'){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate((p.rot||0) + animT*3);
+      ctx.beginPath();
+      for(let i=0;i<4;i++){
+        const a1 = (i/4)*Math.PI*2;
+        const a2 = a1 + Math.PI/4;
+        ctx.lineTo(Math.cos(a1)*s*1.7, Math.sin(a1)*s*1.7);
+        ctx.lineTo(Math.cos(a2)*s*0.55, Math.sin(a2)*s*0.55);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath(); ctx.arc(p.x,p.y,s,0,Math.PI*2); ctx.fill();
+    }
   }
   requestAnimationFrame(loop);
 })();
