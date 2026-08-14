@@ -4,10 +4,48 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>戦闘演出デモ — Boss Battle Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
+  .pixelFont{ font-family:'Press Start 2P','Georgia',monospace !important; }
+  .btnCyan{
+    background:linear-gradient(180deg, #5be0ff, #0a8bb8 55%, #054a63) !important;
+    color:#fff !important; border-color:#2ee6ff !important;
+    text-shadow:0 1px 2px rgba(0,0,0,0.5) !important;
+  }
+  .btnYellow{
+    background:linear-gradient(180deg, #e8ff9a, #8ab82a 55%, #4a6010) !important;
+    color:#1a2005 !important; border-color:#c6ff4d !important;
+    text-shadow:none !important;
+  }
+  .btnGreen{
+    background:linear-gradient(180deg, #8affc0, #14a862 55%, #0a5a30) !important;
+    color:#062012 !important; border-color:#4dffa0 !important;
+    text-shadow:none !important;
+  }
+
+  .backBtn{
+    position:fixed; top:14px; left:14px; z-index:80;
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(0,0,0,0.55); border:1px solid rgba(46,230,255,0.5);
+    color:#2ee6ff; font-size:16px; text-decoration:none; font-family:inherit;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 8px rgba(46,230,255,0.3);
+    transition:opacity 0.2s;
+  }
+  .backBtn.hide{ opacity:0; pointer-events:none; }
+  .closeX{
+    position:fixed; top:14px; right:14px; z-index:90;
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(46,230,255,0.22); border:1px solid rgba(46,230,255,0.7);
+    color:#2ee6ff; font-size:16px; line-height:1; cursor:pointer; font-family:inherit;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 8px rgba(46,230,255,0.3);
+  }
   :root{
-    --gold:#e0b24f;
-    --gold-soft:rgba(224,178,79,0.35);
+    --gold:#2ee6ff;
+    --gold-soft:rgba(46,230,255,0.35);
     --panel:rgba(12,8,16,0.90);
     --hp:#e0533f;
     --hpDark:#4a120e;
@@ -34,12 +72,12 @@
     display:flex; flex-direction:column; align-items:center; gap:4px;
     pointer-events:none;
   }
-  .bossName{ color:var(--gold); font-size:15px; letter-spacing:3px; text-shadow:0 0 12px rgba(224,178,79,0.7), 0 2px 2px rgba(0,0,0,0.6); }
+  .bossName{ color:var(--gold); font-size:15px; letter-spacing:3px; text-shadow:0 0 12px rgba(46,230,255,0.7), 0 2px 2px rgba(0,0,0,0.6); }
   .hpOuter{
     width:88%; max-width:380px; height:17px;
     background:rgba(0,0,0,0.55); border:2px solid var(--gold); border-radius:8px;
     overflow:hidden; position:relative;
-    box-shadow:0 0 12px rgba(224,178,79,0.3), inset 0 2px 4px rgba(0,0,0,0.7);
+    box-shadow:0 0 12px rgba(46,230,255,0.3), inset 0 2px 4px rgba(0,0,0,0.7);
   }
   .hpFillBg{ position:absolute; inset:0; background:var(--hpDark); }
   .hpFill{
@@ -68,7 +106,7 @@
     pointer-events:none; z-index:6; max-width:80%;
   }
   .msgBanner.show{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
-  .msgBanner span{ color:var(--gold); font-size:14px; letter-spacing:1px; text-shadow:0 0 12px rgba(224,178,79,0.7); }
+  .msgBanner span{ color:var(--gold); font-size:14px; letter-spacing:1px; text-shadow:0 0 12px rgba(46,230,255,0.7); }
 
   .bottomUI{
     position:absolute; bottom:0; left:0; right:0; padding:16px;
@@ -81,14 +119,15 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:
       radial-gradient(ellipse at 50% 15%, rgba(224,140,60,0.12), transparent 50%),
-      radial-gradient(ellipse at center, rgba(28,16,12,0.55), rgba(4,3,6,0.95));
+      radial-gradient(ellipse at center, rgba(28,16,12,0.95), rgba(4,3,6,1)),
+      #040306;
     text-align:center; opacity:0; pointer-events:none; transition:opacity 0.4s;
     padding:20px; overflow-y:auto;
   }
   .overlay.show{ opacity:1; pointer-events:auto; }
   .overlay h1{
     color:var(--gold); font-size:30px; letter-spacing:4px; margin:0 0 16px;
-    text-shadow:0 0 24px rgba(224,178,79,0.75), 0 2px 1px rgba(0,0,0,0.7);
+    text-shadow:0 0 24px rgba(46,230,255,0.75), 0 2px 1px rgba(0,0,0,0.7);
     position:relative; padding-bottom:12px;
   }
   .overlay h1::after{
@@ -98,12 +137,13 @@
   }
   .overlay p{ color:#c9b28a; font-size:12px; letter-spacing:2px; margin:0 0 20px; }
   .btn{
-    background:linear-gradient(180deg, #ff9257, #d1541c 55%, #a8391a);
+    margin-top:14px;
+    background:linear-gradient(180deg, #ff5cc4, #d1207e 55%, #7a0f42);
     color:#fff8ec; border:2px solid var(--gold);
     padding:12px 30px; font-size:14px; letter-spacing:2px;
     border-radius:5px; cursor:pointer; font-family:inherit;
     text-shadow:0 1px 2px rgba(0,0,0,0.55);
-    box-shadow:0 4px 0 #5a2408, 0 6px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+    box-shadow:0 4px 0 #5a0a35, 0 6px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
     transition:transform 0.08s, box-shadow 0.08s;
   }
   .btn:active{
@@ -114,15 +154,15 @@
   .heroCard{
     width:130px;
     background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
-    border:2px solid #6b4f2e; border-radius:10px;
+    border:2px solid rgba(46,230,255,0.45); border-radius:10px;
     padding:12px 10px; cursor:pointer;
-    box-shadow:inset 0 0 0 1px rgba(224,178,79,0.14), 0 3px 10px rgba(0,0,0,0.4);
+    box-shadow:inset 0 0 0 1px rgba(46,230,255,0.14), 0 3px 10px rgba(0,0,0,0.4);
     transition:border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   }
   .heroCard:active{ transform:translateY(1px); }
   .heroCard.selected{
     border-color:var(--gold);
-    box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(224,178,79,0.45), inset 0 0 14px rgba(224,178,79,0.14);
+    box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(46,230,255,0.45), inset 0 0 14px rgba(46,230,255,0.14);
     transform:translateY(-2px);
   }
   .heroCard img{ width:88px; height:88px; object-fit:contain; image-rendering:pixelated; display:block; margin:0 auto 6px;
@@ -133,19 +173,19 @@
     border-top:1px solid var(--gold-soft); padding-top:14px; width:100%; max-width:420px; text-align:center;
     text-shadow:0 1px 2px rgba(0,0,0,0.5);
   }
-  .stageList2{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:420px; }
+  .stageList2{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:420px; margin-bottom:26px; }
   .stageCard2{
     width:110px;
     background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
-    border:2px solid #6b4f2e; border-radius:10px;
+    border:2px solid rgba(46,230,255,0.45); border-radius:10px;
     padding:10px 8px; cursor:pointer; position:relative;
-    box-shadow:inset 0 0 0 1px rgba(224,178,79,0.14), 0 3px 10px rgba(0,0,0,0.4);
+    box-shadow:inset 0 0 0 1px rgba(46,230,255,0.14), 0 3px 10px rgba(0,0,0,0.4);
     transition:border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   }
   .stageCard2:active{ transform:translateY(1px); }
   .stageCard2.selected{
     border-color:var(--gold);
-    box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(224,178,79,0.45), inset 0 0 14px rgba(224,178,79,0.14);
+    box-shadow:0 0 0 1px var(--gold), 0 0 18px rgba(46,230,255,0.45), inset 0 0 14px rgba(46,230,255,0.14);
     transform:translateY(-2px);
   }
   .stageCard2 img{ width:64px; height:64px; object-fit:contain; image-rendering:pixelated; display:block; margin:0 auto 6px;
@@ -158,7 +198,7 @@
     width:64px; height:64px; margin:0 auto 6px;
     display:flex; align-items:center; justify-content:center;
     background:radial-gradient(circle, rgba(0,0,0,0.55), rgba(0,0,0,0.75));
-    border:1px dashed #6b5a42; border-radius:8px;
+    border:1px dashed rgba(46,230,255,0.4); border-radius:8px;
     font-size:28px; color:#7a6a52; text-shadow:0 0 10px rgba(0,0,0,0.7);
   }
   .stageCard2.challengeCard{ border-color:#4a6a8a; }
@@ -173,10 +213,56 @@
   }
   .stageCard2.challengeCard .sName{ color:#9fc8ff; }
   .btn:disabled{ opacity:0.4; cursor:default; box-shadow:none; transform:none; }
+  .btnGhost{
+    background:transparent; color:#2ee6ff; border:1px solid rgba(46,230,255,0.5);
+    box-shadow:none; text-shadow:none;
+  }
+  .btnGhost:active{ background:rgba(46,230,255,0.08); }
 
   .rulesBtn{ font-size:11px; padding:8px 18px; margin-bottom:6px; }
+  .topLinks{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:4px; }
+  .topLinks .btn{ margin-top:0; }
   .dataHint{ color:#8f7a5c; font-size:10px; line-height:1.6; max-width:360px; margin:0 auto 12px; }
   .dataRow{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; }
+  .dangerZone{
+    margin-top:26px; padding-top:16px;
+    border-top:1px solid rgba(46,230,255,0.15);
+  }
+  .linkBtn{
+    background:none; border:none; color:rgba(46,230,255,0.4); font-size:10px;
+    text-decoration:underline; font-family:inherit; cursor:pointer; padding:8px;
+    letter-spacing:1px;
+  }
+  .linkBtn:active{ color:#9a8560; }
+  .rankPanel{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center;
+    background:#120c10; border:2px solid var(--gold); border-radius:12px;
+    padding:26px 22px; box-shadow:0 0 0 1px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.6), inset 0 0 40px rgba(46,230,255,0.06);
+    width:100%; max-width:360px;
+  }
+  #rankingOverlay{ background:rgba(4,3,6,0.88); }
+  .rankList{ width:100%; max-width:320px; margin-bottom:6px; }
+  .rankRow{
+    display:flex; align-items:center; gap:10px;
+    background:rgba(74,44,26,0.28); border:1px solid rgba(46,230,255,0.35); border-radius:6px;
+    padding:9px 14px; margin-bottom:8px; text-align:left;
+  }
+  .rankRow .rank{ color:var(--gold); font-weight:bold; font-size:15px; width:22px; flex-shrink:0; }
+  .rankRow .rname{ flex:1; color:#f0e4c8; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rankRow .rscore{ color:var(--gold); font-size:14px; font-weight:bold; }
+  .submitBox{
+    margin:14px 0; padding:14px; width:100%; max-width:320px;
+    background:rgba(74,44,26,0.28); border:1px solid rgba(46,230,255,0.35); border-radius:6px;
+  }
+  .submitBox p{ color:var(--gold); font-size:12px; letter-spacing:1px; margin:0 0 10px; }
+  .nameInput{
+    width:100%; padding:9px 12px; font-size:14px; font-family:inherit;
+    background:rgba(10,8,14,0.6); border:1px solid var(--gold); border-radius:4px;
+    color:#f0e4c8; box-sizing:border-box; margin-bottom:8px;
+  }
+  .nameInput::placeholder{ color:#7a6a52; }
+  .hidden{ display:none !important; }
   .dataRow .btn{ font-size:11px; padding:9px 16px; }
   label.btn{ display:inline-block; }
 
@@ -184,12 +270,12 @@
   .ruleStep{
     display:flex; align-items:flex-start; gap:12px;
     background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
-    border:2px solid #6b4f2e; border-radius:10px; padding:12px 14px;
-    box-shadow:inset 0 0 0 1px rgba(224,178,79,0.14);
+    border:2px solid rgba(46,230,255,0.45); border-radius:10px; padding:12px 14px;
+    box-shadow:inset 0 0 0 1px rgba(46,230,255,0.14);
   }
   .ruleStep .rNum{
     flex-shrink:0; width:30px; height:30px; border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, rgba(224,178,79,0.35), rgba(0,0,0,0.3));
+    background:radial-gradient(circle at 35% 30%, rgba(46,230,255,0.35), rgba(0,0,0,0.3));
     border:1px solid var(--gold); color:var(--gold); font-weight:bold;
     display:flex; align-items:center; justify-content:center; font-size:14px;
   }
@@ -202,13 +288,14 @@
     font-size:11px; color:#f0e4c8;
   }
   .rDiagram .box{
-    background:rgba(0,0,0,0.35); border:1px solid rgba(224,178,79,0.4); border-radius:6px;
+    background:rgba(0,0,0,0.35); border:1px solid rgba(46,230,255,0.4); border-radius:6px;
     padding:4px 9px; white-space:nowrap;
   }
   .rDiagram .arrow{ color:var(--gold); font-size:13px; }
 </style>
 </head>
 <body>
+<a href="index.html" class="backBtn" id="backToHubBtn">◀</a>
 <div id="stage">
   <canvas id="game"></canvas>
 
@@ -217,11 +304,11 @@
     <div class="hpOuter" id="hpOuter">
       <div class="hpFillBg"></div>
       <div class="hpFill" id="hpFill"></div>
-      <div class="hpText" id="hpText">8000 / 8000</div>
+      <div class="hpText pixelFont" id="hpText">8000 / 8000</div>
     </div>
     <div class="challengeScoreBar" id="challengeScoreBar">
-      <div class="csItem"><small>記録</small><span id="challengeScoreVal">0</span></div>
-      <div class="csItem"><small>自己ベスト</small><span id="challengeBestVal">0</span></div>
+      <div class="csItem"><small>記録</small><span class="pixelFont" id="challengeScoreVal">0</span></div>
+      <div class="csItem"><small>自己ベスト</small><span class="pixelFont" id="challengeBestVal">0</span></div>
     </div>
     <div class="stageTag" id="stageTag">STAGE 1 — 目標: 64 を1回出す</div>
   </div>
@@ -230,27 +317,54 @@
 
   <div class="overlay show" id="selectScreen">
     <h1>ホーム</h1>
+    <p style="margin-bottom:2px;">討伐2048 v0.1</p>
     <p>勇者とステージを選んで出発</p>
-    <button class="btn btnGhost rulesBtn" id="rulesBtn">？ 遊び方を見る</button>
+    <div class="topLinks">
+      <button class="btn btnGhost rulesBtn btnCyan" id="rulesBtn">？ 遊び方</button>
+      <button class="btn btnGhost rulesBtn pixelFont btnCyan" id="openRankingBtn" style="font-size:11px;">🏆 RANKING</button>
+    </div>
     <div class="sectionLabel">勇者を選択</div>
     <div class="heroList" id="heroList"></div>
     <div class="sectionLabel">ステージを選択</div>
     <div class="stageList2" id="stageSelectList"></div>
-    <button class="btn" id="startBattleBtn" disabled>出発する</button>
+    <button class="btn pixelFont" id="startBattleBtn" disabled style="font-size:14px;">START</button>
 
     <div class="sectionLabel">データ管理</div>
-    <p class="dataHint">解放状況やベスト記録はこの端末のブラウザに保存されます。消えるのが心配な場合はバックアップを取っておいてください。</p>
+    <p class="dataHint">ランキングに登録されるのは名前とチャレンジのスコアだけです。ステージの解放状況(ドラゴンや魔王まで進んだか)はこの端末のブラウザだけに保存されていて、ランキングには含まれません。機種変更やキャッシュクリアで消えるのが心配な場合は、バックアップを取っておくと解放状況を復元できます。</p>
     <div class="dataRow">
-      <button class="btn btnGhost" id="exportBtn">バックアップを保存</button>
-      <label class="btn btnGhost" id="importLabel" for="importInput">バックアップから復元</label>
+      <button class="btn btnGhost btnCyan" id="exportBtn">バックアップを保存</button>
+      <label class="btn btnGhost btnCyan" id="importLabel" for="importInput">バックアップから復元</label>
       <input type="file" id="importInput" accept="application/json" style="display:none;">
+    </div>
+    <div class="dangerZone">
+      <button class="linkBtn" id="resetRecordBtn">ステージ解放状況・チャレンジ記録をリセット</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="confirmOverlay">
+    <div class="rankPanel">
+      <h1>確認</h1>
+      <p id="confirmMessage" style="color:#f0e4c8; font-size:13px; letter-spacing:0.5px; line-height:1.7; margin:0 0 6px;"></p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px; width:100%;">
+        <button class="btn" id="confirmOkBtn" style="width:100%; background:linear-gradient(180deg, #d1544a, #8b2418 55%, #6b1a10); margin-top:0; white-space:nowrap;">実行する</button>
+        <button class="btn btnGhost btnGreen" id="confirmCancelBtn" style="width:100%; margin-top:0; white-space:nowrap;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="rankingOverlay">
+    <div class="rankPanel">
+      <button class="closeX" id="closeRankingBtn">✕</button>
+      <h1>ランキング</h1>
+      <p>チャレンジモード TOP 5</p>
+      <div class="rankList" id="rankList"></div>
     </div>
   </div>
 
   <div class="overlay" id="rulesOverlay">
+    <button class="closeX" id="closeRulesBtn">✕</button>
     <h1>遊び方</h1>
     <div class="rulesFlow" id="rulesFlow"></div>
-    <button class="btn" id="closeRulesBtn">閉じる</button>
   </div>
 
   <div class="overlay" id="winOverlay">
@@ -260,17 +374,30 @@
   </div>
 
   <div class="overlay" id="loseOverlay">
-    <h1 id="loseTitle" style="color:#c0392b; text-shadow:0 0 18px rgba(192,57,43,0.5);">退却…</h1>
+    <h1 id="loseTitle" class="pixelFont" style="font-size:clamp(16px,5.5vw,26px); color:#ff2e5c; text-shadow:0 0 18px rgba(255,46,92,0.6); margin-bottom:18px;">GAME OVER</h1>
     <p id="loseSub">盤面が埋まってしまった</p>
     <p class="score-line" id="loseScoreLine" style="display:none; color:#f0e4c8; font-size:14px;">今回の記録 <b id="loseScoreVal" style="color:var(--gold); font-size:20px;">0</b></p>
     <p class="score-line" id="loseBestLine" style="display:none; color:#f0e4c8; font-size:12px;">自己ベスト <b id="loseBestVal" style="color:var(--gold);">0</b></p>
-    <button class="btn" id="retryStageBtn">このステージをやり直す</button>
-    <button class="btn btnGhost" id="loseHomeBtn" style="background:transparent;color:#c9b28a;border:1px solid #6b5a42;box-shadow:none;">ホームに戻る</button>
+    <div class="submitBox hidden" id="submitBox">
+      <p>🏆 自己ベスト更新！名前を登録する？</p>
+      <input class="nameInput" id="nameInput" maxlength="20" placeholder="名前(20文字まで)">
+      <button class="btn btnGhost pixelFont btnYellow" id="submitScoreBtn" style="margin-top:0; font-size:11px;">SIGN UP</button>
+    </div>
+    <button class="btn pixelFont" id="retryStageBtn" style="font-size:11px;">このステージをやり直す</button>
+    <button class="btn btnGhost pixelFont btnCyan" id="loseHomeBtn" style="font-size:11px;">HOME</button>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
+  // ---------- ランキング(Supabase) ----------
+  const sb = supabase.createClient(
+    'https://hqbjlblvijynijvgknih.supabase.co',
+    'sb_publishable_QSUrJMJKz0tZwBYBiskyWQ_usDk6Wj9'
+  );
+  const RANK_TABLE = 'boss_battle_scores';
+  let isNewChallengeBest = false;
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const stageEl = document.getElementById('stage');
@@ -294,6 +421,14 @@
   const closeRulesBtn = document.getElementById('closeRulesBtn');
   const exportBtn = document.getElementById('exportBtn');
   const importInput = document.getElementById('importInput');
+  const openRankingBtn = document.getElementById('openRankingBtn');
+  const backToHubBtn = document.getElementById('backToHubBtn');
+  const closeRankingBtn = document.getElementById('closeRankingBtn');
+  const rankingOverlay = document.getElementById('rankingOverlay');
+  const rankList = document.getElementById('rankList');
+  const submitBox = document.getElementById('submitBox');
+  const nameInput = document.getElementById('nameInput');
+  const submitScoreBtn = document.getElementById('submitScoreBtn');
   const bossNameEl = document.getElementById('bossNameEl');
   const winOverlay = document.getElementById('winOverlay');
   const winTitle = document.getElementById('winTitle');
@@ -580,6 +715,97 @@
     importInput.value = '';
   });
 
+  // ---------- 確認モーダル ----------
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const confirmMessage = document.getElementById('confirmMessage');
+  const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+  const confirmOkBtn = document.getElementById('confirmOkBtn');
+  let confirmCallback = null;
+  function showConfirm(message, onConfirm){
+    confirmMessage.textContent = message;
+    confirmCallback = onConfirm;
+    confirmOverlay.classList.add('show');
+  }
+  confirmCancelBtn.addEventListener('click', ()=>{
+    confirmOverlay.classList.remove('show');
+    confirmCallback = null;
+  });
+  confirmOkBtn.addEventListener('click', ()=>{
+    confirmOverlay.classList.remove('show');
+    if(confirmCallback) confirmCallback();
+    confirmCallback = null;
+  });
+
+  function resetPlayerRecord(){
+    try{
+      localStorage.removeItem('bossDemoUnlockedStages');
+      localStorage.removeItem('bossDemoChallengeBest');
+    }catch(e){}
+    unlockedStages = 1;
+    challengeBest = 0;
+    buildStageSelect();
+    updateChallengeUI();
+  }
+  const resetRecordBtn = document.getElementById('resetRecordBtn');
+  resetRecordBtn.addEventListener('click', ()=>{
+    showConfirm('ステージ解放状況とチャレンジのベスト記録をリセットします。よろしいですか？', resetPlayerRecord);
+  });
+
+  async function fetchTop5(){
+    rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">読み込み中...</p>';
+    try{
+      const { data, error } = await sb
+        .from(RANK_TABLE)
+        .select('name, score')
+        .order('score', { ascending:false })
+        .limit(5);
+      if(error) throw error;
+      if(!data || data.length===0){
+        rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">まだ記録がありません</p>';
+        return;
+      }
+      rankList.innerHTML = '';
+      data.forEach((row,i)=>{
+        const el = document.createElement('div');
+        el.className = 'rankRow';
+        el.innerHTML = `<span class="rank">${i+1}</span><span class="rname"></span><span class="rscore">${Math.floor(row.score)}</span>`;
+        el.querySelector('.rname').textContent = row.name;
+        rankList.appendChild(el);
+      });
+    }catch(e){
+      rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">読み込みに失敗しました</p>';
+      console.error(e);
+    }
+  }
+  async function submitScoreToRanking(name, score){
+    try{
+      const { error } = await sb.from(RANK_TABLE).insert({ name, score:Math.floor(score) });
+      if(error) throw error;
+      return true;
+    }catch(e){
+      console.error(e);
+      return false;
+    }
+  }
+  openRankingBtn.addEventListener('click', ()=>{
+    rankingOverlay.classList.add('show');
+    fetchTop5();
+  });
+  closeRankingBtn.addEventListener('click', ()=> rankingOverlay.classList.remove('show'));
+  submitScoreBtn.addEventListener('click', async ()=>{
+    const name = nameInput.value.trim();
+    if(!name){ nameInput.focus(); return; }
+    submitScoreBtn.disabled = true;
+    submitScoreBtn.textContent = '送信中...';
+    const ok = await submitScoreToRanking(name, challengeScore);
+    if(ok){
+      submitScoreBtn.textContent = '登録しました！';
+    } else {
+      submitScoreBtn.textContent = '失敗…もう一度';
+      submitScoreBtn.disabled = false;
+    }
+  });
+
 
   let W,H;
   function resize(){
@@ -811,6 +1037,7 @@
       if(challengeScore > challengeBest){
         challengeBest = challengeScore;
         persistChallengeBest();
+        isNewChallengeBest = true;
       }
     }
     if(allMergedTiers.length){
@@ -827,19 +1054,28 @@
         // 最後の一手でボスも倒していた場合は、そちらの勝利演出を優先する
         if(defeated) return;
         if(challengeMode){
-          loseTitle.textContent = '記録終了';
+          loseTitle.textContent = 'GAME OVER';
           loseSub.textContent = '盤面が埋まりました';
           loseScoreLine.style.display = '';
           loseBestLine.style.display = '';
           loseScoreVal.textContent = challengeScore;
           loseBestVal.textContent = challengeBest;
-          retryStageBtn.textContent = 'もう一度挑戦する';
+          retryStageBtn.textContent = 'RETRY';
+          if(isNewChallengeBest && challengeScore>0){
+            nameInput.value = '';
+            submitScoreBtn.disabled = false;
+            submitScoreBtn.textContent = 'SIGN UP';
+            submitBox.classList.remove('hidden');
+          } else {
+            submitBox.classList.add('hidden');
+          }
         } else {
-          loseTitle.textContent = '退却…';
+          loseTitle.textContent = 'GAME OVER';
           loseSub.textContent = '盤面が埋まってしまった';
           loseScoreLine.style.display = 'none';
           loseBestLine.style.display = 'none';
-          retryStageBtn.textContent = 'このステージをやり直す';
+          retryStageBtn.textContent = 'RETRY';
+          submitBox.classList.add('hidden');
         }
         loseOverlay.classList.add('show');
       }, 500);
@@ -875,6 +1111,7 @@
   function loadChallenge(){
     challengeMode = true;
     defeated = false;
+    isNewChallengeBest = false;
     stageIndex = STAGES.length-1; // 魔王を表示(HPは扱わず殴り応え用)
     bossScale = 1;
     bossFlash = 0;
@@ -1086,7 +1323,7 @@
           ctx.fillStyle = (tier===1 || tier===15) ? '#2a1a10' : '#fff8ec';
           ctx.strokeStyle = 'rgba(0,0,0,0.45)';
           ctx.lineWidth = Math.max(1, cellSize*0.03);
-          ctx.font = `bold ${Math.floor(cellSize*0.4)}px Georgia`;
+          ctx.font = `bold ${Math.floor(cellSize*0.32)}px 'Press Start 2P', Georgia`;
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.strokeText(String(Math.pow(2,tier)), 0, 1);
           ctx.fillText(String(Math.pow(2,tier)), 0, 1);
@@ -1379,6 +1616,7 @@
     const dt = Math.min(0.033,(now-lastTime)/1000);
     lastTime = now;
     animT += dt;
+    backToHubBtn.classList.toggle('hide', !selectScreen.classList.contains('show') || rulesOverlay.classList.contains('show') || rankingOverlay.classList.contains('show') || confirmOverlay.classList.contains('show'));
 
     if(shake>0) shake = Math.max(0, shake-dt*3.2);
     if(bossFlash>0) bossFlash = Math.max(0, bossFlash-dt*5);
@@ -1427,8 +1665,8 @@
     ctx.lineTo(cw*-0.02, floorY+10);
     ctx.closePath(); ctx.fill();
 
-    // ボス(右上寄り。中央〜下は2048グリッド用に空けておく)
-    drawBoss(cw*0.78, ch*0.22, bossFlash, Math.max(0,bossScale));
+    // ボス(右上寄り。中央〜下は2048グリッド用に空けておく。HPバー/記録ボックスと被らないよう少し下げている)
+    drawBoss(cw*0.78, ch*0.30, bossFlash, Math.max(0,bossScale));
     // 勇者(左下寄り)
     if(bossScale>0 || !defeated) drawHero(cw*0.18, ch*0.90, heroLunge);
 
@@ -1455,7 +1693,7 @@
     ctx.textAlign='center';
     floaters.forEach(f=>{
       ctx.globalAlpha = Math.max(0,f.life);
-      ctx.font = `bold ${f.big?30:20}px Georgia`;
+      ctx.font = `bold ${f.big?24:16}px 'Press Start 2P', Georgia`;
       ctx.fillStyle = f.big ? '#ffd54f' : '#ff8a65';
       ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth=3;
       ctx.strokeText(f.text, f.x, f.y);

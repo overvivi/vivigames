@@ -4,21 +4,66 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>遺跡ランナー — 奈落回避</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
+  .pixelFont{ font-family:'Press Start 2P','Georgia',monospace !important; vertical-align:middle; }
+  .btnCyan{
+    background:linear-gradient(180deg, #5be0ff, #0a8bb8 55%, #054a63) !important;
+    color:#fff !important; border-color:#2ee6ff !important;
+    text-shadow:0 1px 2px rgba(0,0,0,0.5) !important;
+  }
+  .btnYellow{
+    background:linear-gradient(180deg, #e8ff9a, #8ab82a 55%, #4a6010) !important;
+    color:#1a2005 !important; border-color:#c6ff4d !important;
+    text-shadow:none !important;
+  }
+  .btnGreen{
+    background:linear-gradient(180deg, #8affc0, #14a862 55%, #0a5a30) !important;
+    color:#062012 !important; border-color:#4dffa0 !important;
+    text-shadow:none !important;
+  }
+
+  .backBtn{
+    position:fixed; top:14px; left:14px; z-index:80;
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(0,0,0,0.55); border:1px solid rgba(46,230,255,0.5);
+    color:#2ee6ff; font-size:16px; text-decoration:none; font-family:inherit;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 8px rgba(46,230,255,0.3);
+    transition:opacity 0.2s;
+  }
+  .backBtn.hide{ opacity:0; pointer-events:none; }
+  .closeX{
+    position:fixed; top:14px; right:14px; z-index:90;
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(46,230,255,0.22); border:1px solid rgba(46,230,255,0.7);
+    color:#2ee6ff; font-size:16px; line-height:1; cursor:pointer; font-family:inherit;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 8px rgba(46,230,255,0.3);
+  }
   :root{
     --sky-top:#1a0f0a;
     --sky-bottom:#4a2c1a;
-    --gold:#d4a94f;
-    --ember:#e0662a;
+    --gold:#2ee6ff;
+    --ember:#ff2e9a;
     --void:#0a0603;
     --ui-bg:rgba(20,14,10,0.82);
   }
-  *{box-sizing:border-box;}
+  *{
+    box-sizing:border-box;
+    -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
+    touch-action:none;
+  }
   html,body{
     margin:0; padding:0; height:100%; overflow:hidden;
     background:#000;
     font-family:'Georgia','Yu Mincho',serif;
     -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     user-select:none;
   }
   #stage{
@@ -26,8 +71,11 @@
     width:100%; height:100%;
     max-width:560px; margin:0 auto;
     background:linear-gradient(var(--sky-top), var(--sky-bottom));
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
   }
-  canvas{ display:block; width:100%; height:100%; touch-action:none; }
+  canvas{ display:block; width:100%; height:100%; touch-action:none; -webkit-user-select:none; -webkit-touch-callout:none; }
   .hud{
     position:absolute; top:0; left:0; right:0;
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -58,24 +106,27 @@
   .overlay{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, rgba(20,14,10,0.55), rgba(6,4,3,0.92));
+    background:
+      radial-gradient(ellipse at center, rgba(20,14,10,0.9), rgba(6,4,3,1)),
+      #0a0603;
     text-align:center; padding:24px;
     overflow-y:auto;
   }
   .overlay h1{
     color:var(--gold); font-size:clamp(26px,7vw,38px);
-    margin:0 0 6px; text-shadow:0 0 18px rgba(212,169,79,0.5); letter-spacing:3px;
+    margin:0 0 6px; text-shadow:0 0 18px rgba(46,230,255,0.5); letter-spacing:3px;
   }
   .overlay p.sub{ color:#c9b28a; font-size:13px; letter-spacing:2px; margin:0 0 26px; }
-  .overlay .score-line{ color:#f0e4c8; font-size:15px; margin:2px 0; }
+  .overlay .score-line{ color:#f0e4c8; font-size:15px; margin:10px 0; }
   .overlay .score-line b{ color:var(--gold); font-size:24px; }
   .btn{
     margin-top:20px;
-    background:linear-gradient(var(--ember), #a8451a);
+    background:linear-gradient(var(--ember), #7a0f42);
     color:#fff8ec; border:1px solid var(--gold);
     padding:13px 38px; font-size:17px; letter-spacing:2px;
     border-radius:3px; cursor:pointer; font-family:inherit;
-    box-shadow:0 4px 14px rgba(224,102,42,0.4);
+    text-shadow:0 1px 2px rgba(0,0,0,0.55);
+    box-shadow:0 4px 14px rgba(255,46,154,0.45);
   }
   .btn:active{ transform:translateY(1px); }
   .rules{ margin-top:18px; color:#8f7a5c; font-size:11px; line-height:1.9; letter-spacing:1px; }
@@ -83,10 +134,48 @@
   .btnGhost{
     margin-top:10px;
     background:transparent;
-    color:#c9b28a;
-    border:1px solid #6b5a42;
+    color:#2ee6ff;
+    border:1px solid rgba(46,230,255,0.5);
     box-shadow:none;
   }
+  .dangerZone{
+    margin-top:46px; padding-top:16px;
+    border-top:1px solid rgba(46,230,255,0.15);
+  }
+  .linkBtn{
+    background:none; border:none; color:rgba(46,230,255,0.4); font-size:10px;
+    text-decoration:underline; font-family:inherit; cursor:pointer; padding:8px;
+    letter-spacing:1px;
+  }
+  .linkBtn:active{ color:#9a8560; }
+  .rankPanel{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center;
+    background:#120c10; border:2px solid var(--gold); border-radius:12px;
+    padding:26px 22px; box-shadow:0 0 0 1px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.6), inset 0 0 40px rgba(224,178,79,0.06);
+    width:100%; max-width:360px;
+  }
+  #rankingOverlay{ background:rgba(4,3,6,0.88); }
+  .rankList{ width:100%; max-width:320px; margin-bottom:6px; }
+  .rankRow{
+    display:flex; align-items:center; gap:10px;
+    background:rgba(74,44,26,0.28); border:1px solid rgba(46,230,255,0.35); border-radius:6px;
+    padding:9px 14px; margin-bottom:8px; text-align:left;
+  }
+  .rankRow .rank{ color:var(--gold); font-weight:bold; font-size:15px; width:22px; flex-shrink:0; }
+  .rankRow .rname{ flex:1; color:#f0e4c8; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rankRow .rscore{ color:var(--gold); font-size:14px; font-weight:bold; }
+  .submitBox{
+    margin-top:14px; padding:14px; width:100%; max-width:320px;
+    background:rgba(74,44,26,0.28); border:1px solid rgba(46,230,255,0.35); border-radius:6px;
+  }
+  .submitBox p{ color:var(--gold); font-size:12px; letter-spacing:1px; margin:0 0 10px; }
+  .nameInput{
+    width:100%; padding:9px 12px; font-size:14px; font-family:inherit;
+    background:rgba(10,8,14,0.6); border:1px solid var(--gold); border-radius:4px;
+    color:#f0e4c8; box-sizing:border-box; margin-bottom:8px;
+  }
+  .nameInput::placeholder{ color:#7a6a52; }
   .abilityList{
     display:flex; flex-direction:column; gap:10px;
     width:100%; max-width:360px;
@@ -95,7 +184,7 @@
   .abilityCard{
     display:flex; align-items:center; gap:12px;
     background:rgba(74,44,26,0.35);
-    border:1px solid #5a4632;
+    border:1px solid rgba(46,230,255,0.35);
     border-radius:6px;
     padding:10px 12px;
     text-align:left;
@@ -105,7 +194,7 @@
   }
   .abilityCard.selected{
     border-color:var(--gold);
-    background:rgba(212,169,79,0.16);
+    background:rgba(46,230,255,0.16);
   }
   .abilityCard .abilityIcon{ font-size:24px; width:30px; text-align:center; flex-shrink:0; }
   .abilityCard .abilityText{ flex:1; }
@@ -139,9 +228,9 @@
     text-shadow:0 0 12px rgba(244,214,117,0.8);
   }
   .unlockBanner .unlockName{
-    color:#fff8ec; font-size:26px; font-weight:bold; letter-spacing:3px;
+    color:#fff8ec; font-size:22px; font-weight:bold; letter-spacing:1.5px;
     text-shadow:0 0 20px rgba(244,214,117,0.9), 0 0 6px rgba(255,255,255,0.6);
-    margin-top:2px;
+    margin-top:2px; white-space:nowrap;
   }
   .tapHint{
     position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
@@ -152,13 +241,14 @@
 </style>
 </head>
 <body>
+<a href="index.html" class="backBtn" id="backToHubBtn">◀</a>
 <div id="stage">
   <canvas id="game"></canvas>
 
   <div class="hud">
-    <div class="badge"><small>スコア</small><span id="distanceVal">0</span></div>
-    <div class="badge"><small>距離</small><span id="distMVal">0</span> m</div>
-    <div class="badge"><small>ベスト</small><span id="bestVal">0</span></div>
+    <div class="badge"><small>スコア</small><span class="pixelFont" id="distanceVal">0</span></div>
+    <div class="badge"><small>距離</small><span class="pixelFont" id="distMVal">0</span> m</div>
+    <div class="badge"><small>ベスト</small><span class="pixelFont" id="bestVal">0</span></div>
   </div>
   <div class="tapHint" id="tapHint">タップでジャンプ</div>
 
@@ -168,16 +258,40 @@
   </div>
 
   <div class="overlay" id="startScreen">
-    <h1>奈落回避ランナー</h1>
-    <p class="sub">RUIN DASH — JUMP ONLY</p>
+    <h1 class="pixelFont" style="font-size:clamp(18px,6vw,30px); line-height:1.6;">HELL RUNNER</h1>
+    <p class="sub">v0.2 — JUMP ONLY</p>
     <div class="rules">
       画面タップ / Space / ↑ : ジャンプ(空中でもう一度、2段ジャンプ)<br>
+      ジャンプ中に長押しすると滑空(滑空を解放していれば)<br>
       小さな段差は歩いて登れるが、大きな段差はジャンプ必須<br>
-      壁に阻まれると後ろへ流される。画面端まで流されたら転落<br>
-      紫のコインは高得点だが、奈落の直前に出ると危険な釣り餌の場合も
+      壁に阻まれると後ろへ流される。画面端まで流されたら転落
     </div>
-    <button class="btn" id="startBtn">走り出す</button>
-    <button class="btn btnGhost" id="openAbilityBtn">能力選択</button>
+    <button class="btn pixelFont" id="startBtn" style="font-size:11px; width:260px;">START</button>
+    <button class="btn btnGhost pixelFont btnCyan" id="openAbilityBtn" style="font-size:11px; width:260px;">ABILITY</button>
+    <button class="btn btnGhost pixelFont btnCyan" id="openRankingBtn" style="font-size:11px; width:260px;">RANKING</button>
+    <div class="dangerZone">
+      <button class="linkBtn" id="resetRecordBtn">ベスト記録をリセット</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="confirmOverlay">
+    <div class="rankPanel">
+      <h1>確認</h1>
+      <p class="sub" id="confirmMessage" style="color:#f0e4c8; letter-spacing:0.5px; line-height:1.7;"></p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px; width:100%;">
+        <button class="btn" id="confirmOkBtn" style="width:100%; background:linear-gradient(180deg, #d1544a, #8b2418 55%, #6b1a10); margin-top:0; white-space:nowrap;">実行する</button>
+        <button class="btn btnGhost btnGreen" id="confirmCancelBtn" style="width:100%; margin-top:0; white-space:nowrap;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="rankingOverlay">
+    <div class="rankPanel">
+      <button class="closeX" id="closeRankingBtn">✕</button>
+      <h1>ランキング</h1>
+      <p class="sub">TOP 5</p>
+      <div class="rankList" id="rankList"></div>
+    </div>
   </div>
 
   <div class="overlay hidden" id="abilityScreen">
@@ -200,38 +314,109 @@
         </div>
         <div class="abilityCheck">✓</div>
       </div>
-      <div class="abilityCard" data-key="shura" id="card-shura">
-        <div class="abilityIcon">🔥</div>
+      <div class="abilityCard" data-key="glide" id="card-glide">
+        <div class="abilityIcon">🪂</div>
         <div class="abilityText">
-          <div class="abilityName">修羅モード</div>
-          <div class="abilityDesc">ゲーム速度1.5倍・スコアも1.5倍</div>
-        </div>
-        <div class="abilityCheck">✓</div>
-      </div>
-      <div class="abilityCard" data-key="kaioken" id="card-kaioken">
-        <div class="abilityIcon">👑</div>
-        <div class="abilityText">
-          <div class="abilityName">十倍界王拳</div>
-          <div class="abilityDesc">頭のサイズが10倍になる</div>
+          <div class="abilityName">滑空</div>
+          <div class="abilityDesc">ジャンプ中に長押しで滑空できる</div>
         </div>
         <div class="abilityCheck">✓</div>
       </div>
     </div>
-    <button class="btn" id="abilityStartBtn">この能力で開始</button>
-    <button class="btn btnGhost" id="abilityBackBtn">戻る</button>
+    <button class="btn pixelFont" id="abilityStartBtn" style="font-size:12px;">START</button>
+    <button class="btn btnGhost pixelFont btnCyan" id="abilityBackBtn" style="font-size:12px;">BACK</button>
   </div>
 
   <div class="overlay hidden" id="overScreen">
-    <h1 style="color:#c0392b; text-shadow:0 0 18px rgba(192,57,43,0.5);">GAME OVER</h1>
-    <p class="score-line">今回のスコア <b id="finalDistance">0</b></p>
-    <p class="score-line" id="bestLine">ベスト記録 <b id="finalBest">0</b></p>
-    <button class="btn" id="retryBtn">もう一度</button>
-    <button class="btn btnGhost" id="homeBtn">ホームに戻る</button>
+    <h1 class="pixelFont" style="font-size:clamp(16px,5.5vw,26px); color:#ff2e5c; text-shadow:0 0 18px rgba(255,46,92,0.6); margin-bottom:18px;">GAME OVER</h1>
+    <p class="score-line">今回のスコア <b class="pixelFont" id="finalDistance" style="margin-left:8px;">0</b></p>
+    <p class="score-line" id="bestLine">ベスト記録 <b class="pixelFont" id="finalBest" style="margin-left:8px;">0</b></p>
+    <div class="submitBox hidden" id="submitBox">
+      <p>🏆 ランキング入りかも！名前を登録する？</p>
+      <input class="nameInput" id="nameInput" maxlength="20" placeholder="名前(20文字まで)">
+      <button class="btn btnGhost pixelFont btnYellow" id="submitScoreBtn" style="margin-top:0; font-size:11px;">SIGN UP</button>
+    </div>
+    <button class="btn pixelFont" id="retryBtn" style="font-size:11px;">RETRY</button>
+    <button class="btn btnGhost pixelFont btnCyan" id="homeBtn" style="font-size:11px;">HOME</button>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
+  // ---------- ランキング(Supabase) ----------
+  const sb = supabase.createClient(
+    'https://hqbjlblvijynijvgknih.supabase.co',
+    'sb_publishable_QSUrJMJKz0tZwBYBiskyWQ_usDk6Wj9'
+  );
+  const RANK_TABLE = 'runner_scores';
+  const rankingOverlay = document.getElementById('rankingOverlay');
+  const rankList = document.getElementById('rankList');
+  const openRankingBtn = document.getElementById('openRankingBtn');
+  const backToHubBtn = document.getElementById('backToHubBtn');
+  const closeRankingBtn = document.getElementById('closeRankingBtn');
+  const submitBox = document.getElementById('submitBox');
+  const nameInput = document.getElementById('nameInput');
+  const submitScoreBtn = document.getElementById('submitScoreBtn');
+  let pendingScore = null;
+
+  async function fetchTop5(){
+    rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">読み込み中...</p>';
+    try{
+      const { data, error } = await sb
+        .from(RANK_TABLE)
+        .select('name, score')
+        .order('score', { ascending:false })
+        .limit(5);
+      if(error) throw error;
+      if(!data || data.length===0){
+        rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">まだ記録がありません</p>';
+        return;
+      }
+      rankList.innerHTML = '';
+      data.forEach((row,i)=>{
+        const el = document.createElement('div');
+        el.className = 'rankRow';
+        el.innerHTML = `<span class="rank">${i+1}</span><span class="rname"></span><span class="rscore">${Math.floor(row.score)}</span>`;
+        el.querySelector('.rname').textContent = row.name;
+        rankList.appendChild(el);
+      });
+    }catch(e){
+      rankList.innerHTML = '<p style="color:#8f7a5c;font-size:12px;">読み込みに失敗しました</p>';
+      console.error(e);
+    }
+  }
+  async function submitScore(name, score){
+    try{
+      const { error } = await sb.from(RANK_TABLE).insert({ name, score:Math.floor(score) });
+      if(error) throw error;
+      return true;
+    }catch(e){
+      console.error(e);
+      return false;
+    }
+  }
+  openRankingBtn.addEventListener('click', ()=>{
+    rankingOverlay.classList.remove('hidden');
+    fetchTop5();
+  });
+  closeRankingBtn.addEventListener('click', ()=> rankingOverlay.classList.add('hidden'));
+  submitScoreBtn.addEventListener('click', async ()=>{
+    const name = nameInput.value.trim();
+    if(!name){ nameInput.focus(); return; }
+    if(pendingScore==null) return;
+    submitScoreBtn.disabled = true;
+    submitScoreBtn.textContent = '送信中...';
+    const ok = await submitScore(name, pendingScore);
+    if(ok){
+      submitScoreBtn.textContent = '登録しました！';
+      pendingScore = null;
+    } else {
+      submitScoreBtn.textContent = '失敗…もう一度';
+      submitScoreBtn.disabled = false;
+    }
+  });
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
@@ -286,37 +471,54 @@
 
   let bestScore = 0;
   try{
-    const saved = localStorage.getItem('ruinDashBestScore');
+    const saved = localStorage.getItem('ruinDashBestScore_v2');
     if(saved) bestScore = parseFloat(saved) || 0;
   }catch(e){ /* storage unavailable, ignore */ }
   bestEl.textContent = Math.floor(bestScore);
 
   // ---------- abilities(能力選択) ----------
-  const ABILITY_THRESHOLDS = { reincarnate:2500, redbull:5000, shura:10000, kaioken:20000 };
-  const ABILITY_LABELS = { reincarnate:'転生', redbull:'レッドブル', shura:'修羅モード', kaioken:'十倍界王拳' };
-  const SECRET_ABILITIES = { kaioken:true }; // 隠し能力(ロック中は必要距離も表示しない)
-  let abilities = { reincarnate:false, redbull:false, shura:false, kaioken:false }; // このプレイで選択中の能力
-  let unlocked  = { reincarnate:false, redbull:false, shura:false, kaioken:false }; // 解放済みか(永続)
+  // v0.2: 修羅モード(1.5倍速)は実質詰みの難易度だったため廃止し「滑空」に差し替え。
+  // 十倍界王拳はプレイヤーが選ぶ能力ではなく、20000m到達で誰でも自動発動するステージギミックへ変更。
+  // 保存キーをv2に切り替えることで、旧バージョンのベスト記録・解放状況を自然にリセットしている。
+  const ABILITY_THRESHOLDS = { reincarnate:2500, redbull:5000, glide:10000 };
+  const ABILITY_LABELS = { reincarnate:'転生', redbull:'レッドブル', glide:'滑空' };
+  let abilities = { reincarnate:false, redbull:false, glide:false }; // このプレイで選択中の能力
+  let unlocked  = { reincarnate:false, redbull:false, glide:false }; // 解放済みか(永続)
   try{
-    const savedU = JSON.parse(localStorage.getItem('ruinDashUnlocks') || '{}');
+    const savedU = JSON.parse(localStorage.getItem('ruinDashUnlocks_v2') || '{}');
     unlocked.reincarnate = !!savedU.reincarnate;
     unlocked.redbull = !!savedU.redbull;
-    unlocked.shura = !!savedU.shura;
-    unlocked.kaioken = !!savedU.kaioken;
+    unlocked.glide = !!savedU.glide;
   }catch(e){ /* ignore */ }
   function persistUnlocks(){
-    try{ localStorage.setItem('ruinDashUnlocks', JSON.stringify(unlocked)); }catch(e){}
+    try{ localStorage.setItem('ruinDashUnlocks_v2', JSON.stringify(unlocked)); }catch(e){}
+  }
+  function resetPlayerRecord(){
+    try{
+      localStorage.removeItem('ruinDashBestScore_v2');
+      localStorage.removeItem('ruinDashUnlocks_v2');
+    }catch(e){}
+    bestScore = 0;
+    unlocked = { reincarnate:false, redbull:false, glide:false };
+    bestEl.textContent = 0;
+    renderAbilityScreen();
   }
   let usedReincarnate = false;
   let reviveTimer = 0; // 転生後の「地面に足をつけて3秒カウントダウン」用
   let maxJumpsThisRun = 2;
-  let milestoneHit = { reincarnate:false, redbull:false, shura:false, kaioken:false }; // このプレイで既に通知したか
+  let milestoneHit = { reincarnate:false, redbull:false, glide:false }; // このプレイで既に通知したか
   let unlockTimer = 0;
   let auraStage = 0; // 2500/5000/10000m到達で1→2→3と変化する演出段階(そのプレイ限定)
+  let kaiokenActive = false;   // 20000m到達で自動発動するステージギミック(このプレイ限定)
+  let kaiokenAnnounced = false;
+  const RIVAL_TRAIL = 130; // プレイヤーから少し後ろ(見えやすさ優先で以前より詰めた)
+  let rival = null; // 5000m到達で発生する影武者(このプレイ限定)。null=未発生
+  let holdingInput = false;    // タップ/キーを押し続けているか(滑空判定用)
+  let gliding = false;
 
   function renderAbilityScreen(){
-    const ICONS = { reincarnate:'🕊️', redbull:'⚡', shura:'🔥', kaioken:'👑' };
-    ['reincarnate','redbull','shura','kaioken'].forEach(key=>{
+    const ICONS = { reincarnate:'🕊️', redbull:'⚡', glide:'🪂' };
+    ['reincarnate','redbull','glide'].forEach(key=>{
       const card = document.getElementById('card-'+key);
       if(!card) return;
       card.classList.toggle('locked', !unlocked[key]);
@@ -329,12 +531,11 @@
         nameEl.textContent = ABILITY_LABELS[key];
         if(key==='reincarnate') descEl.textContent = '一度だけ、死んでも地上で途中からリスタート';
         if(key==='redbull') descEl.textContent = '3段ジャンプが可能になる';
-        if(key==='shura') descEl.textContent = 'ゲーム速度1.5倍・スコアも1.5倍';
-        if(key==='kaioken') descEl.textContent = '頭のサイズが10倍になる';
+        if(key==='glide') descEl.textContent = 'ジャンプ中に長押しで滑空できる';
       } else {
         iconEl.textContent = '🔒';
         nameEl.textContent = '???';
-        descEl.textContent = SECRET_ABILITIES[key] ? 'まだ見ぬ、隠された力……' : `距離 ${ABILITY_THRESHOLDS[key]}m 到達で解放`;
+        descEl.textContent = `距離 ${ABILITY_THRESHOLDS[key]}m 到達で解放`;
       }
     });
   }
@@ -376,18 +577,31 @@
   }
 
   function checkMilestones(distM){
-    ['reincarnate','redbull','shura','kaioken'].forEach(key=>{
+    ['reincarnate','redbull','glide'].forEach(key=>{
       if(!milestoneHit[key] && distM >= ABILITY_THRESHOLDS[key]){
         milestoneHit[key] = true;
         if(!unlocked[key]){
           unlocked[key] = true;
           persistUnlocks();
+          flashBanner('解放！', ABILITY_LABELS[key]); // 初めて解放した時だけ通知(既に解放済みなら毎回は出さない)
         }
-        flashBanner(key==='kaioken' ? 'シークレット能力解放！' : '解放！', ABILITY_LABELS[key]);
       }
     });
     // 覚醒エフェクト(黄→赤→水色)。プレイ中の距離だけで決まり、能力の解放状態とは無関係に発生する
     auraStage = distM>=10000 ? 3 : distM>=5000 ? 2 : distM>=2500 ? 1 : 0;
+    // 十倍界王拳: 20000m到達で誰でも自動発動するステージギミック(選択制ではない)
+    if(!kaiokenActive && distM >= 20000){
+      kaiokenActive = true;
+      flashBanner('ステージギミック発動！', '十倍界王拳');
+      playKaiokenSound();
+      spawnKaiokenBurst();
+    }
+    // 影武者ライバル: 5000m到達で誰でも強制発生するステージギミック
+    if(!rival && distM >= 1500){
+      spawnRival();
+      flashBanner('', 'ライバル登場！');
+      playRivalSound();
+    }
   }
 
   // ---------- state ----------
@@ -397,12 +611,14 @@
   let lastNarrow = false; // 直前が極端に狭い足場だったか(連続出現を防ぐ)
   let distance, speed, elapsed, frontier;
   let coinScore, jumpQueued;
+  const COMBO_WINDOW = 1.2; // この秒数以内に次のコインを取れればコンボ継続
+  let comboCount = 0, comboTimer = 0;
+  let comboTexts = []; // {x,y,life,text}
   let animT = 0;
   let deathDepth = 0; // 画面サイズに応じて可変(devicePixelRatio差を吸収)
 
   function currentScore(){
-    const raw = Math.floor(distance/9) + coinScore;
-    return Math.floor(abilities.shura ? raw*1.5 : raw);
+    return Math.floor(distance/9) + coinScore;
   }
 
   function resetGame(){
@@ -417,11 +633,19 @@
     speed = 640;
     elapsed = 0;
     coinScore = 0;
+    comboCount = 0;
+    comboTimer = 0;
+    comboTexts = [];
     jumpQueued = false;
     usedReincarnate = false;
     reviveTimer = 0;
     maxJumpsThisRun = abilities.redbull ? 3 : 2;
-    milestoneHit = { reincarnate:false, redbull:false, shura:false, kaioken:false };
+    milestoneHit = { reincarnate:false, redbull:false, glide:false };
+    kaiokenActive = false;
+    kaiokenAnnounced = false;
+    gliding = false;
+    rival = null;
+    rivalSpeech = 0;
     unlockTimer = 0;
     auraStage = 0;
     unlockBanner.classList.remove('show');
@@ -439,6 +663,7 @@
     }
     if(audioCtx && audioCtx.state === 'suspended'){ audioCtx.resume(); }
     loadFallSound();
+    loadRivalSounds();
   }
 
   function playTone(freq, duration, type, gainPeak, delay){
@@ -478,6 +703,216 @@
     playTone(160, 0.6, 'sawtooth', 0.18, 0.12);
     playTone(90,  0.8, 'sawtooth', 0.18, 0.28);
   }
+  function playKaiokenSound(){
+    // 発動の「気合い」を出す上昇音+雄叫び風のノイズ
+    [220,330,440,660,880].forEach((f,i)=>playTone(f,0.22,'sawtooth',0.16,i*0.05));
+    playTone(80, 0.5, 'sawtooth', 0.2, 0.2);
+  }
+  function spawnKaiokenBurst(){
+    for(let k=0;k<40;k++){
+      particles.push({
+        x: W*PLAYER_SCREEN_X_FRAC + (Math.random()-0.5)*80,
+        y: H*0.55 + (Math.random()-0.5)*140,
+        vx:(Math.random()-0.5)*300,
+        vy:-140-Math.random()*220,
+        life:0.6+Math.random()*0.6,
+        color: Math.random()<0.5 ? '#ffcf4d' : '#ff6a3d'
+      });
+    }
+  }
+
+  // ---------- 影武者ライバル(5000mで強制発生。プレイヤー入力は見ず、地形を先読みして自力でジャンプするAI) ----------
+  function playRivalSound(){
+    if(!rivalSpawnAudioBuffer){ loadRivalSounds(); return; } // まだデコード中なら諦める(次回以降は鳴る)
+    playBufferOnce(rivalSpawnAudioBuffer, 0.7);
+  }
+  function playRivalFallSound(){
+    if(!rivalFallAudioBuffer){ loadRivalSounds(); return; }
+    playBufferOnce(rivalFallAudioBuffer, 0.7);
+  }
+  let rivalSpeech = 0; // 吹き出し表示の残り時間
+  // 出現位置の少し後方まで遡って、実際に地面がある場所を探す(奈落の途中で「接地扱い」にしてしまうと
+  // 空中から緊急ジャンプする形になり、ほぼ確実に失敗するバグの原因だったため)
+  function findGroundBehind(worldX, maxSearch){
+    for(let d=0; d<=maxSearch; d+=16){
+      const gx = worldX - d;
+      if(gx < 0) break;
+      const gh = groundHeightAt(gx);
+      if(gh !== null) return gh;
+    }
+    return null;
+  }
+  function spawnRival(){
+    const targetX = distance - RIVAL_TRAIL;
+    const gh0 = findGroundBehind(targetX, 260);
+    rival = {
+      y: gh0 !== null ? -gh0 : player.y,
+      vy: 0,
+      grounded: gh0 !== null, // 実際に地面がある位置かどうかで判定(奈落の途中を無理やり接地扱いにしない)
+      groundH: gh0 !== null ? gh0 : 0, // 影の描画位置に使う「今いる足場の高さ」
+      airJumpsUsed: 0,
+      needsDoubleJump: false,
+      doubleJumpTimer: 0,
+      dead: false,
+      cursed: Math.random() < 0.05, // このプレイでは5%の確率で「いつか1回だけ」ジャンプをミスして落ちるギャグ枠
+      curseUsed: false,
+      curseAtJump: 3 + Math.floor(Math.random()*8), // 3〜10回目のジャンプでランダムに発動(出現直後だと味気ないため)
+      jumpCount: 0
+    };
+    rivalSpeech = 2.2;
+  }
+  function updateRival(dt){
+    if(!rival || rival.dead) return;
+    const rx = distance - RIVAL_TRAIL; // ライバルのワールドX(プレイヤーの少し後ろ)
+    if(rx < 0) return; // まだ後方に出現位置が到達していない
+
+    if(rival.grounded){
+      const curSeg = segmentAt(rx);
+      const aheadSeg = segmentAt(rx + 40);
+      const needsJump = curSeg && aheadSeg && (
+        aheadSeg.type === 'gap' ||
+        (aheadSeg.type === 'ground' && curSeg.type === 'ground' && Math.abs((aheadSeg.h||0) - (curSeg.h||0)) > STEP_AUTO_MAX)
+      );
+      if(needsJump){
+        rival.jumpCount++;
+        if(rival.cursed && !rival.curseUsed && rival.jumpCount === rival.curseAtJump){
+          rival.curseUsed = true; // ここだけ狙ってジャンプさせず、そのまま穴へ落ちる(5%のギャグ枠)
+        } else {
+          rival.vy = -JUMP_VELOCITY;
+          rival.grounded = false;
+          rival.airJumpsUsed = 1;
+          // ここで一度だけ「隙間の実際の終端」を調べ、単発で足りるか2段目が要るかを先に決めておく。
+          // 毎フレーム「まだ先に隙間があるか」を再チェックする方式だと、判定がチラついて
+          // 2段目を出すタイミングを逃すことがあったため、開始時に一括で決める方式にした
+          const singleRangeEstimate = Math.min(760, Math.max(160, speed*JUMP_AIRTIME));
+          const gapEndX = (aheadSeg.type === 'gap') ? aheadSeg.end : rx + singleRangeEstimate + 200;
+          rival.needsDoubleJump = (gapEndX - rx) > singleRangeEstimate * 0.92;
+          rival.doubleJumpTimer = 0.30; // 単発ジャンプの上昇がある程度収まった頃合いで2段目
+        }
+      }
+    } else if(rival.needsDoubleJump && rival.airJumpsUsed < 2){
+      rival.doubleJumpTimer -= dt;
+      if(rival.doubleJumpTimer <= 0){
+        rival.vy = -JUMP_VELOCITY;
+        rival.airJumpsUsed = 2;
+        rival.needsDoubleJump = false;
+      }
+    }
+
+    const gh = groundHeightAt(rx);
+    if(!rival.grounded){
+      rival.vy += GRAVITY*dt;
+      rival.y += rival.vy*dt;
+      if(gh !== null && rival.vy >= 0 && rival.y >= -gh){
+        rival.y = -gh; rival.vy = 0; rival.grounded = true; rival.airJumpsUsed = 0; rival.needsDoubleJump = false; rival.groundH = gh; // しっかり地面に着地させる
+      }
+      if(rival.y > 480 && !rival.dead){
+        rival.dead = true; // 穴に落ちて消える(演出上のみ。プレイヤーには無関係)
+        playRivalFallSound();
+      }
+    } else {
+      if(gh === null){ rival.grounded = false; }
+      else {
+        rival.y += (-gh - rival.y) * Math.min(1, dt*13);
+        if(Math.abs(rival.y - (-gh)) < 0.6){ rival.y = -gh; rival.groundH = gh; }
+      }
+    }
+  }
+  // ライバルの見た目は、プレイヤーと同じ棒人間の構造(腕もある)を色違いで描く
+  function drawRival(groundY){
+    if(!rival || rival.dead) return;
+    const rx = distance - RIVAL_TRAIL;
+    if(rx < 0) return;
+    const x = W*PLAYER_SCREEN_X_FRAC - RIVAL_TRAIL;
+    if(x < -40) return; // 画面外なら描かない
+    const footY = groundY + Math.min(rival.y, (H-groundY)+70);
+    const airborne = !rival.grounded;
+    const runCycle = animT * 10;
+    const stride = airborne ? 0 : Math.sin(runCycle);
+
+    const bodyH = PLAYER_BODY_H;
+    const headR = 13;
+    const legLen = bodyH*0.50;
+    const torsoLen = bodyH*0.37;
+    const hipY = footY - legLen;
+    const shoulderY = hipY - torsoLen;
+
+    const RCOLOR = '#ff5a5a'; // プレイヤーと同じ形・色違いだけにする
+
+    // 影(プレイヤーと同じく、今いる足場の高さ・空中にいる時の縮小を反映する)
+    const rShadowAnchorY = groundY - (rival.groundH||0) + 4;
+    const rShadowScale = airborne ? Math.max(0.15, 1 - Math.abs(rival.y - (-(rival.groundH||0)))/220) : 1;
+    ctx.fillStyle = `rgba(0,0,0,${0.35*rShadowScale})`;
+    ctx.beginPath(); ctx.ellipse(x, rShadowAnchorY, 20*rShadowScale, 6*rShadowScale, 0, 0, Math.PI*2); ctx.fill();
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.shadowColor = 'rgba(255,90,90,0.7)'; // 暗い地形に紛れないよう発光させる
+    ctx.shadowBlur = 9;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    function limb(sx,sy, ex,ey, bendX, bendY, width){
+      const kx=(sx+ex)/2+bendX, ky=(sy+ey)/2+bendY;
+      ctx.strokeStyle = RCOLOR;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(sx,sy);
+      ctx.quadraticCurveTo(kx,ky,ex,ey);
+      ctx.stroke();
+    }
+
+    const AMP = 26;
+    const legSwingBack  = airborne ? 0 : -stride*AMP;
+    const legSwingFront = airborne ? 0 :  stride*AMP;
+    const armSwingBack  = airborne ? 0 : -legSwingBack*0.7;
+    const armSwingFront = airborne ? 0 : -legSwingFront*0.7;
+    const jumpTuck = airborne ? Math.min(1, Math.abs(rival.vy)/JUMP_VELOCITY*0.6+0.3) : 0;
+
+    // 奥側の脚・腕
+    limb(x, hipY, x-6+legSwingBack, airborne? footY-legLen*jumpTuck*0.8 : footY, -legSwingBack*0.25, airborne?-10:6, 5);
+    limb(x, shoulderY, x-4+armSwingBack, shoulderY+torsoLen*0.7, armSwingBack*0.3, -6, 4);
+
+    // 胴体
+    ctx.strokeStyle = RCOLOR; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(x, hipY); ctx.lineTo(x, shoulderY); ctx.stroke();
+
+    // 頭
+    const headY = shoulderY - headR - 3;
+    ctx.fillStyle = RCOLOR;
+    ctx.beginPath(); ctx.arc(x, headY, headR, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#3a0f0f';
+    ctx.beginPath(); ctx.arc(x+headR*0.4, headY-headR*0.08, 2, 0, Math.PI*2); ctx.fill();
+
+    // 手前側の脚・腕
+    limb(x, hipY, x+6+legSwingFront, airborne? footY-legLen*jumpTuck*0.8 : footY, legSwingFront*0.25, airborne?-10:6, 5.5);
+    limb(x, shoulderY, x+4+armSwingFront, shoulderY+torsoLen*0.7, armSwingFront*0.3, -6, 4.5);
+
+    ctx.restore();
+
+    // 出現直後だけ吹き出しで一言(前回小さすぎたので拡大)
+    if(rivalSpeech > 0){
+      const bw = 128, bh = 40, bx = x + 18, by = headY - 56;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, rivalSpeech);
+      ctx.fillStyle = '#f0e4c8';
+      ctx.strokeStyle = '#2a1a10';
+      ctx.lineWidth = 2;
+      roundRectPath(ctx, bx, by, bw, bh, 10);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx+18, by+bh);
+      ctx.lineTo(bx+8, by+bh+13);
+      ctx.lineTo(bx+30, by+bh);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2a1a10';
+      ctx.font = 'bold 17px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('ﾏﾀｾﾀﾅｯ‼︎', bx+bw/2, by+bh/2+6);
+      ctx.restore();
+    }
+  }
 
   // 落下時の音声(ユーザー提供のmp3)。既存のAudioContext経由でWeb Audio APIとして再生する
   // (別のAudio要素を使うと、そこだけ自動再生制限に引っかかって鳴らないことがあるため)
@@ -502,6 +937,45 @@
     src.buffer = fallAudioBuffer;
     const gain = audioCtx.createGain();
     gain.gain.value = 0.55; // コイン取得音と同じくらいの聞こえ方を目安に(必要なら変更可)
+    src.connect(gain).connect(audioCtx.destination);
+    src.start();
+  }
+
+  // ライバル用の音声(登場時「さぁ、いくぞ！」/ 落下時「ぐあぁ！」。ユーザー提供のmp3)
+  const rivalSpawnSoundBase64 = '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';
+  const rivalFallSoundBase64 = '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LjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTnA8RAEQeMJYAoAAA/wAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAAB/gAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+  let rivalSpawnAudioBuffer = null, rivalFallAudioBuffer = null;
+  function loadRivalSounds(){
+    if(!audioCtx) return;
+    if(!rivalSpawnAudioBuffer){
+      try{
+        const bin = atob(rivalSpawnSoundBase64);
+        const bytes = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+        audioCtx.decodeAudioData(bytes.buffer,
+          (buf)=>{ rivalSpawnAudioBuffer = buf; },
+          (err)=>{ console.error('rival spawn sound decode error', err); }
+        );
+      }catch(e){ console.error('rival spawn sound load error', e); }
+    }
+    if(!rivalFallAudioBuffer){
+      try{
+        const bin = atob(rivalFallSoundBase64);
+        const bytes = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+        audioCtx.decodeAudioData(bytes.buffer,
+          (buf)=>{ rivalFallAudioBuffer = buf; },
+          (err)=>{ console.error('rival fall sound decode error', err); }
+        );
+      }catch(e){ console.error('rival fall sound load error', e); }
+    }
+  }
+  function playBufferOnce(buf, gainVal){
+    if(!audioCtx || !buf) return;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const gain = audioCtx.createGain();
+    gain.gain.value = gainVal!=null ? gainVal : 0.6;
     src.connect(gain).connect(audioCtx.destination);
     src.start();
   }
@@ -545,6 +1019,11 @@
     }catch(e){ /* ノイズ生成に失敗しても悲鳴本体は鳴らす */ }
   }
 
+  function currentBgmStageIndex(distM){
+    let idx = 0;
+    for(let i=0;i<WORLD_STAGES.length;i++){ if(distM >= WORLD_STAGES[i].m) idx = i; }
+    return idx;
+  }
   function startBGM(){
     if(!audioCtx || bgmNodes) return;
     const drone1 = audioCtx.createOscillator();
@@ -557,12 +1036,30 @@
     drone1.start(); drone2.start();
     bgmNodes = {drone1, drone2, droneGain};
 
-    const notes = [220, 262, 196, 247, 175];
+    // 世界観の段階と同じタイミングで、暗く不穏な音階から明るい音階へ徐々に変化させる
+    const BGM_NOTE_SETS = [
+      [220,262,196,247,175],
+      [220,262,196,247,175],
+      [233,277,208,262,185],
+      [246,293,220,277,196],
+      [261,311,233,293,207],
+      [277,330,247,311,220],
+      [293,349,261,330,233],
+      [329,392,293,370,261],
+      [392,440,349,494,330]
+    ];
     let i = 0;
     bgmInterval = setInterval(()=>{
-      if(!audioCtx) return;
+      if(!audioCtx || !bgmNodes) return;
+      const distM = Math.floor(distance/9);
+      const stageIdx = currentBgmStageIndex(distM);
+      const notes = BGM_NOTE_SETS[Math.min(stageIdx, BGM_NOTE_SETS.length-1)];
       playTone(notes[i % notes.length], 0.9, 'triangle', 0.075);
       i++;
+      // ドローンの基音も段階に応じてゆっくり上げていく(重く沈んだ音→少し軽い音へ)
+      const baseFreq = 55 + stageIdx*3.2;
+      bgmNodes.drone1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.8);
+      bgmNodes.drone2.frequency.setTargetAtTime(baseFreq*1.5, audioCtx.currentTime, 0.8);
     }, 1450);
   }
   function stopBGM(){
@@ -615,13 +1112,23 @@
     playFallSound();
     setTimeout(()=>{ if(audioCtx) playGameOverSound(); }, 380);
     const finalScore = currentScore();
-    if(finalScore > bestScore){
+    const isNewBest = finalScore > bestScore;
+    if(isNewBest){
       bestScore = finalScore;
-      try{ localStorage.setItem('ruinDashBestScore', String(bestScore)); }catch(e){}
+      try{ localStorage.setItem('ruinDashBestScore_v2', String(bestScore)); }catch(e){}
     }
     finalDistanceEl.textContent = finalScore;
     finalBestEl.textContent = Math.floor(bestScore);
     bestEl.textContent = Math.floor(bestScore);
+    if(isNewBest && finalScore>0){
+      pendingScore = finalScore;
+      nameInput.value = '';
+      submitScoreBtn.disabled = false;
+      submitScoreBtn.textContent = 'SIGN UP';
+      submitBox.classList.remove('hidden');
+    } else {
+      submitBox.classList.add('hidden');
+    }
     overScreen.classList.remove('hidden');
   }
 
@@ -636,20 +1143,68 @@
   retryBtn.addEventListener('click', startGame);
   homeBtn.addEventListener('click', goHome);
 
-  // ---------- input: タップのみ(スワイプ操作は廃止) ----------
+  // ---------- 確認モーダル(ネイティブconfirm()だと押し間違えの保険として弱いため、専用UIに) ----------
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const confirmMessage = document.getElementById('confirmMessage');
+  const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+  const confirmOkBtn = document.getElementById('confirmOkBtn');
+  let confirmCallback = null;
+  function showConfirm(message, onConfirm){
+    confirmMessage.textContent = message;
+    confirmCallback = onConfirm;
+    confirmOverlay.classList.remove('hidden');
+  }
+  confirmCancelBtn.addEventListener('click', ()=>{
+    confirmOverlay.classList.add('hidden');
+    confirmCallback = null;
+  });
+  confirmOkBtn.addEventListener('click', ()=>{
+    confirmOverlay.classList.add('hidden');
+    if(confirmCallback) confirmCallback();
+    confirmCallback = null;
+  });
+
+  const resetRecordBtn = document.getElementById('resetRecordBtn');
+  resetRecordBtn.addEventListener('click', ()=>{
+    showConfirm('ベスト記録と能力の解放状況をリセットします。よろしいですか？', resetPlayerRecord);
+  });
+
+  // ---------- input: タップのみ(スワイプ操作は廃止)。滑空能力のために「押しっぱなし」も検知する ----------
   function requestJump(){
     if(state === 'playing'){ jumpQueued = true; }
   }
   stage.addEventListener('pointerdown', (e)=>{
     if(e.target === startBtn || e.target === retryBtn) return;
+    e.preventDefault();
+    holdingInput = true;
     if(state === 'playing') requestJump();
   });
+  stage.addEventListener('pointerup', ()=>{ holdingInput = false; });
+  stage.addEventListener('contextmenu', (e)=> e.preventDefault());
+  stage.addEventListener('selectstart', (e)=> e.preventDefault());
+  stage.addEventListener('pointercancel', ()=>{ holdingInput = false; });
+  // iOSの「長押しで出る虫眼鏡カーソル」対策。pointerdownだけだと抑えきれない場合があるため、
+  // 生のtouchイベント側でも明示的にpreventDefaultしておく
+  stage.addEventListener('touchstart', (e)=>{
+    if(e.target.closest('button, input, label')) return; // ボタン類のタップは巻き込まない
+    e.preventDefault();
+  }, {passive:false});
+  stage.addEventListener('touchmove', (e)=>{
+    if(e.target.closest('button, input, label')) return;
+    e.preventDefault();
+  }, {passive:false});
   window.addEventListener('keydown', (e)=>{
     if(e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W'){
       e.preventDefault();
+      holdingInput = true;
       if(state === 'playing') requestJump();
       else if(state === 'idle') startGame();
       else if(state === 'over') startGame();
+    }
+  });
+  window.addEventListener('keyup', (e)=>{
+    if(e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W'){
+      holdingInput = false;
     }
   });
 
@@ -809,14 +1364,22 @@
   // ---------- update ----------
   function update(dt){
     elapsed += dt;
-    // 速度: 徐々に加速する仕組みは廃止し、最初から一定の速さで走る
+    // 速度: 30000m到達後はゆるやかに加速し、50000mで頭打ち(最大+40%)。
+    // 修羅モード(固定1.5倍)が実質詰みだった反省から、急激な変化ではなく緩やかな上限付きにしている
     const base = 640;
-    speed = abilities.shura ? base*1.5 : base;
+    const distM = distance/9;
+    let speedMult = 1;
+    if(distM > 30000){
+      const over = Math.min(distM-30000, 20000);
+      speedMult = 1 + (over/20000)*0.4;
+    }
+    speed = base * speedMult;
     distance += speed*dt;
 
     generateTerrain();
     pruneTerrain();
     checkMilestones(Math.floor(distance/9));
+    updateRival(dt);
     if(unlockTimer > 0){
       unlockTimer -= dt;
       if(unlockTimer <= 0) unlockBanner.classList.remove('show');
@@ -838,20 +1401,32 @@
     }
 
     // コイン収集: キャラの体全体(足元〜頭上)を判定範囲にする。
-    // 横方向も、その1フレームで進む距離ぶんを含めて余裕を持たせ、直進中の取りこぼしを防ぐ
+    // 十倍界王拳発動中は頭が巨大化する分、頭上の判定範囲も一緒に広げる(視界デバフの見返りとしてコインが取りやすくなる)
     const effXForItems = distance - (player ? player.pushback : 0);
     const feet = player ? -player.y : 0;
-    const head = feet + PLAYER_BODY_H;
+    const headExtra = kaiokenActive ? (13*10-13)*2 : 0;
+    const head = feet + PLAYER_BODY_H + headExtra;
     const hRadius = Math.max(34, speed*dt*1.3 + 22);
     for(const c of coins){
       c.bob += dt*4;
       if(c.collected) continue;
       if(Math.abs(c.worldX - effXForItems) < hRadius && c.elevation > feet-14 && c.elevation < head+14){
         c.collected = true;
-        coinScore += c.value;
+        // コンボボーナス: COMBO_WINDOW以内に連続で取るほど倍率が上がる(最大+90%)。取りこぼす/間が空くとリセット
+        if(comboTimer > 0) comboCount++;
+        else comboCount = 1;
+        comboTimer = COMBO_WINDOW;
+        const mult = 1 + Math.min(comboCount-1, 9)*0.1;
+        const gained = Math.round(c.value * mult);
+        coinScore += gained;
+        if(comboCount >= 2) spawnComboText(comboCount);
         playCoinSound(c.variant);
         for(let k=0;k<9;k++) particles.push(spark((c.variant==='evil'||c.variant==='lucky') ? 'rgba(224,90,220,0.7)' : '#f4d675'));
       }
+    }
+    if(comboTimer > 0){
+      comboTimer -= dt;
+      if(comboTimer <= 0) comboCount = 0;
     }
 
     if(state === 'playing'){
@@ -905,7 +1480,9 @@
         } else {
           player.pushback = Math.max(0, player.pushback - PUSHBACK_RECOVER*dt);
           const prevY = player.y;
-          player.vy += GRAVITY*dt;
+          // 滑空: 能力を持っていて、落下中に入力を押し続けている間だけ重力を弱める
+          gliding = abilities.glide && holdingInput && player.vy > 0;
+          player.vy += GRAVITY*dt*(gliding ? 0.32 : 1);
           player.y += player.vy*dt;
           if(gh !== null && player.vy >= 0){
             const targetY = -gh;
@@ -947,6 +1524,12 @@
       p.x += p.vx*dt; p.y += p.vy*dt; p.vy += dt*260;
       if(p.life<=0) particles.splice(i,1);
     }
+    for(let i=comboTexts.length-1;i>=0;i--){
+      const t = comboTexts[i];
+      t.life -= dt; t.y -= dt*40;
+      if(t.life<=0) comboTexts.splice(i,1);
+    }
+    if(rivalSpeech > 0) rivalSpeech -= dt;
   }
 
   function spark(color, small){
@@ -959,6 +1542,20 @@
       life: 0.35+Math.random()*0.3,
       color
     };
+  }
+  function spawnComboText(n){
+    const px = W*PLAYER_SCREEN_X_FRAC - (player?player.pushback:0);
+    const py = H*GROUND_FRAC + (player?Math.min(player.y,(H-H*GROUND_FRAC)+70):0) - PLAYER_BODY_H - 20;
+    comboTexts.push({ x:px, y:py, life:0.9, text:`COMBO x${n}` });
+  }
+  function roundRectPath(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y);
+    c.arcTo(x+w,y,x+w,y+h,r);
+    c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r);
+    c.arcTo(x,y,x+w,y,r);
+    c.closePath();
   }
 
   // ---------- background decorations ----------
@@ -1073,41 +1670,196 @@
   // ---------- render ----------
   function screenX(worldX){ return worldX - distance + W*PLAYER_SCREEN_X_FRAC; }
 
+  // ---------- 世界観の段階的な変化(既存の覚醒エフェクトと同じ地点+20000/30000/50000/70000/100000mで、
+  // 禍々しい夜からじわじわ明るくなっていき、100000mで右手に朝日が覗く「奈落から這い上がる」演出) ----------
+  const WORLD_STAGES = [
+    { m:0,      top:'#05040a', mid:'#0d0b18', horizon:'#221a1a', starAlpha:0.6 },
+    { m:2500,   top:'#0a0812', mid:'#150f1c', horizon:'#2a1e1c', starAlpha:0.6 },
+    { m:5000,   top:'#120a10', mid:'#1e1018', horizon:'#33201c', starAlpha:0.55 },
+    { m:10000,  top:'#0a0f18', mid:'#12182a', horizon:'#24222c', starAlpha:0.5 },
+    { m:20000,  top:'#0e1220', mid:'#1a1e34', horizon:'#2c2838', starAlpha:0.45 },
+    { m:30000,  top:'#141a2c', mid:'#22283e', horizon:'#3a3244', starAlpha:0.4 },
+    { m:50000,  top:'#22283e', mid:'#3a3f5a', horizon:'#5a4a52', starAlpha:0.3 },
+    { m:70000,  top:'#3a4260', mid:'#5c6084', horizon:'#8a6e68', starAlpha:0.18 },
+    { m:100000, top:'#6a7aa0', mid:'#c69a78', horizon:'#e8b888', starAlpha:0.05 }
+  ];
+  function hexToRgb(hex){
+    const n = parseInt(hex.slice(1),16);
+    return { r:(n>>16)&0xff, g:(n>>8)&0xff, b:n&0xff };
+  }
+  function lerpColor(a,b,t){
+    const pa=hexToRgb(a), pb=hexToRgb(b);
+    return `rgb(${Math.round(pa.r+(pb.r-pa.r)*t)},${Math.round(pa.g+(pb.g-pa.g)*t)},${Math.round(pa.b+(pb.b-pa.b)*t)})`;
+  }
+  function currentWorldStage(distM){
+    let lo = WORLD_STAGES[0], hi = WORLD_STAGES[WORLD_STAGES.length-1];
+    for(let i=0;i<WORLD_STAGES.length-1;i++){
+      if(distM >= WORLD_STAGES[i].m && distM <= WORLD_STAGES[i+1].m){ lo=WORLD_STAGES[i]; hi=WORLD_STAGES[i+1]; break; }
+    }
+    if(distM >= WORLD_STAGES[WORLD_STAGES.length-1].m){ lo=hi=WORLD_STAGES[WORLD_STAGES.length-1]; }
+    const t = Math.max(0, Math.min(1, (distM-lo.m)/Math.max(1,hi.m-lo.m)));
+    return {
+      top: lerpColor(lo.top,hi.top,t), mid: lerpColor(lo.mid,hi.mid,t), horizon: lerpColor(lo.horizon,hi.horizon,t),
+      starAlpha: lo.starAlpha + (hi.starAlpha-lo.starAlpha)*t,
+      sunT: Math.max(0, Math.min(1, (distM-70000)/30000)) // 70000〜100000mでじわっと朝日が出てくる
+    };
+  }
+
+  function rangeAlpha(distM, start, peak1, peak2, end){
+    if(distM < start || distM > end) return 0;
+    if(distM < peak1) return (distM-start)/(peak1-start);
+    if(distM > peak2) return 1-(distM-peak2)/(end-peak2);
+    return 1;
+  }
+  function drawGraveyard(groundY, alpha){
+    if(alpha<=0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // 墓石(パララックス)
+    ctx.fillStyle = '#2a2620';
+    const spacing = W*0.32;
+    const x0 = -(distance*0.10) % spacing;
+    for(let i=-1;i<5;i++){
+      const gx = x0 + i*spacing;
+      const gh_ = 34 + (i%3)*10;
+      ctx.beginPath();
+      ctx.moveTo(gx-14, groundY);
+      ctx.lineTo(gx-14, groundY-gh_+10);
+      ctx.arc(gx, groundY-gh_+10, 14, Math.PI, 0);
+      ctx.lineTo(gx+14, groundY);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 幽霊(ふわふわ浮遊)
+    const ghostX = W*0.3 + Math.sin(animT*0.4)*W*0.15;
+    const ghostY = groundY*0.5 + Math.sin(animT*0.8)*14;
+    ctx.globalAlpha = alpha*0.55;
+    ctx.fillStyle = 'rgba(210,225,235,0.85)';
+    ctx.beginPath();
+    ctx.arc(ghostX, ghostY, 18, Math.PI, 0);
+    ctx.lineTo(ghostX+18, ghostY+22);
+    for(let w=0;w<4;w++){
+      ctx.quadraticCurveTo(ghostX+18-w*9-4.5, ghostY+30, ghostX+18-w*9-9, ghostY+22);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(ghostX-6, ghostY-2, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ghostX+6, ghostY-2, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = alpha;
+    // ゾンビ(ゆらゆら徘徊)
+    const zX = W*0.62 + Math.sin(animT*0.25+2)*W*0.1;
+    const sway = Math.sin(animT*2)*6;
+    ctx.strokeStyle = '#241f1a'; ctx.fillStyle='#241f1a'; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(zX, groundY); ctx.lineTo(zX+sway*0.3, groundY-40);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(zX+sway*0.3, groundY-52, 10, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(zX+sway*0.3, groundY-38); ctx.lineTo(zX+sway*0.3+18, groundY-30); ctx.stroke();
+    ctx.restore();
+  }
+  function drawCursedForest(groundY, alpha){
+    if(alpha<=0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // 蜘蛛の巣
+    const webX = W*0.5 + Math.sin(distance*0.0005)*40, webY = groundY*0.35;
+    ctx.strokeStyle = 'rgba(220,220,230,0.35)'; ctx.lineWidth = 1;
+    for(let a=0;a<8;a++){
+      const ang = (a/8)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(webX,webY); ctx.lineTo(webX+Math.cos(ang)*44, webY+Math.sin(ang)*44); ctx.stroke();
+    }
+    for(let r=14;r<44;r+=12){
+      ctx.beginPath();
+      for(let a=0;a<=8;a++){
+        const ang=(a/8)*Math.PI*2;
+        const px = webX+Math.cos(ang)*r, py=webY+Math.sin(ang)*r;
+        if(a===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    // 巣の主(糸を伝って上下する)
+    const spiderY = webY + 30 + Math.sin(animT*1.5)*20;
+    ctx.strokeStyle='rgba(220,220,230,0.25)';
+    ctx.beginPath(); ctx.moveTo(webX,webY); ctx.lineTo(webX,spiderY); ctx.stroke();
+    ctx.fillStyle = '#15100c';
+    ctx.beginPath(); ctx.arc(webX, spiderY, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#15100c'; ctx.lineWidth=1.5;
+    for(let l=0;l<4;l++){
+      const lx = (l-1.5)*4;
+      ctx.beginPath(); ctx.moveTo(webX-6, spiderY); ctx.lineTo(webX-14, spiderY+lx); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(webX+6, spiderY); ctx.lineTo(webX+14, spiderY+lx); ctx.stroke();
+    }
+    // 地面を這う小さい蜘蛛たち(パララックス)
+    const spacing = W*0.4;
+    const x0 = -(distance*0.13) % spacing;
+    ctx.fillStyle = '#1c150f';
+    for(let i=-1;i<4;i++){
+      const sx = x0 + i*spacing + Math.sin(animT*3+i)*6;
+      ctx.beginPath(); ctx.arc(sx, groundY-4, 4, 0, Math.PI*2); ctx.fill();
+      for(let l=0;l<3;l++){
+        const lx=(l-1)*5;
+        ctx.strokeStyle='#1c150f'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(sx-4,groundY-4); ctx.lineTo(sx-9,groundY-4+lx); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx+4,groundY-4); ctx.lineTo(sx+9,groundY-4+lx); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   function draw(){
     ctx.clearRect(0,0,W,H);
     const groundY = H*GROUND_FRAC;
+    const distM = state==='playing' || state==='over' ? Math.floor(distance/9) : 0;
+    const ws = currentWorldStage(distM);
 
-    // sky(夜の闇に沈んだ空。画面下端まで伸ばし、奈落からもそのまま見えるようにする)
+    // sky(距離が進むほど禍々しい夜から徐々に明るくなっていく)
     const sky = ctx.createLinearGradient(0,0,0,H);
-    sky.addColorStop(0,'#05040a');
-    sky.addColorStop(0.42,'#0d0b18');
-    sky.addColorStop(0.68,'#221a1a');
-    sky.addColorStop(1,'#0e0a16');
+    sky.addColorStop(0, ws.top);
+    sky.addColorStop(0.42, ws.mid);
+    sky.addColorStop(0.68, ws.horizon);
+    sky.addColorStop(1, ws.mid);
     ctx.fillStyle = sky;
     ctx.fillRect(0,0,W,H);
 
-    // 星(奈落側にも同じ空が続いていると分かるよう画面全体に散らす)
+    // 星(明るくなるにつれて薄くなる)
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     for(let i=0;i<40;i++){
       const sxr = (i*97.7) % W;
       const syr = (i*131.3) % H;
       const tw = 0.4 + 0.6*Math.abs(Math.sin(animT*1.3 + i*12.9));
-      ctx.globalAlpha = tw*0.6;
+      ctx.globalAlpha = tw*ws.starAlpha;
       ctx.fillRect(sxr, syr, 2, 2);
     }
     ctx.globalAlpha = 1;
 
-    // 不気味な月
+    // 不気味な月(100000mに向けて朝日にクロスフェード)
     const moonX = W*0.74, moonY = groundY*0.26;
-    const moonGlow = ctx.createRadialGradient(moonX,moonY,4,moonX,moonY,W*0.32);
-    moonGlow.addColorStop(0,'rgba(200,205,225,0.30)');
-    moonGlow.addColorStop(1,'rgba(200,205,225,0)');
-    ctx.fillStyle = moonGlow;
-    ctx.fillRect(0,0,W,groundY);
-    ctx.fillStyle = '#cfd3e6';
-    ctx.beginPath(); ctx.arc(moonX,moonY,W*0.052,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = 'rgba(10,8,16,0.9)';
-    ctx.beginPath(); ctx.arc(moonX+W*0.018,moonY-W*0.014,W*0.048,0,Math.PI*2); ctx.fill();
+    if(ws.sunT < 1){
+      ctx.globalAlpha = 1-ws.sunT;
+      const moonGlow = ctx.createRadialGradient(moonX,moonY,4,moonX,moonY,W*0.32);
+      moonGlow.addColorStop(0,'rgba(200,205,225,0.30)');
+      moonGlow.addColorStop(1,'rgba(200,205,225,0)');
+      ctx.fillStyle = moonGlow;
+      ctx.fillRect(0,0,W,groundY);
+      ctx.fillStyle = '#cfd3e6';
+      ctx.beginPath(); ctx.arc(moonX,moonY,W*0.052,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(10,8,16,0.9)';
+      ctx.beginPath(); ctx.arc(moonX+W*0.018,moonY-W*0.014,W*0.048,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if(ws.sunT > 0){
+      ctx.globalAlpha = ws.sunT;
+      const sunX = W*0.86, sunY = groundY*0.30;
+      const sunGlow = ctx.createRadialGradient(sunX,sunY,4,sunX,sunY,W*0.42);
+      sunGlow.addColorStop(0,'rgba(255,214,140,0.45)');
+      sunGlow.addColorStop(1,'rgba(255,214,140,0)');
+      ctx.fillStyle = sunGlow;
+      ctx.fillRect(0,0,W,groundY);
+      ctx.fillStyle = '#fff2c8';
+      ctx.beginPath(); ctx.arc(sunX,sunY,W*0.06,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
 
     // コウモリ(不気味な雰囲気の演出)
     drawBats(groundY);
@@ -1126,6 +1878,10 @@
     for(let i=-1;i<4;i++){
       drawDeadTree(treeX0 + i*treeSpacing + (i%2===0?0:treeSpacing*0.4), groundY, (i%3===0)?0.85:1.15);
     }
+
+    // 墓場ゾーン(8000〜17000m)→呪いの森ゾーン(17000〜28500m)へと通過する
+    drawGraveyard(groundY, rangeAlpha(distM, 7000, 9500, 15000, 17000));
+    drawCursedForest(groundY, rangeAlpha(distM, 17000, 19500, 26000, 28500));
 
     // 靄(地面のあるところにだけ薄くかかる程度に弱める)
     const fog = ctx.createLinearGradient(0,groundY-groundY*0.14,0,groundY+4);
@@ -1210,6 +1966,7 @@
       ctx.restore();
     }
 
+    drawRival(groundY);
     drawPlayer(groundY);
 
     for(const p of particles){
@@ -1218,6 +1975,20 @@
       ctx.beginPath();
       ctx.arc(p.x,p.y,3.4,0,Math.PI*2);
       ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    for(const t of comboTexts){
+      ctx.globalAlpha = Math.max(0, t.life/0.9);
+      ctx.fillStyle = '#c6ff4d';
+      ctx.shadowColor = 'rgba(198,255,77,0.9)';
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 3;
+      ctx.font = "bold 18px 'Press Start 2P', Georgia";
+      ctx.textAlign = 'center';
+      ctx.strokeText(t.text, t.x, t.y);
+      ctx.fillText(t.text, t.x, t.y);
+      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     }
 
@@ -1270,7 +2041,7 @@
     const squash = player.squash || 0;
 
     const bodyH = PLAYER_BODY_H * (1 - Math.max(0,squash)*0.14);
-    const headR = abilities.kaioken ? 13*10 : 13;
+    const headR = kaiokenActive ? 13*10 : 13;
     const legLen = bodyH*0.50;
     const torsoLen = bodyH*0.37;
     const hipY = footY - legLen;
@@ -1406,6 +2177,7 @@
     const dt = Math.min(0.033, (now-lastTime)/1000);
     lastTime = now;
     animT += dt;
+    backToHubBtn.classList.toggle('hide', startScreen.classList.contains('hidden') || rankingOverlay.classList.contains('show') || !confirmOverlay.classList.contains('hidden'));
     try{
       updateBats(dt); // タイトル画面でもコウモリは飛ばしておく
       updateParticles(dt); // カウントダウン中も粒子は動かし続ける
