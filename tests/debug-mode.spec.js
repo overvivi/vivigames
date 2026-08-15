@@ -107,6 +107,7 @@ test('長いHUD数値をK表記にしてスクリーンショット操作を表�
 });
 
 test('モバイルのタイトル画面が記録リセット欄まで収まり、遊び方を開ける', async ({ page })=>{
+  await page.setViewportSize({ width:390, height:700 });
   await page.goto('/games/temple-run-clone.html');
   const layout = await page.evaluate(()=>{
     const stage = document.getElementById('stage').getBoundingClientRect();
