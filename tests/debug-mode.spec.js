@@ -36,13 +36,30 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
   expect(volumes[1]).toBeCloseTo(0.07, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
   const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(audioMix).toEqual({ bgm:0.14, jumpCoin:1.5, rival:2 });
+  expect(audioMix).toEqual({ bgm:0.14, jump:1.5, coin:1.5, rival:2 });
   await page.locator('#debugBgmVolume').fill('0.34');
-  await page.locator('#debugJumpCoinVolume').fill('1.8');
+  await page.locator('#debugJumpVolume').fill('1.8');
+  await page.locator('#debugCoinVolume').fill('1.25');
   await page.locator('#debugRivalVolume').fill('2.4');
   const adjustedMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(adjustedMix).toEqual({ bgm:0.34, jumpCoin:1.8, rival:2.4 });
+  expect(adjustedMix).toEqual({ bgm:0.34, jump:1.8, coin:1.25, rival:2.4 });
   await expect(page.locator('#debugBgmValue')).toHaveText('0.34');
+  await page.locator('#debugCollapse').click();
+  await expect(page.locator('#debugPanel')).toHaveClass(/collapsed/);
+  await expect(page.locator('.debugPanelBody')).toBeHidden();
+  await page.locator('#debugCollapse').click();
+  await expect(page.locator('.debugPanelBody')).toBeVisible();
+});
+
+test('PCではデバッグパネルをゲーム画面外の余白に表示する', async ({ page })=>{
+  await page.setViewportSize({ width:1200, height:800 });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  const boxes = await page.evaluate(()=>{
+    const stage = document.getElementById('stage').getBoundingClientRect();
+    const panel = document.getElementById('debugPanel').getBoundingClientRect();
+    return { stageRight:stage.right, panelLeft:panel.left };
+  });
+  expect(boxes.panelLeft).toBeGreaterThan(boxes.stageRight);
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{
