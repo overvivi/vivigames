@@ -788,8 +788,8 @@
   const bgmGainNodes = new Array(BGM_TRACKS.length).fill(null);
   let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
-  // 素材自体の音圧が高いため、操作音とのバランスを見てBGM上限を0.025に抑える。
-  const BGM_VOLUME = 0.025;
+  // iPhoneでもWeb Audio経由で同じ基準になるため、試聴用にBGM倍率を1.5へ戻す。
+  const BGM_VOLUME = 1.5;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
@@ -874,7 +874,7 @@
   }
 
   const JUMP_COIN_VOLUME_BOOST = 1.5;
-  const RIVAL_VOICE_VOLUME = 0.7;
+  const RIVAL_VOICE_VOLUME = 2.0;
   function playJumpSound(){
     playTone(520, 0.13, 'square', 0.14*JUMP_COIN_VOLUME_BOOST);
     playTone(760, 0.10, 'square', 0.09*JUMP_COIN_VOLUME_BOOST, 0.03);
@@ -1205,7 +1205,7 @@
         audio.load();
       }
       const weight = rangeAlpha(distM,zone.start,zone.peak1,zone.peak2,zone.end);
-      const volume = Math.min(1,weight*BGM_VOLUME);
+      const volume = weight*BGM_VOLUME;
       if(bgmGainNodes[i]) bgmGainNodes[i].gain.value = volume;
       else audio.volume = volume;
       if(weight > 0.001){
