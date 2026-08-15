@@ -786,8 +786,8 @@
     return audio;
   });
   const bgmLoadRequested = new Set();
-  // 素材自体の音圧が高く操作音を埋めるため、当初BGM音量の12.5%まで抑える。
-  const BGM_VOLUME = 0.045;
+  // 素材自体の音圧が高く操作音を埋めるため、BGM上限を0.01まで抑える。
+  const BGM_VOLUME = 0.01;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
