@@ -35,7 +35,7 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
   expect(volumes[1]).toBeCloseTo(0.0125, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
   const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(audioMix).toEqual({ bgm:0.025, jumpCoin:1.5 });
+  expect(audioMix).toEqual({ bgm:0.025, jumpCoin:2, rival:1 });
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{

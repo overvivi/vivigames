@@ -853,7 +853,8 @@
     osc.stop(t0+duration+0.02);
   }
 
-  const JUMP_COIN_VOLUME_BOOST = 1.5;
+  const JUMP_COIN_VOLUME_BOOST = 2.0;
+  const RIVAL_VOICE_VOLUME = 1.0;
   function playJumpSound(){
     playTone(520, 0.13, 'square', 0.14*JUMP_COIN_VOLUME_BOOST);
     playTone(760, 0.10, 'square', 0.09*JUMP_COIN_VOLUME_BOOST, 0.03);
@@ -897,11 +898,11 @@
   // ---------- 影武者ライバル(5000mで強制発生。プレイヤー入力は見ず、地形を先読みして自力でジャンプするAI) ----------
   function playRivalSound(){
     if(!rivalSpawnAudioBuffer){ loadRivalSounds(); return; } // まだデコード中なら諦める(次回以降は鳴る)
-    playBufferOnce(rivalSpawnAudioBuffer, 0.7);
+    playBufferOnce(rivalSpawnAudioBuffer, RIVAL_VOICE_VOLUME);
   }
   function playRivalFallSound(){
     if(!rivalFallAudioBuffer){ loadRivalSounds(); return; }
-    playBufferOnce(rivalFallAudioBuffer, 0.7);
+    playBufferOnce(rivalFallAudioBuffer, RIVAL_VOICE_VOLUME);
   }
   let rivalSpeech = 0; // 吹き出し表示の残り時間
   // 出現位置の少し後方まで遡って、実際に地面がある場所を探す(奈落の途中で「接地扱い」にしてしまうと
@@ -1408,7 +1409,7 @@
         distanceM:Math.floor(distance/9), state, kaiokenActive,
         recording:!!(debugRecorder && debugRecorder.state==='recording'), recordingMode:debugRecordingMode,
         bgm:bgmAudios.map(audio=>({ volume:audio.volume, paused:audio.paused })),
-        audioMix:{ bgm:BGM_VOLUME, jumpCoin:JUMP_COIN_VOLUME_BOOST },
+        audioMix:{ bgm:BGM_VOLUME, jumpCoin:JUMP_COIN_VOLUME_BOOST, rival:RIVAL_VOICE_VOLUME },
         frozen:debugFrozen, backgroundsLoaded:Object.keys(bgImages),
         reaperLoaded:kaiokenReaperImg.complete && kaiokenReaperImg.naturalWidth > 0,
         groundLoaded:groundSurfaceImg.complete && groundSurfaceImg.naturalWidth > 0 &&
