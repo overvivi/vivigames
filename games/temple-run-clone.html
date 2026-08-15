@@ -785,6 +785,8 @@
     audio.volume = 0;
     return audio;
   });
+  const bgmGainNodes = new Array(BGM_TRACKS.length).fill(null);
+  let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
   // 素材自体の音圧が高いため、操作音とのバランスを見てBGM上限を0.025に抑える。
   const BGM_VOLUME = 0.025;
@@ -833,6 +835,24 @@
     if(!audioCtx){
       try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx = null; }
     }
+    // iPhone SafariではAudio要素のvolume指定が無視されることがあるため、
+    // BGMも効果音と同じWeb Audio経路へ通して端末間の音量差をなくす。
+    if(audioCtx && !bgmAudioGraphReady){
+      try{
+        bgmAudios.forEach((audio,i)=>{
+          const source = audioCtx.createMediaElementSource(audio);
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0;
+          source.connect(gain).connect(audioCtx.destination);
+          bgmGainNodes[i] = gain;
+          audio.volume = 1;
+        });
+        bgmAudioGraphReady = true;
+      }catch(e){
+        // 未対応ブラウザでは従来のvolume制御へ戻し、BGM自体が鳴らなくなるのを防ぐ。
+        console.warn('BGM Web Audio setup failed', e);
+      }
+    }
     if(audioCtx && audioCtx.state === 'suspended'){ audioCtx.resume(); }
     loadFallSound();
     loadRivalSounds();
@@ -853,8 +873,8 @@
     osc.stop(t0+duration+0.02);
   }
 
-  const JUMP_COIN_VOLUME_BOOST = 2.0;
-  const RIVAL_VOICE_VOLUME = 1.0;
+  const JUMP_COIN_VOLUME_BOOST = 1.5;
+  const RIVAL_VOICE_VOLUME = 0.7;
   function playJumpSound(){
     playTone(520, 0.13, 'square', 0.14*JUMP_COIN_VOLUME_BOOST);
     playTone(760, 0.10, 'square', 0.09*JUMP_COIN_VOLUME_BOOST, 0.03);
@@ -1185,7 +1205,9 @@
         audio.load();
       }
       const weight = rangeAlpha(distM,zone.start,zone.peak1,zone.peak2,zone.end);
-      audio.volume = Math.min(1,weight*BGM_VOLUME);
+      const volume = Math.min(1,weight*BGM_VOLUME);
+      if(bgmGainNodes[i]) bgmGainNodes[i].gain.value = volume;
+      else audio.volume = volume;
       if(weight > 0.001){
         if(audio.paused){
           const playPromise = audio.play();
@@ -1205,9 +1227,9 @@
     bgmActive = false;
     bgmAudios.forEach(audio=>{
       audio.pause();
-      audio.volume = 0;
       try{ audio.currentTime = 0; }catch(e){}
     });
+    bgmGainNodes.forEach(gain=>{ if(gain) gain.gain.value = 0; });
   }
 
   function startGame(){
@@ -1408,7 +1430,10 @@
       getState: ()=>({
         distanceM:Math.floor(distance/9), state, kaiokenActive,
         recording:!!(debugRecorder && debugRecorder.state==='recording'), recordingMode:debugRecordingMode,
-        bgm:bgmAudios.map(audio=>({ volume:audio.volume, paused:audio.paused })),
+        bgm:bgmAudios.map((audio,i)=>({
+          volume:bgmGainNodes[i] ? bgmGainNodes[i].gain.value : audio.volume,
+          paused:audio.paused
+        })),
         audioMix:{ bgm:BGM_VOLUME, jumpCoin:JUMP_COIN_VOLUME_BOOST, rival:RIVAL_VOICE_VOLUME },
         frozen:debugFrozen, backgroundsLoaded:Object.keys(bgImages),
         reaperLoaded:kaiokenReaperImg.complete && kaiokenReaperImg.naturalWidth > 0,

@@ -27,6 +27,7 @@ test('debug=1では距離ジャンプが使える', async ({ page })=>{
 
 test('背景の切り替わりと同じ3000mでBGMがクロスフェードする', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.locator('#startBtn').click();
   const volumes = await page.evaluate(()=>{
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
@@ -35,7 +36,7 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
   expect(volumes[1]).toBeCloseTo(0.0125, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
   const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(audioMix).toEqual({ bgm:0.025, jumpCoin:2, rival:1 });
+  expect(audioMix).toEqual({ bgm:0.025, jumpCoin:1.5, rival:0.7 });
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{
