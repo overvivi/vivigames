@@ -32,11 +32,11 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
   });
-  expect(volumes[0]).toBeCloseTo(0.1, 5);
-  expect(volumes[1]).toBeCloseTo(0.1, 5);
+  expect(volumes[0]).toBeCloseTo(0.07, 5);
+  expect(volumes[1]).toBeCloseTo(0.07, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
   const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(audioMix).toEqual({ bgm:0.2, jumpCoin:1.5, rival:2 });
+  expect(audioMix).toEqual({ bgm:0.14, jumpCoin:1.5, rival:2 });
   await page.locator('#debugBgmVolume').fill('0.34');
   await page.locator('#debugJumpCoinVolume').fill('1.8');
   await page.locator('#debugRivalVolume').fill('2.4');
@@ -57,6 +57,18 @@ test('デスイーター通知は1行で表示され、ゲームオーバー時�
   await expect(page.locator('#overScreen')).toBeVisible();
   await expect(banner).toBeHidden();
   await expect(page.locator('#gameHud')).toBeHidden();
+});
+
+test('NO FALLを有効にすると落下判定でもゲームを継続する', async ({ page })=>{
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.locator('#startBtn').click();
+  await page.locator('#debugNoFall').click();
+  await expect(page.locator('#debugNoFall')).toHaveText('NO FALL: ON');
+  await page.evaluate(()=>window.__hellRunnerDebug.endGameNow());
+  const state = await page.evaluate(()=>window.__hellRunnerDebug.getState());
+  expect(state.state).toBe('playing');
+  expect(state.noFall).toBe(true);
+  await expect(page.locator('#overScreen')).toBeHidden();
 });
 
 test('デバッグ録画を停止するとWebMを保存する', async ({ page })=>{

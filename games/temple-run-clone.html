@@ -279,6 +279,8 @@
     background:#211a18; color:#f0e4c8; font:8px 'Press Start 2P',monospace; cursor:pointer;
   }
   .debugJumpBtn:active{ transform:translateY(1px); background:#3a2820; }
+  .debugNoFallBtn{ width:100%; margin-top:7px; border-color:#66563e; background:#211a18; color:#f0e4c8; }
+  .debugNoFallBtn.active{ border-color:#46e68a; background:#123522; color:#aaffc8; }
   .debugRecorder{ display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:7px; }
   .debugRecordBtn{
     padding:7px 3px; border:1px solid #8b3030; border-radius:4px;
@@ -311,6 +313,7 @@
   <div class="debugPanel" id="debugPanel">
     <p class="debugTitle pixelFont">DEV DISTANCE JUMP</p>
     <div class="debugButtons" id="debugButtons"></div>
+    <button class="debugRecordBtn debugNoFallBtn" id="debugNoFall">NO FALL: OFF</button>
     <div class="debugRecorder">
       <button class="debugRecordBtn" id="debugRecordStart">● REC</button>
       <button class="debugRecordBtn stop" id="debugRecordStop" disabled>■ STOP</button>
@@ -748,6 +751,7 @@
   let deathDepth = 0; // 画面サイズに応じて可変(devicePixelRatio差を吸収)
   const debugCameraScale = 0.9;
   let debugFrozen = false;
+  let debugNoFall = false;
 
   function currentScore(){
     return Math.floor(distance/9) + coinScore;
@@ -802,7 +806,7 @@
   let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
   // iPhoneでもWeb Audio経由で同じ基準になるため、端末共通のBGM倍率を0.2にする。
-  let BGM_VOLUME = 0.2;
+  let BGM_VOLUME = 0.14;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
@@ -1430,6 +1434,13 @@
     debugRecordStart.addEventListener('click', startDebugRecording);
     debugRecordStop.addEventListener('click', stopDebugRecording);
     debugScreenshot.addEventListener('click', takeDebugScreenshot);
+    const debugNoFallBtn = document.getElementById('debugNoFall');
+    function setDebugNoFall(enabled){
+      debugNoFall = !!enabled;
+      debugNoFallBtn.textContent = `NO FALL: ${debugNoFall ? 'ON' : 'OFF'}`;
+      debugNoFallBtn.classList.toggle('active',debugNoFall);
+    }
+    debugNoFallBtn.addEventListener('click',()=>setDebugNoFall(!debugNoFall));
     const debugDistances = [0,15000,18000,31500,34500,53500,56500,76500,79500,98500,101500,110000];
     debugPanel.classList.add('show');
     debugDistances.forEach(m=>{
@@ -1463,6 +1474,7 @@
       formatNumber:formatHudNumber,
       speedAt:speedForDistanceM,
       setFrozen: frozen=>{ debugFrozen = !!frozen; },
+      setNoFall:setDebugNoFall,
       setPanelVisible: visible=>debugPanel.classList.toggle('show',!!visible),
       getState: ()=>({
         distanceM:Math.floor(distance/9), state, kaiokenActive,
@@ -1472,7 +1484,7 @@
           paused:audio.paused
         })),
         audioMix:{ bgm:BGM_VOLUME, jumpCoin:JUMP_COIN_VOLUME_BOOST, rival:RIVAL_VOICE_VOLUME },
-        frozen:debugFrozen, backgroundsLoaded:Object.keys(bgImages),
+        frozen:debugFrozen, noFall:debugNoFall, backgroundsLoaded:Object.keys(bgImages),
         reaperLoaded:kaiokenReaperImg.complete && kaiokenReaperImg.naturalWidth > 0,
         groundLoaded:groundSurfaceImg.complete && groundSurfaceImg.naturalWidth > 0 &&
           groundInteriorImg.complete && groundInteriorImg.naturalWidth > 0
@@ -1499,7 +1511,29 @@
     flashBanner('復活！', '転生');
   }
 
+  function debugRecoverPlayer(){
+    // 確認作業を止めないため、落下した瞬間に少し先の十分な幅がある足場へ戻す。
+    let targetSeg = terrain.find(seg=>seg.type==='ground' && seg.end-Math.max(distance,seg.start)>160);
+    if(!targetSeg){
+      targetSeg = {start:distance+160, end:distance+760, type:'ground', h:0};
+      terrain.push(targetSeg);
+    }
+    distance = Math.max(distance,targetSeg.start)+30;
+    player.pushback = 0;
+    player.y = -(targetSeg.h||0);
+    player.vy = 0;
+    player.grounded = true;
+    player.jumpsUsed = 0;
+    player.groundH = targetSeg.h||0;
+    player.squash = -1;
+    for(let k=0;k<12;k++) particles.push(spark('rgba(70,230,138,0.75)'));
+  }
+
   function endGame(){
+    if(debugEnabled && debugNoFall && state==='playing'){
+      debugRecoverPlayer();
+      return;
+    }
     if(abilities.reincarnate && !usedReincarnate){
       usedReincarnate = true;
       revivePlayer();

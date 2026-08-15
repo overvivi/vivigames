@@ -102,6 +102,7 @@ grep -c '</script>' games/temple-run-clone.html
 - デバッグ移動では能力解放やベスト記録を保存しない
 - Playwrightの背景比較は `tests/backgrounds.spec.js` から同じ入口を使う
 - BGM・ジャンプ/コイン・ライバル音は `DEV AUDIO MIX` のスライダーで試聴調整でき、`COPY AUDIO VALUES` で確定候補を共有できる
+- `NO FALL` をONにすると、落下・壁衝突による死亡時に先の安全な足場へ即時復帰し、確認プレイを継続できる
 
 ### 反復調整は先にデバッグ機能化を検討する
 
