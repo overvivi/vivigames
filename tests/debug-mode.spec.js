@@ -32,11 +32,11 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
   });
-  expect(volumes[0]).toBeCloseTo(0.75, 5);
-  expect(volumes[1]).toBeCloseTo(0.75, 5);
+  expect(volumes[0]).toBeCloseTo(0.25, 5);
+  expect(volumes[1]).toBeCloseTo(0.25, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
   const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
-  expect(audioMix).toEqual({ bgm:1.5, jumpCoin:1.5, rival:2 });
+  expect(audioMix).toEqual({ bgm:0.5, jumpCoin:1.5, rival:2 });
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{

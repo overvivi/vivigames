@@ -788,8 +788,8 @@
   const bgmGainNodes = new Array(BGM_TRACKS.length).fill(null);
   let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
-  // iPhoneでもWeb Audio経由で同じ基準になるため、試聴用にBGM倍率を1.5へ戻す。
-  const BGM_VOLUME = 1.5;
+  // iPhoneでもWeb Audio経由で同じ基準になるため、端末共通のBGM倍率を0.5にする。
+  const BGM_VOLUME = 0.5;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
