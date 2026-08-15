@@ -287,6 +287,12 @@
   .debugRecordBtn.stop{ border-color:#66563e; background:#211a18; color:#f0e4c8; }
   .debugShotBtn{ grid-column:1/-1; border-color:#356b76; background:#102a30; color:#bff7ff; }
   .debugRecordBtn:disabled{ opacity:0.35; cursor:default; }
+  .debugAudio{ margin-top:8px; padding-top:7px; border-top:1px solid rgba(46,230,255,0.28); }
+  .debugAudioRow{ display:grid; grid-template-columns:72px 1fr 36px; align-items:center; gap:5px; margin-top:5px; }
+  .debugAudioRow label,.debugAudioValue{ color:#f0e4c8; font:7px 'Press Start 2P',monospace; }
+  .debugAudioValue{ text-align:right; color:#2ee6ff; }
+  .debugAudioRow input{ width:100%; accent-color:#2ee6ff; }
+  .debugAudioCopy{ width:100%; margin-top:7px; border-color:#356b76; background:#102a30; color:#bff7ff; }
   .debugRecordStatus{ grid-column:1/-1; color:#c9b28a; font-size:9px; text-align:center; min-height:12px; }
 </style>
 </head>
@@ -310,6 +316,13 @@
       <button class="debugRecordBtn stop" id="debugRecordStop" disabled>■ STOP</button>
       <button class="debugRecordBtn debugShotBtn" id="debugScreenshot">▣ SCREENSHOT</button>
       <div class="debugRecordStatus" id="debugRecordStatus">VIDEO: READY</div>
+    </div>
+    <div class="debugAudio">
+      <p class="debugTitle pixelFont">DEV AUDIO MIX</p>
+      <div class="debugAudioRow"><label for="debugBgmVolume">BGM</label><input id="debugBgmVolume" type="range" min="0" max="2" step="0.01"><span class="debugAudioValue" id="debugBgmValue"></span></div>
+      <div class="debugAudioRow"><label for="debugJumpCoinVolume">JUMP/COIN</label><input id="debugJumpCoinVolume" type="range" min="0" max="3" step="0.05"><span class="debugAudioValue" id="debugJumpCoinValue"></span></div>
+      <div class="debugAudioRow"><label for="debugRivalVolume">RIVAL</label><input id="debugRivalVolume" type="range" min="0" max="3" step="0.05"><span class="debugAudioValue" id="debugRivalValue"></span></div>
+      <button class="debugRecordBtn debugAudioCopy" id="debugAudioCopy">COPY AUDIO VALUES</button>
     </div>
   </div>
 
@@ -788,8 +801,8 @@
   const bgmGainNodes = new Array(BGM_TRACKS.length).fill(null);
   let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
-  // iPhoneでもWeb Audio経由で同じ基準になるため、端末共通のBGM倍率を0.5にする。
-  const BGM_VOLUME = 0.5;
+  // iPhoneでもWeb Audio経由で同じ基準になるため、端末共通のBGM倍率を0.2にする。
+  let BGM_VOLUME = 0.2;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
@@ -873,8 +886,8 @@
     osc.stop(t0+duration+0.02);
   }
 
-  const JUMP_COIN_VOLUME_BOOST = 1.5;
-  const RIVAL_VOICE_VOLUME = 2.0;
+  let JUMP_COIN_VOLUME_BOOST = 1.5;
+  let RIVAL_VOICE_VOLUME = 2.0;
   function playJumpSound(){
     playTone(520, 0.13, 'square', 0.14*JUMP_COIN_VOLUME_BOOST);
     playTone(760, 0.10, 'square', 0.09*JUMP_COIN_VOLUME_BOOST, 0.03);
@@ -1390,6 +1403,30 @@
         if(stream) stream.getTracks().forEach(track=>track.stop());
       }
     }
+    const debugAudioControls = [
+      { input:document.getElementById('debugBgmVolume'), value:document.getElementById('debugBgmValue'), get:()=>BGM_VOLUME, set:v=>{ BGM_VOLUME=v; if(bgmActive) updateBGM(Math.floor(distance/9)); } },
+      { input:document.getElementById('debugJumpCoinVolume'), value:document.getElementById('debugJumpCoinValue'), get:()=>JUMP_COIN_VOLUME_BOOST, set:v=>{ JUMP_COIN_VOLUME_BOOST=v; } },
+      { input:document.getElementById('debugRivalVolume'), value:document.getElementById('debugRivalValue'), get:()=>RIVAL_VOICE_VOLUME, set:v=>{ RIVAL_VOICE_VOLUME=v; } }
+    ];
+    debugAudioControls.forEach(control=>{
+      control.input.value = control.get();
+      control.value.textContent = Number(control.get()).toFixed(2);
+      control.input.addEventListener('input',()=>{
+        control.set(Number(control.input.value));
+        control.value.textContent = Number(control.get()).toFixed(2);
+      });
+    });
+    // 数値を見間違えずそのまま共有できるよう、確定候補を一行でコピーする。
+    document.getElementById('debugAudioCopy').addEventListener('click',async event=>{
+      const text = `BGM=${BGM_VOLUME.toFixed(2)}, JUMP/COIN=${JUMP_COIN_VOLUME_BOOST.toFixed(2)}, RIVAL=${RIVAL_VOICE_VOLUME.toFixed(2)}`;
+      try{
+        await navigator.clipboard.writeText(text);
+        event.currentTarget.textContent = 'COPIED!';
+      }catch(e){
+        event.currentTarget.textContent = text;
+      }
+      setTimeout(()=>{ event.currentTarget.textContent='COPY AUDIO VALUES'; },2500);
+    });
     debugRecordStart.addEventListener('click', startDebugRecording);
     debugRecordStop.addEventListener('click', stopDebugRecording);
     debugScreenshot.addEventListener('click', takeDebugScreenshot);
