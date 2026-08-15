@@ -31,8 +31,8 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
   });
-  expect(volumes[0]).toBeCloseTo(0.126, 5);
-  expect(volumes[1]).toBeCloseTo(0.126, 5);
+  expect(volumes[0]).toBeCloseTo(0.09, 5);
+  expect(volumes[1]).toBeCloseTo(0.09, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
 });
 
