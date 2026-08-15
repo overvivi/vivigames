@@ -1739,6 +1739,73 @@
     if(distM > peak2) return 1-(distM-peak2)/(end-peak2);
     return 1;
   }
+
+  // ---------- 背景画像(距離で切り替わるゾーン) ----------
+  // 画像をHTMLに埋め込まず images/ に置いているのは、枚数が増えるほど起動時に
+  // 全部読み終わるまで待たされ、コードを1行直すたびに全画像を再取得することになるため。
+  // 区間の割り当ての根拠は docs/画像素材の仕様.md を参照(体感時間が均等になるよう配分してある)。
+  const BG_ZONES = [
+    { key:'hell', src:'images/bg1-hell.png', start:-1, peak1:0, peak2:15000, end:18000 }
+    // 今後ここに 墓場 / 呪いの森 / 滅びた城下町 / 断崖と雲海 / 希望 を足していく
+  ];
+  const BG_PARALLAX = 0.12;  // 遠景として流れる速さ。枯れ木(0.11)とほぼ同じで、地形より十分遅い
+  const BG_PRELOAD_M = 3000; // この距離だけ手前から読み込み始め、切り替わりに間に合わせる
+  const bgImages = {};       // key -> Image(読み込み完了したものだけ入る)
+  const bgRequested = {};
+  function requestBgImage(z){
+    if(bgRequested[z.key]) return;
+    bgRequested[z.key] = true;
+    const im = new Image();
+    im.onload = ()=>{ bgImages[z.key] = im; };
+    // 読み込みに失敗しても bgImages には入らず、手描きの背景のまま動き続ける
+    im.src = z.src;
+  }
+
+  // 画像を横に並べる際、1枚おきに左右反転させる。
+  // こうすると継ぎ目が必ず鏡写しになるため、画像の左右が繋がっていなくても境目が出ない。
+  function drawBgZoneImage(img, alpha){
+    if(!img.width || !img.height) return;
+    const scale = H / img.height;
+    const tileW = img.width * scale;
+    if(tileW <= 0) return;
+    const shift = distance * BG_PARALLAX;
+    const first = Math.floor(shift / tileW);
+    const count = Math.ceil(W / tileW) + 1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.imageSmoothingEnabled = false; // ドット絵なので拡大時もぼかさない
+    for(let i=0;i<count;i++){
+      const idx = first + i;
+      const x = idx*tileW - shift;
+      if(((idx % 2) + 2) % 2 === 1){
+        ctx.save();
+        ctx.translate(x + tileW, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0, tileW, H);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, x, 0, tileW, H);
+      }
+    }
+    ctx.restore();
+  }
+
+  // 背景画像を描き、画面がどれだけ覆われたか(0〜1)を返す。
+  // 手描きの星・月・城・枯れ木は、この分だけ薄くして二重に見えるのを防ぐ。
+  function drawBackgroundZones(distM){
+    let cover = 0;
+    for(const z of BG_ZONES){
+      if(distM >= z.start - BG_PRELOAD_M) requestBgImage(z);
+      const a = rangeAlpha(distM, z.start, z.peak1, z.peak2, z.end);
+      if(a <= 0) continue;
+      const img = bgImages[z.key];
+      if(!img) continue; // まだ読めていない間は手描きの背景で繋ぐ
+      drawBgZoneImage(img, a);
+      cover += a;
+    }
+    return Math.max(0, Math.min(1, cover));
+  }
+
   function drawGraveyard(groundY, alpha){
     if(alpha<=0) return;
     ctx.save();
@@ -1850,21 +1917,25 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0,0,W,H);
 
+    // 背景画像(対応する絵があれば、手描きの空の上に重ねる)
+    const bgCover = drawBackgroundZones(distM);
+    const procA = 1 - bgCover; // 手描きの背景をどれだけ残すか
+
     // 星(明るくなるにつれて薄くなる)
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     for(let i=0;i<40;i++){
       const sxr = (i*97.7) % W;
       const syr = (i*131.3) % H;
       const tw = 0.4 + 0.6*Math.abs(Math.sin(animT*1.3 + i*12.9));
-      ctx.globalAlpha = tw*ws.starAlpha;
+      ctx.globalAlpha = tw*ws.starAlpha*procA;
       ctx.fillRect(sxr, syr, 2, 2);
     }
     ctx.globalAlpha = 1;
 
     // 不気味な月(100000mに向けて朝日にクロスフェード)
     const moonX = W*0.74, moonY = groundY*0.26;
-    if(ws.sunT < 1){
-      ctx.globalAlpha = 1-ws.sunT;
+    if(ws.sunT < 1 && procA > 0.01){
+      ctx.globalAlpha = (1-ws.sunT)*procA;
       const moonGlow = ctx.createRadialGradient(moonX,moonY,4,moonX,moonY,W*0.32);
       moonGlow.addColorStop(0,'rgba(200,205,225,0.30)');
       moonGlow.addColorStop(1,'rgba(200,205,225,0)');
@@ -1876,8 +1947,8 @@
       ctx.beginPath(); ctx.arc(moonX+W*0.018,moonY-W*0.014,W*0.048,0,Math.PI*2); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    if(ws.sunT > 0){
-      ctx.globalAlpha = ws.sunT;
+    if(ws.sunT > 0 && procA > 0.01){
+      ctx.globalAlpha = ws.sunT*procA;
       const sunX = W*0.86, sunY = groundY*0.30;
       const sunGlow = ctx.createRadialGradient(sunX,sunY,4,sunX,sunY,W*0.42);
       sunGlow.addColorStop(0,'rgba(255,214,140,0.45)');
@@ -1889,27 +1960,35 @@
       ctx.globalAlpha = 1;
     }
 
-    // コウモリ(不気味な雰囲気の演出)
-    drawBats(groundY);
+    // 手描きのコウモリ・城・枯れ木。背景画像には同じものが描かれているため、
+    // 画像が出ている間は薄くしていき、二重に見えないようにする。
+    if(procA > 0.01){
+      ctx.save();
+      ctx.globalAlpha = procA;
 
-    // 遠景: 廃れた城のシルエット(パララックス)
-    ctx.fillStyle = '#0c0910';
-    const castleX = -(distance*0.045) % (W*1.4) + W*0.5;
-    drawCastle(castleX, groundY);
-    drawCastle(castleX - W*1.4, groundY);
-    drawCastle(castleX + W*1.4, groundY);
+      // コウモリ(不気味な雰囲気の演出)
+      drawBats(groundY);
 
-    // 中景: 枯れ木のシルエット(パララックス、城より速く流れる)
-    ctx.fillStyle = '#150f10';
-    const treeSpacing = W*0.46;
-    const treeX0 = -(distance*0.11) % treeSpacing;
-    for(let i=-1;i<4;i++){
-      drawDeadTree(treeX0 + i*treeSpacing + (i%2===0?0:treeSpacing*0.4), groundY, (i%3===0)?0.85:1.15);
+      // 遠景: 廃れた城のシルエット(パララックス)
+      ctx.fillStyle = '#0c0910';
+      const castleX = -(distance*0.045) % (W*1.4) + W*0.5;
+      drawCastle(castleX, groundY);
+      drawCastle(castleX - W*1.4, groundY);
+      drawCastle(castleX + W*1.4, groundY);
+
+      // 中景: 枯れ木のシルエット(パララックス、城より速く流れる)
+      ctx.fillStyle = '#150f10';
+      const treeSpacing = W*0.46;
+      const treeX0 = -(distance*0.11) % treeSpacing;
+      for(let i=-1;i<4;i++){
+        drawDeadTree(treeX0 + i*treeSpacing + (i%2===0?0:treeSpacing*0.4), groundY, (i%3===0)?0.85:1.15);
+      }
+      ctx.restore();
     }
 
-    // 墓場ゾーン(8000〜17000m)→呪いの森ゾーン(17000〜28500m)へと通過する
-    drawGraveyard(groundY, rangeAlpha(distM, 7000, 9500, 15000, 17000));
-    drawCursedForest(groundY, rangeAlpha(distM, 17000, 19500, 26000, 28500));
+    // 墓場ゾーン → 呪いの森ゾーン。背景画像の区間と一致させてある(docs/画像素材の仕様.md)
+    drawGraveyard(groundY, rangeAlpha(distM, 16000, 18000, 31500, 33000));
+    drawCursedForest(groundY, rangeAlpha(distM, 33000, 34500, 53500, 55000));
 
     // 靄(地面のあるところにだけ薄くかかる程度に弱める)
     const fog = ctx.createLinearGradient(0,groundY-groundY*0.14,0,groundY+4);

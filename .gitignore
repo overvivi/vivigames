@@ -5,3 +5,6 @@
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# 旧版の背景。images/bg1-hell.png に置き換わったが、元データとして手元に残す
+ヘルランナー背景.png
