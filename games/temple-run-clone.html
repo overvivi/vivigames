@@ -820,8 +820,8 @@
   const bgmGainNodes = new Array(BGM_TRACKS.length).fill(null);
   let bgmAudioGraphReady = false;
   const bgmLoadRequested = new Set();
-  // iPhoneでもWeb Audio経由で同じ基準になるため、端末共通のBGM倍率を0.2にする。
-  let BGM_VOLUME = 0.14;
+  // iPhone実機で4系統を聞き比べ、端末共通のBGM倍率を0.30に確定した。
+  let BGM_VOLUME = 0.30;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
@@ -905,7 +905,7 @@
     osc.stop(t0+duration+0.02);
   }
 
-  let JUMP_VOLUME_BOOST = 1.5;
+  let JUMP_VOLUME_BOOST = 2.8;
   let COIN_VOLUME_BOOST = 1.5;
   let RIVAL_VOICE_VOLUME = 2.0;
   function playJumpSound(){
