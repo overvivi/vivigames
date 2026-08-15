@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ゲーム置き場</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  .pixelFont{ font-family:'Press Start 2P','Georgia',monospace !important; }
+  :root{
+    --gold:#2ee6ff;
+    --card-bg-a:rgba(96,58,30,0.42);
+    --card-bg-b:rgba(36,20,14,0.60);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(224,130,50,0.14), transparent 52%),
+      radial-gradient(ellipse at 50% 110%, rgba(110,30,150,0.16), transparent 58%),
+      #08060c;
+    font-family:'Georgia','Yu Mincho',serif;
+    color:#f0e4c8;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap{ max-width:640px; margin:0 auto; padding:36px 20px 60px; }
+  header{ text-align:center; margin-bottom:8px; }
+  h1{
+    color:var(--gold); font-size:clamp(28px,7vw,38px); letter-spacing:4px; margin:0 0 10px;
+    text-shadow:0 0 24px rgba(46,230,255,0.75), 0 2px 1px rgba(0,0,0,0.7);
+    position:relative; display:inline-block; padding-bottom:14px;
+  }
+  h1::after{
+    content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:140px; height:2px;
+    background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .sub{ color:#c9b28a; font-size:12px; letter-spacing:2px; margin:0 0 40px; text-align:center; }
+
+  .card{
+    display:flex; align-items:center; gap:16px;
+    background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
+    border:2px solid #6b4f2e; border-radius:12px;
+    padding:16px 18px; margin-bottom:16px;
+    box-shadow:inset 0 0 0 1px rgba(46,230,255,0.14), 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .icon{
+    width:56px; height:56px; flex-shrink:0; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.15), rgba(0,0,0,0.25));
+    border:1px solid rgba(46,230,255,0.35);
+  }
+  .info{ flex:1; min-width:0; }
+  .titleRow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .gTitle{ color:var(--gold); font-size:16px; letter-spacing:1px; font-weight:bold; }
+  .tag{
+    font-size:9px; letter-spacing:1px; padding:2px 8px; border-radius:10px;
+    border:1px solid; white-space:nowrap;
+  }
+  .tag.done{ color:#8fd694; border-color:#4a7a4e; background:rgba(80,160,90,0.12); }
+  .tag.wip{ color:#ffd699; border-color:#a87a3a; background:rgba(200,140,50,0.14); }
+  .tag.proto{ color:#a8c4e0; border-color:#4a6a8a; background:rgba(70,110,150,0.14); }
+  .desc{ color:#c9b28a; font-size:12px; margin-top:5px; line-height:1.6; }
+  .playBtn{
+    flex-shrink:0;
+    background:linear-gradient(180deg, #ff5cc4, #d1207e 55%, #7a0f42);
+    color:#fff8ec; border:2px solid var(--gold);
+    padding:10px 18px; font-size:12px; letter-spacing:2px;
+    border-radius:5px; cursor:pointer; font-family:inherit; text-decoration:none;
+    text-shadow:0 1px 2px rgba(0,0,0,0.55);
+    box-shadow:0 3px 0 #5a0a35, 0 5px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition:transform 0.08s, box-shadow 0.08s;
+    display:inline-block; text-align:center;
+  }
+  .playBtn:active{
+    transform:translateY(2px);
+    box-shadow:0 1px 0 #5a2408, 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  footer{ text-align:center; color:#6b5a42; font-size:10px; margin-top:30px; letter-spacing:1px; }
+
+  .patchSection{ margin-bottom:30px; }
+  .patchToggle{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    color:var(--gold); font-size:12px; letter-spacing:2px; text-align:center;
+    cursor:pointer; padding:10px; list-style:none;
+  }
+  .patchToggle::-webkit-details-marker{ display:none; }
+  .patchToggle::after{ content:'▾'; font-size:10px; transition:transform 0.2s; }
+  details[open] .patchToggle::after{ transform:rotate(180deg); }
+  .patchGame{ margin-bottom:18px; }
+  .patchGame h3{
+    color:var(--gold); font-size:13px; letter-spacing:1px; margin:0 0 8px;
+    border-bottom:1px solid rgba(46,230,255,0.25); padding-bottom:6px;
+  }
+  .patchEntry{
+    background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
+    border:1px solid #6b4f2e; border-radius:8px; padding:10px 14px; margin-bottom:8px;
+  }
+  .patchEntry .pv{ color:var(--gold); font-size:11px; font-weight:bold; letter-spacing:1px; }
+  .patchEntry ul{ margin:6px 0 0; padding-left:18px; color:#d8c39a; font-size:11.5px; line-height:1.7; }
+
+  @media (max-width:420px){
+    .card{ flex-wrap:wrap; }
+    .playBtn{ width:100%; margin-top:4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ゲーム置き場</h1>
+    <p class="sub">GAME COLLECTION — 遊びたいものをタップ</p>
+  </header>
+
+  <div class="patchSection">
+    <details>
+      <summary class="patchToggle">📜 パッチノート(更新履歴)</summary>
+
+      <div class="patchGame">
+        <h3>HELL RUNNER(旧: 奈落回避ランナー)</h3>
+        <div class="patchEntry">
+          <div class="pv">v0.2</div>
+          <ul>
+            <li>タイトルを「HELL RUNNER」に改名</li>
+            <li>修羅モード(速度1.5倍)を廃止 — 難易度が高すぎたため</li>
+            <li>新能力「滑空」を追加(ジャンプ中に長押しで滑空)</li>
+            <li>十倍界王拳を選択式の能力から廃止し、20000m到達で誰でも自動発動する「ステージギミック」に変更。発動時は専用の演出+通知あり</li>
+            <li>十倍界王拳発動中、巨大化した頭の分だけ頭上のコイン取得判定も拡大(視界デバフの見返り)</li>
+            <li>30000m到達後、ゆるやかに加速するように(50000mで頭打ち・最大+40%)</li>
+            <li>ランキング機能を追加(ハイスコア更新時に名前を登録可能)</li>
+            <li>ベスト記録・能力解放状況を個別にリセットできる機能を追加</li>
+            <li>ライバルを追加</li>
+          </ul>
+        </div>
+        <div class="patchEntry">
+          <div class="pv">v0.1</div>
+          <ul>
+            <li>2段ジャンプの横スクロールアクションとして完成</li>
+            <li>能力システム(転生・レッドブル・修羅モード・十倍界王拳)を実装</li>
+            <li>コイン・段差・奈落・BGM・悲鳴音などを実装</li>
+          </ul>
+        </div>
+        <div class="patchEntry">
+          <div class="pv">v0.0(構想段階)</div>
+          <ul>
+            <li>当初はRoblox風の縦スクロールゲームとして着想</li>
+            <li>2D Canvasベースの横スクロールランナーへ路線変更し、現在の形の土台に</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="patchGame">
+        <h3>討伐2048</h3>
+        <div class="patchEntry">
+          <div class="pv">v0.1</div>
+          <ul>
+            <li>2048方式の合体パズル+ボス撃破RPGとして完成</li>
+            <li>勇者選択・3ステージ+チャレンジモード・ランキング機能を実装</li>
+            <li>ボスのヒール(HP1割で1回だけ回復)と、目標タイル到達での必殺技即撃破を実装</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="icon">🏃</div>
+    <div class="info">
+      <div class="titleRow">
+        <span class="gTitle">HELL RUNNER</span>
+        <span class="tag done">完成</span>
+      </div>
+      <div class="desc">崩れた足場を2段ジャンプで飛び越え、どこまで走れるかに挑む横スクロールランナー。能力解放・BGM・悲鳴音つき。</div>
+    </div>
+    <a class="playBtn pixelFont" href="temple-run-clone.html" style="font-size:10px;">PLAY</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">⚔️</div>
+    <div class="info">
+      <div class="titleRow">
+        <span class="gTitle">討伐2048</span>
+        <span class="tag wip">開発中</span>
+      </div>
+      <div class="desc">2048の合体でボスにダメージを与える、勇者選択・ステージ制のRPG風バトルデモ。</div>
+    </div>
+    <a class="playBtn pixelFont" href="boss-battle-demo.html" style="font-size:10px;">PLAY</a>
+  </div>
+
+  <footer>MADE WITH CLAUDE</footer>
+</div>
+</body>
+</html>

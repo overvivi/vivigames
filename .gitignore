@@ -1,0 +1,7 @@
+# Claude Code のローカル設定(端末ごとに異なるためコミットしない)
+.claude/settings.local.json
+
+# OS が勝手に作るファイル
+Thumbs.db
+desktop.ini
+.DS_Store
