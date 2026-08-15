@@ -1987,8 +1987,8 @@
     }
 
     // 墓場ゾーン → 呪いの森ゾーン。背景画像の区間と一致させてある(docs/画像素材の仕様.md)
-    drawGraveyard(groundY, rangeAlpha(distM, 16000, 18000, 31500, 33000));
-    drawCursedForest(groundY, rangeAlpha(distM, 33000, 34500, 53500, 55000));
+    drawGraveyard(groundY, rangeAlpha(distM, 15000, 18000, 31500, 34500));
+    drawCursedForest(groundY, rangeAlpha(distM, 31500, 34500, 53500, 56500));
 
     // 靄(地面のあるところにだけ薄くかかる程度に弱める)
     const fog = ctx.createLinearGradient(0,groundY-groundY*0.14,0,groundY+4);
