@@ -526,9 +526,10 @@
 
   let W, H;
   function resize(){
-    // PCとスマホで見える範囲や難易度が変わらないよう、公開版も縦長スマホ比率へ統一する。
-    const cssW = Math.min(innerWidth,innerHeight*(390/844));
-    const cssH = cssW*(844/390);
+    // スマホはブラウザの上下バーで高さが縮んでも横幅を狭めない。PCだけ縦長比率へ固定する。
+    const mobileLayout = innerWidth <= 600 || matchMedia('(pointer:coarse)').matches;
+    const cssW = mobileLayout ? innerWidth : Math.min(innerWidth,innerHeight*(390/844));
+    const cssH = mobileLayout ? innerHeight : cssW*(844/390);
     stage.style.width = cssW+'px';
     stage.style.height = cssH+'px';
     stage.style.top = '50%';

@@ -68,15 +68,24 @@ test('速度は30000mから100000mまで緩やかに上がる', async ({ page })
   expect(speeds).toEqual([640,768,896,896]);
 });
 
-test('公開版も縦長比率と3倍の画面密度を使う', async ({ page })=>{
+test('スマホは横幅いっぱい、PCは縦長比率で3倍の画面密度を使う', async ({ page })=>{
+  await page.setViewportSize({ width:390, height:700 });
   await page.goto('/games/temple-run-clone.html');
-  const sizes = await page.evaluate(()=>{
+  const mobile = await page.evaluate(()=>{
     const stage = document.getElementById('stage');
     const canvas = document.getElementById('game');
-    return { ratio:stage.clientWidth/stage.clientHeight, density:canvas.width/stage.clientWidth };
+    return { width:stage.clientWidth, density:canvas.width/stage.clientWidth };
   });
-  expect(sizes.ratio).toBeCloseTo(390/844,2);
-  expect(sizes.density).toBe(3);
+  expect(mobile.width).toBe(390);
+  expect(mobile.density).toBe(3);
+
+  await page.setViewportSize({ width:1200, height:800 });
+  const desktopRatio = await page.evaluate(()=>{
+    window.dispatchEvent(new Event('resize'));
+    const stage = document.getElementById('stage');
+    return stage.clientWidth/stage.clientHeight;
+  });
+  expect(desktopRatio).toBeCloseTo(390/844,2);
 });
 
 test('長いHUD数値をK表記にしてスクリーンショット操作を表示する', async ({ page })=>{
