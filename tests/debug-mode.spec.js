@@ -95,12 +95,18 @@ test('長いHUD数値をK表記にしてスクリーンショット操作を表�
   await expect(page.locator('#debugScreenshot')).toBeVisible();
 });
 
-test('モバイルのタイトルロゴは画面上端で見切れない', async ({ page })=>{
+test('モバイルのタイトルとランキングボタンが見切れず、画像ボタンの幅が揃う', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html');
-  const visible = await page.evaluate(()=>{
+  const layout = await page.evaluate(()=>{
     const stage = document.getElementById('stage').getBoundingClientRect();
     const logo = document.querySelector('#startScreen .logoImg').getBoundingClientRect();
-    return logo.top>=stage.top && logo.bottom<=stage.bottom;
+    const ranking = document.getElementById('openRankingBtn').getBoundingClientRect();
+    const widths = [...document.querySelectorAll('.imgBtn img')].map(el=>getComputedStyle(el).width);
+    return {
+      visible:logo.top>=stage.top && logo.bottom<=stage.bottom && ranking.bottom<=stage.bottom,
+      sameWidth:new Set(widths).size===1
+    };
   });
-  expect(visible).toBe(true);
+  expect(layout.visible).toBe(true);
+  expect(layout.sameWidth).toBe(true);
 });
