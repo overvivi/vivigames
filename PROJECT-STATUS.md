@@ -35,9 +35,10 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 ## テスト環境
 
 - `npm run test:syntax`: HELL RUNNERと討伐2048の両方を構文検査
-- `npm test`: 現在16件。HELL RUNNERの背景・デバッグ機能と討伐2048の盤面合計を検証
+- `npm test`: 現在17件。HELL RUNNERの背景・デバッグ機能と討伐2048の盤面合計を検証
+- 通常は変更箇所に関係するspecだけを実行する。全17件は複数領域の変更や大きな公開前確認に限定する
 - 背景の見た目を意図的に変えた場合のみ `npm run test:update-backgrounds`
-- 最終確認時点: 構文検査成功、Playwright 16件すべて成功、両巨大HTMLのscriptタグ数と末尾を確認済み
+- 最終確認時点: 構文検査成功、Playwright 17件すべて成功、両巨大HTMLのscriptタグ数と末尾を確認済み
 
 ## 未完了・次にやること
 

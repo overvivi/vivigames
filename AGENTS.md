@@ -54,17 +54,41 @@ sed -n '1740,1810p' games/temple-run-clone.html
 - 背景の基準画像を意図的に変更した時だけ `npm run test:update-backgrounds` で更新する。
   通常の変更では `npm run test:backgrounds` を使い、勝手に基準画像を更新しない
 
-変更後はPlaywrightと、最低限の構造確認を両方行う:
+変更後は、**変更範囲に関係するテストだけを優先して実行する。** 音量値の微調整など同じ種類の修正を
+繰り返すたびに、背景比較や別ゲームなど無関係なテストまで毎回実行しない。
+
+```bash
+# HELL RUNNERのUI・音・ゲーム処理
+npx playwright test tests/debug-mode.spec.js
+
+# HELL RUNNERの背景描画を変更した場合
+npm run test:backgrounds
+
+# 討伐2048を変更した場合
+npx playwright test tests/boss-battle.spec.js
+
+# 複数ゲームにまたがる変更・テスト設定変更・大きな公開前確認だけ全件実行
+npm test
+```
+
+構文検査は変更した巨大HTMLを含むため基本的に実行し、最低限の構造確認も行う:
 
 ```bash
 npm run test:syntax
-npm test
 
 # 構造が壊れていないか
 tail -c 40 games/temple-run-clone.html          # </html> で終わること
 grep -c '<script' games/temple-run-clone.html   # 開きタグと閉じタグの数が一致すること
 grep -c '</script>' games/temple-run-clone.html
 ```
+
+テスト選択の目安:
+
+- CSSやタイトル画面だけの変更: `tests/debug-mode.spec.js` の関連テスト
+- BGM・効果音の数値変更: BGM/音量を検証する関連テスト。背景画像6枚の比較は不要
+- 討伐2048だけの変更: `tests/boss-battle.spec.js` のみ
+- テスト共通設定、ファイル配置、両ゲーム共通導線の変更: 全テスト
+- 同種の微調整を連続して行う場合も、前回通った無関係なテストは再実行しない
 
 ### HELL RUNNERの開発モード
 
