@@ -1,15 +1,18 @@
 # vivi's game
 
-自作ブラウザゲーム集。各ゲームは**単一のHTMLファイルで完結**しており、ビルド工程もnpmもない。
-ファイルをブラウザで開けばそのまま動く。
+> **作業前に `AGENTS.md` と `PROJECT-STATUS.md` を最後まで読むこと。**
+> CodexとClaude Codeの共通引き継ぎは `PROJECT-STATUS.md`。作業後は変更内容とテスト結果を必ず更新する。
+
+自作ブラウザゲーム集。各ゲームは**単一のHTMLファイルで完結**しており、ビルド工程はない。
+ファイルをブラウザで開けばそのまま動く。npmはPlaywrightテストの実行にだけ使用する。
 
 ## ファイル構成
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
 | `index.html` | ゲーム置き場(ポータル)。パッチノートもここに記載 | 現役 |
-| `temple-run-clone.html` | **HELL RUNNER** 本体(約6.2MB) | 完成 |
-| `boss-battle-demo.html` | **討伐2048** 本体(約7.3MB) | 開発中 |
+| `games/temple-run-clone.html` | **HELL RUNNER** 本体(約6.5MB) | 現役 |
+| `games/boss-battle-demo.html` | **討伐2048** 本体(約7.3MB) | 現役 |
 | `tetris.html` | テトリス。ポータルに3本目として追加予定だが**未リンク** | 試作 |
 | `supabase-setup.sql` | ランキング用テーブル作成SQL | 参照用 |
 | `supabase-fix-permissions.sql` | GRANT修正SQL(下記の落とし穴を参照) | 参照用 |
@@ -37,15 +40,15 @@ grant usage on all sequences in schema public to anon, authenticated;
 6〜7MBのHTMLを丸ごと読むとコンテキストを食い潰す。編集時は base64 の行(500字超の行)を避けて、
 コード部分だけを対象にすること。
 
-## HELL RUNNER(`temple-run-clone.html`)
+## HELL RUNNER(`games/temple-run-clone.html`)
 
 崩れた足場を2段ジャンプで越える横スクロールランナー。2D Canvas。
 
 - **能力**: 転生(2500m)・レッドブル(5000m)・滑空(10000m)で解放。プレイ開始時に選択する
 - **ステージギミック**(選択制ではなく距離到達で全員に自動発動):
   - 5000m — ライバル(デビル)出現
-  - 20000m — 十倍界王拳。頭が巨大化し視界デバフ、その代わり頭上のコイン取得判定も拡大
-  - 30000m以降 — ゆるやかに加速(50000mで頭打ち・最大+40%)
+  - 20000m — デスイーター降臨。死神が追従し、コイン取得範囲が広がる
+  - 30000m以降 — ゆるやかに加速(100000mで頭打ち・最大+40%)
 - **スプライト**: プレイヤー=骸骨、ライバル=デビルのドット絵を導入済み
 - **ランキング**: Supabase `runner_scores` テーブル
 - **セーブ**: localStorage。キーは `v2` 系(旧バージョンの記録を切り離すため)
@@ -70,7 +73,7 @@ grant usage on all sequences in schema public to anon, authenticated;
 - **修羅モード**(速度1.5倍)— 難易度が高すぎたため廃止
 - **十倍界王拳の選択式**— ステージギミックへ変更済み
 
-## 討伐2048(`boss-battle-demo.html`)
+## 討伐2048(`games/boss-battle-demo.html`)
 
 2048の合体でボスにダメージを与えるRPG風バトル。
 
@@ -78,7 +81,8 @@ grant usage on all sequences in schema public to anon, authenticated;
 - ボスはHP1割で**1回だけ**回復する
 - 目標タイル到達で必殺技による即撃破
 - **ランキング**: Supabase `boss_battle_scores` テーブル
-- **セーブ**: localStorage `bossDemoUnlockedStages` / `bossDemoChallengeBest`(エクスポート/インポート機能あり)
+- **ランキング得点**: チャレンジ終了時に盤面へ残った全タイルの合計
+- **セーブ**: localStorage `bossDemoUnlockedStages` / `bossDemoChallengeBest_v2`(エクスポート/インポート機能あり)
 
 ## 引き継がれなかった試作
 

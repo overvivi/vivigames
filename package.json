@@ -1,0 +1,14 @@
+{
+  "name": "vivigames-local-tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:syntax": "node tests/syntax-check.cjs",
+    "test:backgrounds": "playwright test tests/backgrounds.spec.js",
+    "test:update-backgrounds": "playwright test tests/backgrounds.spec.js --update-snapshots",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

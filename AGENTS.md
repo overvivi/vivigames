@@ -5,9 +5,22 @@
 
 ---
 
+## Codex / Claude Code共通の引き継ぎ
+
+作業開始前に、必ず [`PROJECT-STATUS.md`](PROJECT-STATUS.md) を読むこと。
+CodexとClaude Codeが並行して作業するため、このファイルを両者の共通記録とする。
+
+- 作業開始時に「現在の状態」「未完了・次にやること」「注意点」を確認する
+- 作業完了時に、変更内容・変更ファイル・実行したテスト・未完了事項を追記する
+- 古くなった記述は放置せず、現在の実装に合わせて更新する
+- 他方が残した未コミット変更を自分の変更として消したり、巻き戻したりしない
+- 会話だけに重要な仕様を残さず、再開に必要な判断は `PROJECT-STATUS.md` に記録する
+
+---
+
 ## 最重要: ファイルを丸ごと読んではいけない
 
-`temple-run-clone.html` は **6.5MB**、`boss-battle-demo.html` は **7.3MB** ある。
+`games/temple-run-clone.html` は **6.5MB**、`games/boss-battle-demo.html` は **7.3MB** ある。
 巨大なのは、ドット絵スプライト・UI画像・BGMを **base64で埋め込んでいる**ため。
 
 - **500文字を超える行が base64 のかたまり**。1行が数百KBある
@@ -18,10 +31,10 @@
 
 ```bash
 # 構造の把握(base64を除外して関数一覧を出す)
-grep -nE "^\s*(function |const [A-Z]|// ---)" temple-run-clone.html | cut -c1-120
+grep -nE "^\s*(function |const [A-Z]|// ---)" games/temple-run-clone.html | cut -c1-120
 
 # 目的の箇所を特定してから、その周辺だけを読む
-sed -n '1740,1810p' temple-run-clone.html
+sed -n '1740,1810p' games/temple-run-clone.html
 ```
 
 **やってはいけないこと:**
@@ -32,20 +45,38 @@ sed -n '1740,1810p' temple-run-clone.html
 
 ---
 
-## テストが無い。実行して確かめることもできない
+## Node.jsとPlaywrightで検証できる
 
-- ビルド工程なし、npmなし、テストなし。HTMLをブラウザで開けば動く
-- **Node.js も Python もこの環境に入っていない**。JSを実行して検証する手段が無い
-- したがって「動くはず」で終わらせず、**変更箇所を目視で追い切ること**
+- Node.js 24 LTSとPlaywrightを導入済み。ビルド工程はなく、HTMLをブラウザで開けば動く構成は維持する
+- `npm test` でPlaywrightテスト、`npm run test:syntax` でHTML内JavaScriptの構文検査を実行できる
+- Node.jsを導入した直後のCodexではPATHが古い場合がある。その時はCodexを再起動するか、
+  `C:\Program Files\nodejs\npm.cmd` をフルパスで使う
+- 背景の基準画像を意図的に変更した時だけ `npm run test:update-backgrounds` で更新する。
+  通常の変更では `npm run test:backgrounds` を使い、勝手に基準画像を更新しない
 
-変更後は最低限これを確認する:
+変更後はPlaywrightと、最低限の構造確認を両方行う:
 
 ```bash
+npm run test:syntax
+npm test
+
 # 構造が壊れていないか
-tail -c 40 temple-run-clone.html          # </html> で終わること
-grep -c '<script' temple-run-clone.html   # 開きタグと閉じタグの数が一致すること
-grep -c '</script>' temple-run-clone.html
+tail -c 40 games/temple-run-clone.html          # </html> で終わること
+grep -c '<script' games/temple-run-clone.html   # 開きタグと閉じタグの数が一致すること
+grep -c '</script>' games/temple-run-clone.html
 ```
+
+### HELL RUNNERの開発モード
+
+`games/temple-run-clone.html?debug=1` で開くと、距離ジャンプパネルが表示される。
+通常URLではパネルも `window.__hellRunnerDebug` も公開されないため、一般プレイヤーには見えない。
+
+- 背景の境界地点へ瞬時に移動できる
+- `● REC` / `■ STOP` でWebM録画できる。localhostではゲームCanvasのみ、file://でCanvas録画が拒否された場合は画面共有録画へ自動で切り替える
+- 移動時は0mから全地形を生成せず、現在地の周辺だけ作り直す
+- 固定乱数を使うのはデバッグ移動時だけ。通常プレイのランダム地形には影響しない
+- デバッグ移動では能力解放やベスト記録を保存しない
+- Playwrightの背景比較は `tests/backgrounds.spec.js` から同じ入口を使う
 
 ---
 
@@ -82,7 +113,7 @@ grant usage on all sequences in schema public to anon, authenticated;
 枚数が増えるほど起動時に全部読み終わるまで待たされ、コード修正のたびに
 全画像を再取得することになるため。
 
-実装は `temple-run-clone.html` の `BG_ZONES` 周辺(1743行目あたり)。
+実装は `games/temple-run-clone.html` の `BG_ZONES` 周辺(1743行目あたり)。
 
 - `rangeAlpha` で前後の背景を **3,000mかけて重ねながら**入れ替える
 - **画像は1枚おきに左右反転して並べる**。継ぎ目が必ず鏡写しになるので、
@@ -98,7 +129,7 @@ grant usage on all sequences in schema public to anon, authenticated;
 
 ```js
 const BG_ZONES = [
-  { key:'hell', src:'images/bg1-hell.png', start:-1, peak1:0, peak2:15000, end:18000 }
+  { key:'hell', src:'../images/bg1-hell.png', start:-1, peak1:0, peak2:15000, end:18000 }
   // ここに追記する
 ];
 ```
@@ -124,13 +155,25 @@ const BG_ZONES = [
 
 ---
 
-## git は触らない
+## git・公開操作
 
-**コミットもpushもしない。** git操作は人間側が管理している。
-変更は作業ツリーに残すだけでよい。
+通常はコミットもpushもしない。ユーザーから明示的に公開またはgit操作を依頼された場合のみ、
+テスト成功と対象ファイルを確認したうえでコミット・pushしてよい。
+
+### 公開時に必要な構成
+
+GitHub Pagesへは `index.html` だけでなく、次のフォルダを階層ごと反映する必要がある。
+HELL RUNNERは外部の背景・足場・BGMを参照するため、欠けると旧手描き背景と無音へフォールバックする。
+
+- `games/` — 公開するゲーム本体
+- `images/` — HELL RUNNERの背景・足場・死神
+- `audio/` — HELL RUNNERのステージBGM
+
+公開後は `games/temple-run-clone.html`、`images/bg1-hell.png`、`audio/bgm1-hell.ogg` が
+それぞれHTTP 200で取得できることを確認する。
 
 このリポジトリは GitHub(overvivi/vivigames)に公開しているが、
-**作りかけのものは反映しない方針**。勝手にpushすると公開されてしまう。
+**作りかけのものは反映しない方針**。ユーザーの許可なしにpushすると公開されてしまう。
 
 ---
 
@@ -150,8 +193,8 @@ const BG_ZONES = [
 | ファイル | 内容 |
 |---|---|
 | `index.html` | ゲーム置き場(ポータル)。パッチノートもここ |
-| `temple-run-clone.html` | HELL RUNNER 本体。横スクロールランナー |
-| `boss-battle-demo.html` | 討伐2048 本体。2048+ボス撃破RPG |
+| `games/temple-run-clone.html` | HELL RUNNER 本体。横スクロールランナー |
+| `games/boss-battle-demo.html` | 討伐2048 本体。2048+ボス撃破RPG |
 | `tetris.html` | テトリス。**土台のみ。ポータル未掲載**(まだ遊べる状態にしない) |
 | `images/` | 背景画像 |
 | `docs/画像素材の仕様.md` | 背景・足場の発注仕様と区間の割り当て |

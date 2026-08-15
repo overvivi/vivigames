@@ -8,3 +8,8 @@ desktop.ini
 
 # 旧版の背景。images/bg1-hell.png に置き換わったが、元データとして手元に残す
 ヘルランナー背景.png
+
+# ローカルの自動テストが生成する一時結果
+node_modules/
+test-results/
+playwright-report/

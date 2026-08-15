@@ -1,0 +1,18 @@
+const { defineConfig } = require('@playwright/test');
+
+module.exports = defineConfig({
+  testDir: './tests',
+  timeout: 30000,
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
+  use: {
+    baseURL: 'http://127.0.0.1:4173',
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    screenshot: 'only-on-failure'
+  },
+  webServer: {
+    command: 'node tests/static-server.cjs',
+    url: 'http://127.0.0.1:4173/index.html',
+    reuseExistingServer: true
+  }
+});
