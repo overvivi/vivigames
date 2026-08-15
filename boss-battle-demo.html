@@ -459,8 +459,8 @@
   let bossHealed = false; // このステージ挑戦中にヒールを使ったか(1回だけ)
   let challengeScore = 0;
   let challengeBest = 0;
-  try{ challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest'),10)||0; }catch(e){}
-  function persistChallengeBest(){ try{ localStorage.setItem('bossDemoChallengeBest', String(challengeBest)); }catch(e){} }
+  try{ challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest_v2'),10)||0; }catch(e){}
+  function persistChallengeBest(){ try{ localStorage.setItem('bossDemoChallengeBest_v2', String(challengeBest)); }catch(e){} }
   function updateChallengeUI(){
     challengeScoreValEl.textContent = challengeScore;
     challengeBestValEl.textContent = challengeBest;
@@ -673,7 +673,7 @@
   }catch(e){}
 
   // ---------- データのバックアップ/復元 ----------
-  const SAVE_KEYS = ['bossDemoUnlockedStages','bossDemoChallengeBest'];
+  const SAVE_KEYS = ['bossDemoUnlockedStages','bossDemoChallengeBest_v2'];
   function exportSaveData(){
     const data = { savedAt: new Date().toISOString() };
     SAVE_KEYS.forEach(k=>{ try{ data[k] = localStorage.getItem(k); }catch(e){} });
@@ -698,7 +698,7 @@
           }
         });
         unlockedStages = parseInt(localStorage.getItem('bossDemoUnlockedStages'),10)||1;
-        challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest'),10)||0;
+        challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest_v2'),10)||0;
         buildStageSelect();
         updateChallengeUI();
         flashMessage('復元しました！', 2200);
@@ -740,6 +740,7 @@
     try{
       localStorage.removeItem('bossDemoUnlockedStages');
       localStorage.removeItem('bossDemoChallengeBest');
+      localStorage.removeItem('bossDemoChallengeBest_v2');
     }catch(e){}
     unlockedStages = 1;
     challengeBest = 0;
@@ -1004,6 +1005,13 @@
     }
     return true;
   }
+  function gridValueSum(tiles){
+    // 最大タイルだけでは2048到達後の頑張りが記録に残らないため、盤面に残った数字をすべて得点にする。
+    return (tiles||grid).reduce((sum,tier)=>sum+(tier ? Math.pow(2,tier) : 0),0);
+  }
+  if(new URLSearchParams(location.search).get('debug')==='1'){
+    window.__bossBattleDebug = { scoreForGrid:gridValueSum };
+  }
   function moveGrid(dir){
     if(gridOver || gridLocked || defeated || !currentHero) return;
     let moved = false;
@@ -1026,19 +1034,9 @@
     gridMoveT = 0; // 移動アニメーションを頭出し(全タイルが移動方向から滑り込む見た目にする)
     mergedCells.forEach(c=>gridAnimTiles.push({cell:c, born:false, t:0}));
     spawnTile();
-    if(challengeMode && allMergedTiers.length){
-      // チャレンジモードの記録は「これまでに作った一番大きいタイル」そのもの
-      const maxTier = Math.max(...allMergedTiers);
-      const val = Math.pow(2, maxTier);
-      if(val > challengeScore){
-        challengeScore = val;
-        updateChallengeUI();
-      }
-      if(challengeScore > challengeBest){
-        challengeBest = challengeScore;
-        persistChallengeBest();
-        isNewChallengeBest = true;
-      }
+    if(challengeMode){
+      challengeScore = gridValueSum();
+      updateChallengeUI();
     }
     if(allMergedTiers.length){
       const targetTier = !challengeMode && STAGES[stageIndex] ? STAGES[stageIndex].targetTier : null;
@@ -1054,6 +1052,11 @@
         // 最後の一手でボスも倒していた場合は、そちらの勝利演出を優先する
         if(defeated) return;
         if(challengeMode){
+          if(challengeScore > challengeBest){
+            challengeBest = challengeScore;
+            persistChallengeBest();
+            isNewChallengeBest = true;
+          }
           loseTitle.textContent = 'GAME OVER';
           loseSub.textContent = '盤面が埋まりました';
           loseScoreLine.style.display = '';
@@ -1123,8 +1126,9 @@
     hpText.textContent = '∞';
     stageTagEl.style.display = 'none';
     challengeScoreBar.style.display = 'flex';
-    updateChallengeUI();
     resetGrid();
+    challengeScore = gridValueSum();
+    updateChallengeUI();
     loseOverlay.classList.remove('show');
   }
   loadStage(0);
