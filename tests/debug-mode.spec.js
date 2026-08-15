@@ -62,6 +62,15 @@ test('PCではデバッグパネルをゲーム画面外の余白に表示する
   expect(boxes.panelLeft).toBeGreaterThan(boxes.stageRight);
 });
 
+test('携帯でも音量ミキサーまで表示できる', async ({ page })=>{
+  await page.setViewportSize({ width:390, height:700 });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.locator('#debugCoinVolume').scrollIntoViewIfNeeded();
+  await expect(page.locator('#debugCoinVolume')).toBeVisible();
+  const panel = page.locator('#debugPanel');
+  expect(await panel.evaluate(el=>getComputedStyle(el).touchAction)).toBe('pan-y');
+});
+
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
   await page.evaluate(()=>window.__hellRunnerDebug.showDeathEaterBanner());
