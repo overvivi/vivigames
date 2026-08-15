@@ -786,8 +786,8 @@
     return audio;
   });
   const bgmLoadRequested = new Set();
-  // ジャンプ音などの操作フィードバックが埋もれないよう、当初BGM音量の50%に抑える。
-  const BGM_VOLUME = 0.18;
+  // ジャンプ音などの操作フィードバックが埋もれないよう、当初BGM音量の25%に抑える。
+  const BGM_VOLUME = 0.09;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
@@ -853,7 +853,7 @@
     osc.stop(t0+duration+0.02);
   }
 
-  const JUMP_COIN_VOLUME_BOOST = 1.1;
+  const JUMP_COIN_VOLUME_BOOST = 1.5;
   function playJumpSound(){
     playTone(520, 0.13, 'square', 0.14*JUMP_COIN_VOLUME_BOOST);
     playTone(760, 0.10, 'square', 0.09*JUMP_COIN_VOLUME_BOOST, 0.03);
@@ -1408,6 +1408,7 @@
         distanceM:Math.floor(distance/9), state, kaiokenActive,
         recording:!!(debugRecorder && debugRecorder.state==='recording'), recordingMode:debugRecordingMode,
         bgm:bgmAudios.map(audio=>({ volume:audio.volume, paused:audio.paused })),
+        audioMix:{ bgm:BGM_VOLUME, jumpCoin:JUMP_COIN_VOLUME_BOOST },
         frozen:debugFrozen, backgroundsLoaded:Object.keys(bgImages),
         reaperLoaded:kaiokenReaperImg.complete && kaiokenReaperImg.naturalWidth > 0,
         groundLoaded:groundSurfaceImg.complete && groundSurfaceImg.naturalWidth > 0 &&
@@ -1515,7 +1516,7 @@
     if(state === 'playing'){ jumpQueued = true; }
   }
   stage.addEventListener('pointerdown', (e)=>{
-    if(e.target.closest('button, input, label, .abilityCard')) return;
+    if(e.target.closest('button, a, input, label, .abilityCard')) return;
     e.preventDefault();
     holdingInput = true;
     if(state === 'playing') requestJump();
@@ -1527,11 +1528,11 @@
   // iOSの「長押しで出る虫眼鏡カーソル」対策。pointerdownだけだと抑えきれない場合があるため、
   // 生のtouchイベント側でも明示的にpreventDefaultしておく
   stage.addEventListener('touchstart', (e)=>{
-    if(e.target.closest('button, input, label, .abilityCard')) return; // ボタン類・能力カードのタップは巻き込まない
+    if(e.target.closest('button, a, input, label, .abilityCard')) return; // ボタン・リンク類のタップは巻き込まない
     e.preventDefault();
   }, {passive:false});
   stage.addEventListener('touchmove', (e)=>{
-    if(e.target.closest('button, input, label, .abilityCard')) return;
+    if(e.target.closest('button, a, input, label, .abilityCard')) return;
     e.preventDefault();
   }, {passive:false});
   window.addEventListener('keydown', (e)=>{

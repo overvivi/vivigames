@@ -31,9 +31,11 @@ test('背景の切り替わりと同じ3000mでBGMがクロスフェードする
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
   });
-  expect(volumes[0]).toBeCloseTo(0.09, 5);
-  expect(volumes[1]).toBeCloseTo(0.09, 5);
+  expect(volumes[0]).toBeCloseTo(0.045, 5);
+  expect(volumes[1]).toBeCloseTo(0.045, 5);
   expect(volumes.slice(2)).toEqual([0,0,0,0]);
+  const audioMix = await page.evaluate(()=>window.__hellRunnerDebug.getState().audioMix);
+  expect(audioMix).toEqual({ bgm:0.09, jumpCoin:1.5 });
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{
@@ -122,4 +124,6 @@ test('モバイルのタイトル画面が記録リセット欄まで収まり�
   await expect(page.locator('#rulesOverlay')).toBeVisible();
   await page.locator('#closeRulesBtn').click();
   await expect(page.locator('#rulesOverlay')).toBeHidden();
+  await page.locator('a[href="../index.html#credits"]').click();
+  await expect(page).toHaveURL(/index\.html#credits$/);
 });
