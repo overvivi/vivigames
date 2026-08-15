@@ -768,7 +768,8 @@
     return audio;
   });
   const bgmLoadRequested = new Set();
-  const BGM_VOLUME = 0.36;
+  // ジャンプ音などの操作フィードバックが埋もれないよう、従来BGM音量の70%に抑える。
+  const BGM_VOLUME = 0.252;
   let bgmActive = false;
 
   // ---------- ドット絵スプライト(プレイヤー・ライバル) ----------
