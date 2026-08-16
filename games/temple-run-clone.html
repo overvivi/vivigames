@@ -1659,6 +1659,10 @@
   window.addEventListener('keydown', (e)=>{
     if(e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W'){
       e.preventDefault();
+      // キーを押しっぱなしにするとOSのキーリピートがkeydownを連射する。
+      // そのまま通すとjumpQueuedが立ち続け、滞空中(約0.69秒)に2段目・3段目が
+      // 本人の意図と無関係に消費されてしまうため、リピート分は無視する。
+      if(e.repeat) return;
       holdingInput = true;
       if(state === 'playing') requestJump();
       else if(state === 'idle') startGame();
