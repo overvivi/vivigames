@@ -840,6 +840,8 @@ JUMPS 0 / MODE FULL</div>
 
   // ---------- state ----------
   let state = 'idle'; // idle | playing | paused | pauseCountdown | reviveCountdown | over
+  let gameOverActionsReady = false;
+  let gameOverLockToken = 0;
   let player, terrain, coins, particles, bats;
   let pendingLandH = 0; // 直前に生成した奈落の着地側の高さ(次のground生成で参照)
   let lastNarrow = false; // 直前が極端に狭い足場だったか(連続出現を防ぐ)
@@ -1506,6 +1508,10 @@ JUMPS 0 / MODE FULL</div>
   }
 
   function startGame(){
+    gameOverLockToken++;
+    gameOverActionsReady = false;
+    retryBtn.disabled = false;
+    homeBtn.disabled = false;
     ensureAudio();
     stopBGM();
     resetGame();
@@ -1883,6 +1889,10 @@ JUMPS 0 / MODE FULL</div>
       return;
     }
     state = 'over';
+    const lockToken = ++gameOverLockToken;
+    gameOverActionsReady = false;
+    retryBtn.disabled = true;
+    homeBtn.disabled = true;
     hidePauseUI();
     clearJumpInput();
     jumpCanBeCut = false;
@@ -1915,9 +1925,19 @@ JUMPS 0 / MODE FULL</div>
     // モバイルでHUDの端がゲームオーバー画面から覗かないよう、結果画面では要素自体を隠す。
     gameHud.classList.add('hidden');
     overScreen.classList.remove('hidden');
+    // 死亡直前のSpace連打やタップが、表示直後のRETRYへ持ち越される事故を防ぐ。
+    // ランキング入力はすぐ使えるまま、画面遷移ボタンだけを短時間ロックする。
+    setTimeout(()=>{
+      if(state!=='over' || lockToken!==gameOverLockToken) return;
+      gameOverActionsReady = true;
+      retryBtn.disabled = false;
+      homeBtn.disabled = false;
+    },900);
   }
 
   function goHome(){
+    gameOverLockToken++;
+    gameOverActionsReady = false;
     state = 'idle';
     hidePauseUI();
     stopBGM();
@@ -1931,8 +1951,8 @@ JUMPS 0 / MODE FULL</div>
   }
 
   startBtn.addEventListener('click', startGame);
-  retryBtn.addEventListener('click', startGame);
-  homeBtn.addEventListener('click', goHome);
+  retryBtn.addEventListener('click', ()=>{ if(state==='over' && gameOverActionsReady) startGame(); });
+  homeBtn.addEventListener('click', ()=>{ if(state==='over' && gameOverActionsReady) goHome(); });
   pauseBtn.addEventListener('click', pauseGame);
   pausePlayBtn.addEventListener('click', beginPauseResume);
   pauseSoundBtn.addEventListener('click', ()=>setSoundEnabled(!soundEnabled));
@@ -2030,7 +2050,6 @@ JUMPS 0 / MODE FULL</div>
       syncHoldingInput();
       if(state === 'playing') requestJump();
       else if(state === 'idle') startGame();
-      else if(state === 'over') startGame();
     }
   });
   window.addEventListener('keyup', (e)=>{

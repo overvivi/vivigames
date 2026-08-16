@@ -250,6 +250,35 @@ test('デスイーター通知は1行で表示され、ゲームオーバー時�
   await expect(page.locator('#gameHud')).toBeHidden();
 });
 
+test('死亡直後のSpace連打や携帯タップで即リトライせず、ランキング登録を続けられる', async ({ page })=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>{
+    window.__hellRunnerDebug.setPanelVisible(false);
+    window.__hellRunnerDebug.jumpTo(100);
+    window.__hellRunnerDebug.endGameNow();
+  });
+  await expect(page.locator('#overScreen')).toBeVisible();
+  await expect(page.locator('#retryBtn')).toBeDisabled();
+  await expect(page.locator('#homeBtn')).toBeDisabled();
+  for(let i=0;i<6;i++) await page.keyboard.press('Space');
+  await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    for(let i=0;i<6;i++){
+      stage.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:100+i,pointerType:'touch'}));
+      stage.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:100+i,pointerType:'touch'}));
+    }
+  });
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('over');
+  await expect(page.locator('#submitBox')).toBeVisible();
+  await page.locator('#nameInput').fill('TEST PLAYER');
+  await expect(page.locator('#nameInput')).toHaveValue('TEST PLAYER');
+  await expect(page.locator('#retryBtn')).toBeEnabled({timeout:1500});
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('over');
+  await page.locator('#retryBtn').click();
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('playing');
+});
+
 test('NO FALLを有効にすると落下判定でもゲームを継続する', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
   await page.locator('#startBtn').click();
