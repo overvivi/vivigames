@@ -4,8 +4,13 @@
 # 状態ファイルはこのワークフローが書き戻すため contents: write が必要。
 #
 # 必要なSecrets:
-#   DISCORD_WEBHOOK_URL  投稿先（パッチノート通知と同じものでよい）
-#   NG_WORDS             任意。カンマ区切り。名前に含まれたら伏せ字にする
+#   DISCORD_RANKING_WEBHOOK_URL  ランキング専用チャンネルのWebhook。任意
+#   DISCORD_WEBHOOK_URL          上が未設定のときの投稿先（パッチノートと同じ場所になる）
+#   NG_WORDS                     任意。カンマ区切り。名前に含まれたら伏せ字にする
+#
+# Discordのウェブフックは発行したチャンネルに固定されるため、送信先の指定は
+# URLそのものが担う。チャンネルを分けたい場合は、そのチャンネルで発行した
+# URLを DISCORD_RANKING_WEBHOOK_URL へ入れる。
 name: ランキング更新をDiscordへ通知
 
 on:
@@ -33,7 +38,8 @@ jobs:
 
       - name: 1位の更新を確認して送信
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # ランキング専用のWebhookがあればそちらへ。無ければパッチノートと同じ場所へ送る
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RANKING_WEBHOOK_URL || secrets.DISCORD_WEBHOOK_URL }}
           NG_WORDS: ${{ secrets.NG_WORDS }}
         run: node tools/ranking-to-discord.mjs
 
