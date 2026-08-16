@@ -25,6 +25,8 @@ for(const [name,distanceM,key] of zones){
       window.__hellRunnerDebug.jumpTo(m);
       window.__hellRunnerDebug.setFrozen(true);
       window.__hellRunnerDebug.setPanelVisible(false);
+      // 背景素材の比較へHUD操作ボタンの意図的な変更を混ぜない。基準画像は背景変更時だけ更新する。
+      document.getElementById('pauseBtn').classList.add('hidden');
     },distanceM);
     await page.waitForFunction(k=>window.__hellRunnerDebug.getState().backgroundsLoaded.includes(k),key);
     await page.waitForFunction(()=>window.__hellRunnerDebug.getState().groundLoaded);

@@ -8,9 +8,157 @@ test.beforeEach(async ({ page })=>{
 });
 
 test('通常URLではデバッグ機能を公開しない', async ({ page })=>{
+  await page.setViewportSize({ width:1200, height:800 });
   await page.goto('/games/temple-run-clone.html');
   await expect(page.locator('#debugPanel')).toBeHidden();
+  await expect(page.locator('.pcControlHint')).toContainText('SPACE');
+  await expect(page.locator('.pcControlHint')).toContainText('P / ESC');
+  await expect(page.locator('.pcControlHint')).toBeVisible();
   expect(await page.evaluate(()=>typeof window.__hellRunnerDebug)).toBe('undefined');
+});
+
+test('短押しは小ジャンプ、長押しは従来相当の大ジャンプになる', async ({ page })=>{
+  const loopErrors=[];
+  page.on('console',message=>{ if(message.type()==='error'&&message.text().includes('game loop error'))loopErrors.push(message.text()); });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  await page.keyboard.down('Space');
+  await page.keyboard.up('Space');
+  await expect.poll(()=>page.evaluate(()=>{
+    const measure=window.__hellRunnerDebug.getState().jump.measure;
+    return !!measure&&!measure.live;
+  })).toBe(true);
+  const small=await page.evaluate(()=>window.__hellRunnerDebug.getState().jump.measure);
+
+  await page.reload();
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(400);
+  await page.keyboard.up('Space');
+  await expect.poll(()=>page.evaluate(()=>{
+    const measure=window.__hellRunnerDebug.getState().jump.measure;
+    return !!measure&&!measure.live;
+  })).toBe(true);
+  const full=await page.evaluate(()=>window.__hellRunnerDebug.getState().jump.measure);
+
+  expect(small.mode).toBe('SMALL');
+  expect(full.mode).toBe('FULL');
+  expect(small.airtime).toBeLessThan(full.airtime*0.85);
+  expect(small.distance).toBeLessThan(full.distance*0.85);
+  expect(small.height).toBeLessThan(full.height*0.85);
+  expect(full.height).toBeGreaterThan(180);
+  expect(loopErrors).toEqual([]);
+});
+
+test('携帯で2本目の指を離しても長押し状態を解除しない', async ({ page })=>{
+  await page.setViewportSize({ width:390, height:844 });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  const states=await page.evaluate(()=>{
+    const stage=document.getElementById('stage');
+    const send=(type,id)=>stage.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:id,pointerType:'touch'}));
+    send('pointerdown',11);
+    send('pointerdown',22);
+    send('pointerup',22);
+    const afterSecond=window.__hellRunnerDebug.getState().jump.holding;
+    send('pointerup',11);
+    const afterPrimary=window.__hellRunnerDebug.getState().jump.holding;
+    return {afterSecond,afterPrimary};
+  });
+  expect(states).toEqual({afterSecond:true,afterPrimary:false});
+});
+
+test('一時停止中は完全静止し、PLAY後も3秒カウントが終わるまで進まない', async ({ page })=>{
+  const loopErrors=[];
+  page.on('console',message=>{ if(message.type()==='error'&&message.text().includes('game loop error'))loopErrors.push(message.text()); });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await expect(page.locator('#pauseBtn')).toBeHidden();
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#pauseBtn')).toBeVisible();
+  await page.waitForTimeout(180);
+  await page.locator('#pauseBtn').click();
+  await expect(page.locator('#pauseOverlay')).toBeVisible();
+  const stopped=await page.evaluate(()=>window.__hellRunnerDebug.getState());
+  await page.waitForTimeout(350);
+  const still=await page.evaluate(()=>window.__hellRunnerDebug.getState());
+  expect(still.state).toBe('paused');
+  expect(still.distanceM).toBe(stopped.distanceM);
+  expect(still.jump.y).toBe(stopped.jump.y);
+  expect(still.bgm.every(track=>track.paused)).toBe(true);
+
+  await page.locator('#pausePlayBtn').click();
+  await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('pauseCountdown');
+  const countdownDistance=await page.evaluate(()=>window.__hellRunnerDebug.getState().distanceM);
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().distanceM)).toBe(countdownDistance);
+  await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().state),{timeout:4500}).toBe('playing');
+  await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().distanceM)).toBeGreaterThan(countdownDistance);
+  expect(loopErrors).toEqual([]);
+});
+
+test('空中停止から再開してもジャンプカットを持ち越さない', async ({ page })=>{
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  await page.keyboard.down('Space');
+  await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().jump.canCut)).toBe(true);
+  await page.locator('#pauseBtn').click();
+  await page.keyboard.up('Space');
+  const stopped=await page.evaluate(()=>window.__hellRunnerDebug.getState().jump);
+  expect(stopped.y).toBeLessThan(0);
+  expect(stopped.canCut).toBe(false);
+  expect(stopped.holding).toBe(false);
+  await page.locator('#pausePlayBtn').click();
+  await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().state),{timeout:4500}).toBe('playing');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().jump.canCut)).toBe(false);
+});
+
+test('携帯の停止ボタン、サウンド保存、TOP、自動停止が安全に動く', async ({ page })=>{
+  await page.setViewportSize({ width:390, height:844 });
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().pauseButtonSize)).toBe(96);
+  const pauseBox=await page.locator('#pauseBtn').boundingBox();
+  expect(pauseBox.width).toBeGreaterThanOrEqual(48);
+  expect(pauseBox.height).toBeGreaterThanOrEqual(48);
+  expect(pauseBox.x+pauseBox.width).toBeLessThanOrEqual(390);
+  await page.locator('#pauseBtn').click();
+  await expect(page.locator('#playerBgmVolume')).toHaveValue('100');
+  await expect(page.locator('#playerSfxVolume')).toHaveValue('100');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().playerAudio)).toEqual({enabled:true,bgm:1,sfx:1});
+  await page.locator('#playerBgmVolume').fill('35');
+  await page.locator('#playerSfxVolume').fill('65');
+  await expect(page.locator('#playerBgmVolumeValue')).toHaveText('35%');
+  await expect(page.locator('#playerSfxVolumeValue')).toHaveText('65%');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().playerAudio)).toEqual({enabled:true,bgm:0.35,sfx:0.65});
+  expect(await page.evaluate(()=>localStorage.getItem('ruinDashBgmVolume_v1'))).toBe('0.35');
+  expect(await page.evaluate(()=>localStorage.getItem('ruinDashSfxVolume_v1'))).toBe('0.65');
+  await page.locator('#pauseSoundBtn').click();
+  await expect(page.locator('#pauseSoundBtn')).toHaveText('サウンド OFF');
+  expect(await page.evaluate(()=>localStorage.getItem('ruinDashSoundOff_v1'))).toBe('1');
+  await page.reload();
+  await page.evaluate(()=>window.__hellRunnerDebug.setPanelVisible(false));
+  await page.locator('#startBtn').click();
+  await page.locator('#pauseBtn').click();
+  await expect(page.locator('#pauseSoundBtn')).toHaveText('サウンド OFF');
+  await expect(page.locator('#playerBgmVolume')).toHaveValue('35');
+  await expect(page.locator('#playerSfxVolume')).toHaveValue('65');
+  await page.locator('#pauseHomeBtn').click();
+  await expect(page.locator('#startScreen')).toBeVisible();
+  await expect(page).toHaveURL(/temple-run-clone\.html\?debug=1$/);
+
+  await page.locator('#startBtn').click();
+  await page.evaluate(()=>{
+    Object.defineProperty(document,'hidden',{value:true,configurable:true});
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('#pauseOverlay')).toBeVisible();
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('paused');
 });
 
 test('debug=1では距離ジャンプが使える', async ({ page })=>{
@@ -28,6 +176,7 @@ test('debug=1では距離ジャンプが使える', async ({ page })=>{
 test('背景の切り替わりと同じ3000mでBGMがクロスフェードする', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
   await page.locator('#startBtn').click();
+  await page.locator('#debugCollapse').click();
   const volumes = await page.evaluate(()=>{
     window.__hellRunnerDebug.previewBGM(16500);
     return window.__hellRunnerDebug.getState().bgm.map(track=>track.volume);
@@ -65,10 +214,26 @@ test('PCではデバッグパネルをゲーム画面外の余白に表示する
 test('携帯でも音量ミキサーまで表示できる', async ({ page })=>{
   await page.setViewportSize({ width:390, height:700 });
   await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.locator('#debugCollapse').click();
   await page.locator('#debugCoinVolume').scrollIntoViewIfNeeded();
   await expect(page.locator('#debugCoinVolume')).toBeVisible();
+  await page.locator('#debugJumpCut').scrollIntoViewIfNeeded();
+  await expect(page.locator('#debugJumpCut')).toBeVisible();
+  await page.locator('#debugJumpCut').fill('0.66');
+  await expect(page.locator('#debugJumpCutValue')).toHaveText('0.66');
+  expect((await page.evaluate(()=>window.__hellRunnerDebug.getState().jump.releaseCut))).toBe(0.66);
   const panel = page.locator('#debugPanel');
   expect(await panel.evaluate(el=>getComputedStyle(el).touchAction)).toBe('pan-y');
+  await page.evaluate(()=>document.getElementById('startBtn').click());
+  await page.locator('#debugPauseSize').scrollIntoViewIfNeeded();
+  await page.locator('#debugPauseSize').fill('72');
+  await expect(page.locator('#debugPauseSizeValue')).toHaveValue('72');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().pauseButtonSize)).toBe(72);
+  expect(await page.locator('#pauseBtn img').evaluate(el=>({naturalWidth:el.naturalWidth,width:el.getBoundingClientRect().width}))).toEqual({naturalWidth:128,width:72});
+  await page.locator('#debugPauseSizeValue').fill('40');
+  await expect(page.locator('#debugPauseSize')).toHaveValue('40');
+  expect((await page.locator('#pauseBtn').boundingBox()).width).toBeGreaterThanOrEqual(48);
+  expect((await page.locator('#pauseBtn img').boundingBox()).width).toBe(40);
 });
 
 test('デスイーター通知は1行で表示され、ゲームオーバー時に消える', async ({ page })=>{
@@ -88,6 +253,7 @@ test('デスイーター通知は1行で表示され、ゲームオーバー時�
 test('NO FALLを有効にすると落下判定でもゲームを継続する', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
   await page.locator('#startBtn').click();
+  await page.locator('#debugCollapse').click();
   await page.locator('#debugNoFall').click();
   await expect(page.locator('#debugNoFall')).toHaveText('NO FALL: ON');
   await page.evaluate(()=>window.__hellRunnerDebug.endGameNow());
@@ -99,6 +265,7 @@ test('NO FALLを有効にすると落下判定でもゲームを継続する', a
 
 test('デバッグ録画を停止するとWebMを保存する', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.locator('#debugCollapse').click();
   await page.locator('#debugRecordStart').click();
   await expect.poll(()=>page.evaluate(()=>window.__hellRunnerDebug.getState().recording)).toBe(true);
   const downloadPromise = page.waitForEvent('download');
@@ -154,6 +321,7 @@ test('長いHUD数値をK表記にしてスクリーンショット操作を表�
 test('モバイルのタイトル画面が記録リセット欄まで収まり、遊び方を開ける', async ({ page })=>{
   await page.setViewportSize({ width:390, height:700 });
   await page.goto('/games/temple-run-clone.html');
+  await expect(page.locator('.pcControlHint')).toBeHidden();
   const layout = await page.evaluate(()=>{
     const stage = document.getElementById('stage').getBoundingClientRect();
     const logo = document.querySelector('#startScreen .logoImg').getBoundingClientRect();
