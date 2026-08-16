@@ -164,6 +164,10 @@ test('携帯の停止ボタン、サウンド保存、TOP、自動停止が安�
 test('debug=1では距離ジャンプが使える', async ({ page })=>{
   await page.goto('/games/temple-run-clone.html?debug=1');
   await expect(page.locator('#debugPanel')).toBeVisible();
+  await page.locator('#openAbilityBtn').click();
+  await expect(page.locator('.abilityCard.locked')).toHaveCount(0);
+  await expect(page.locator('#card-reincarnate .abilityName')).toHaveText('転生');
+  await page.locator('#abilityBackBtn').click();
   await expect(page.locator('#debugRecordStart')).toBeEnabled();
   await page.evaluate(()=>{
     window.__hellRunnerDebug.jumpTo(101500);
@@ -277,6 +281,48 @@ test('死亡直後のSpace連打や携帯タップで即リトライせず、ラ
   expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('over');
   await page.locator('#retryBtn').click();
   expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('playing');
+});
+
+test('転生確認で連打を防ぎ、転生・RETRY・HOMEを本人が選べる', async ({ page })=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/temple-run-clone.html?debug=1');
+  await page.evaluate(()=>{
+    window.__hellRunnerDebug.setPanelVisible(false);
+    window.__hellRunnerDebug.jumpTo(56500);
+    window.__hellRunnerDebug.triggerReincarnateDeath();
+  });
+  await expect(page.locator('#reincarnateOverlay')).toBeVisible();
+  await expect(page.locator('#reincarnateConfirmBtn')).toBeDisabled();
+  await expect(page.locator('#reincarnateRetryBtn')).toBeDisabled();
+  await expect(page.locator('#reincarnateHomeBtn')).toBeDisabled();
+  for(let i=0;i<5;i++) await page.keyboard.press('Space');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('reincarnateConfirm');
+  await expect(page.locator('#reincarnateConfirmBtn')).toBeEnabled({timeout:1500});
+  await page.locator('#reincarnateConfirmBtn').click();
+  const revived=await page.evaluate(()=>window.__hellRunnerDebug.getState());
+  expect(revived.state).toBe('reviveCountdown');
+  expect(revived.jump.grounded).toBe(true);
+  expect(revived.jump.y).toBe(-revived.jump.groundH);
+  const reviveDistance=revived.distanceM;
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().distanceM)).toBe(reviveDistance);
+
+  await page.reload();
+  await page.evaluate(()=>{
+    window.__hellRunnerDebug.setPanelVisible(false);
+    window.__hellRunnerDebug.jumpTo(1000);
+    window.__hellRunnerDebug.triggerReincarnateDeath();
+  });
+  await expect(page.locator('#reincarnateRetryBtn')).toBeEnabled({timeout:1500});
+  await page.locator('#reincarnateRetryBtn').click();
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('playing');
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().distanceM)).toBeLessThan(50);
+
+  await page.evaluate(()=>window.__hellRunnerDebug.triggerReincarnateDeath());
+  await expect(page.locator('#reincarnateHomeBtn')).toBeEnabled({timeout:1500});
+  await page.locator('#reincarnateHomeBtn').click();
+  expect(await page.evaluate(()=>window.__hellRunnerDebug.getState().state)).toBe('idle');
+  await expect(page.locator('#startScreen')).toBeVisible();
 });
 
 test('NO FALLを有効にすると落下判定でもゲームを継続する', async ({ page })=>{
