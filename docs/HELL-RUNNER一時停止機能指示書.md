@@ -266,7 +266,7 @@ updateParticles(dt);  // カウントダウン中も粒子は動かし続ける
 
 | 指示書の要求 | 現状 |
 |---|---|
-| `visibilitychange` による自動一時停止 | **ハンドラが1つも無い。完全に新規** |
+| `visibilitychange` による自動一時停止 | **ハンドラは既に存在する（13.3参照）。新規追加ではなく拡張すること** |
 | `prefers-reduced-motion` 対応（8節） | このゲームには未使用。`index.html` にはある |
 
 `prefers-reduced-motion` は、**新しい点滅・反射アニメーションを追加しないなら対応不要**。
@@ -279,3 +279,101 @@ updateParticles(dt);  // カウントダウン中も粒子は動かし続ける
 
 Playwrightのテストでは、`page.on('console')` で `game loop error` を拾い、
 **1件でも出たら失敗**とする検証を必ず入れること。
+
+---
+
+## 13. 再検証（2026-08-16 大小ジャンプ実装後）
+
+12章のレビューは**大小ジャンプの実装前**に行ったもの。その後、入力まわりの作りが
+変わったため差分を再検証した。**5節と6節の記述は、以下で上書きすること。**
+
+### 13.1 `holdingInput` へ直接代入してはいけない
+
+5節に「一時停止時に `holdingInput = false`、`jumpQueued = false` とし」とあるが、
+**現在の `holdingInput` は導出値**であり、直接書いても保たれない。
+
+```js
+function syncHoldingInput(){
+  holdingInput = activeJumpPointerId !== null || keyboardJumpHeld;
+}
+```
+
+`holdingInput = false` と代入しても、次に何かのポインタ操作が起きた時点で
+`syncHoldingInput()` が走り、`activeJumpPointerId` が残っていれば**true へ戻る**。
+
+**入力解除には必ず既存の `clearJumpInput()` を呼ぶこと。**
+
+```js
+function clearJumpInput(){
+  activeJumpPointerId = null;
+  keyboardJumpHeld = false;
+  holdingInput = false;
+  jumpQueued = false;
+}
+```
+
+指示書6節が求めていた「入力解除処理を関数化する」は**すでに実現済み**。
+新しい解除処理を書かず、これを使う。
+
+### 13.2 【重要】一時停止時は `jumpCanBeCut = false` も必要
+
+これを忘れると、**上昇中に一時停止したプレイヤーの大ジャンプが、再開時に勝手に
+小ジャンプへ変わる。** 奈落の上なら死につながる。
+
+理屈は次のとおり。大小ジャンプのカット判定は毎フレームの状態で行う。
+
+```js
+if(jumpCanBeCut && player.vy < 0 && !holdingInput){
+  player.vy *= JUMP_RELEASE_CUT;
+  jumpCanBeCut = false;
+}
+```
+
+一時停止で `clearJumpInput()` を呼ぶと `holdingInput` が false になる。
+上昇中（`player.vy < 0`）に停止した場合、`jumpCanBeCut` は true のまま残るため、
+**再開した最初のフレームでカット条件が成立してしまう**。
+プレイヤーは指を離していないのに、跳躍が切られる。
+
+一時停止へ入る処理で、入力解除と一緒に必ず落とすこと。
+
+```js
+clearJumpInput();
+jumpCanBeCut = false;  // 停止中に指を離した扱いになり、再開時へカットが持ち越されるのを防ぐ
+```
+
+**空中で停止した場合、再開後は停止前の軌道をそのまま続ける**のが正しい挙動。
+
+### 13.3 `visibilitychange` は既に存在する。二重登録しない
+
+12.6で「ハンドラが1つも無い」と書いたが、大小ジャンプ実装時に追加された。
+
+```js
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) clearJumpInput(); });
+```
+
+現状は**入力解除だけ**で、一時停止はしない。3節が求める自動一時停止は、
+**このハンドラを拡張して実現すること。** 同じイベントへ別のリスナーを足すと、
+解除と停止の順序が読みづらくなる。
+
+拡張後も「復帰時に自動再開しない」（3節）を守る。
+
+### 13.4 更新された実装アンカー
+
+| 項目 | 現在の実測 |
+|---|---|
+| 入力解除 | `clearJumpInput()`（`activeJumpPointerId` / `keyboardJumpHeld` / `holdingInput` / `jumpQueued` を一括で落とす） |
+| `holdingInput` | 導出値。`syncHoldingInput()` 経由でのみ更新される |
+| 携帯の押下元 | 最初の `pointerId` だけを採用。2本目の指を離しても解除されない |
+| カット権 | `jumpCanBeCut`。`startGame` / `goHome` / 死亡 / 転生 の各所で false に落としている |
+| `visibilitychange` | 実装済み。`document.hidden` で `clearJumpInput()` を呼ぶ |
+| デバッグパネル | `JUMP HEIGHT` セクションが増えた。一時停止ボタンの配置が重ならないか確認する |
+
+### 13.5 テストへの追加
+
+12章の必須テストに加えて、以下を確認する。
+
+1. **上昇中に一時停止し、再開しても跳躍が小さくならない**
+   （`jumpCanBeCut` の持ち越しが起きていないこと。13.2の担保）
+2. 一時停止後に画面をタップしても `holdingInput` が復活しない
+   （`clearJumpInput()` を使っていれば通る。直接代入だと失敗する）
+3. 空中で一時停止し、再開後に停止前と同じ軌道で着地する
