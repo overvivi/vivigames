@@ -1,0 +1,39 @@
+# index.html のパッチノートが増えたら、その追加分だけを Discord へ流す。
+#
+# Webhook URL はリポジトリの Settings → Secrets and variables → Actions に
+# DISCORD_WEBHOOK_URL という名前で登録する。このリポジトリは公開のため、
+# ファイルへ直接書くと誰でもそのチャンネルへ投稿できてしまう。
+name: パッチノートをDiscordへ通知
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+  # 手動実行。過去のコミットぶんを送り直したい時に使う
+  workflow_dispatch:
+    inputs:
+      base:
+        description: '比較元のコミット（既定は1つ前）'
+        required: false
+        default: 'HEAD~1'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 1つ前のコミットと差分を取るため、2世代ぶん取得する
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 追加されたパッチノートを送信
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: node tools/patch-notes-to-discord.mjs --base "${{ github.event.inputs.base || 'HEAD~1' }}"
