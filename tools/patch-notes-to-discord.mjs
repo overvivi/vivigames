@@ -23,6 +23,9 @@ function arg(name, fallback){
 }
 const base = arg('--base', 'HEAD~1');
 const dryRun = process.argv.includes('--dry-run');
+// --all: 差分を見ず、現在のパッチノートを全部送る。Discordチャンネルを作った直後に
+// 過去分をまとめて流すためのモード。通常運用では使わない（毎回全件が再送されるため）。
+const sendAll = process.argv.includes('--all');
 
 // ---- HTML を Discord 向けの素のテキストへ ----
 function decodeEntities(s){
@@ -46,23 +49,27 @@ function parseEntry(line){
   return { version, items };
 }
 
-// ---- 今回追加された patch-entry の行を集める ----
-let diff = '';
-try {
-  diff = execFileSync('git', ['diff', '--unified=0', `${base}`, 'HEAD', '--', TARGET_FILE], { encoding: 'utf8' });
-} catch {
-  console.error(`git diff に失敗した（base=${base}）。履歴の深さが足りない可能性がある。`);
-  process.exit(1);
-}
-const addedLines = diff
-  .split('\n')
-  .filter(l => l.startsWith('+') && !l.startsWith('+++'))
-  .map(l => l.slice(1))
-  .filter(l => l.includes('class="patch-entry"'));
+// ---- 対象となる patch-entry の行を決める ----
+let addedSet = null; // null は「全件対象」を意味する
+if(!sendAll){
+  let diff = '';
+  try {
+    diff = execFileSync('git', ['diff', '--unified=0', `${base}`, 'HEAD', '--', TARGET_FILE], { encoding: 'utf8' });
+  } catch {
+    console.error(`git diff に失敗した（base=${base}）。履歴の深さが足りない可能性がある。`);
+    process.exit(1);
+  }
+  const addedLines = diff
+    .split('\n')
+    .filter(l => l.startsWith('+') && !l.startsWith('+++'))
+    .map(l => l.slice(1))
+    .filter(l => l.includes('class="patch-entry"'));
 
-if(!addedLines.length){
-  console.log('追加されたパッチノートは無し。何も送らずに終了する。');
-  process.exit(0);
+  if(!addedLines.length){
+    console.log('追加されたパッチノートは無し。何も送らずに終了する。');
+    process.exit(0);
+  }
+  addedSet = new Set(addedLines.map(l => l.trim()));
 }
 
 // ---- どのゲームの項目かを、直前の <h3> から判定する ----
@@ -71,7 +78,6 @@ if(!addedLines.length){
 // あわせて PATCH NOTES ダイアログの中だけに限定する。patch-entry クラスは
 // NEWS ダイアログでも使われており、限定しないとお知らせまでパッチノートとして流れてしまう。
 const fileLines = readFileSync(TARGET_FILE, 'utf8').split('\n');
-const addedSet = new Set(addedLines.map(l => l.trim()));
 const found = [];
 let currentGame = '';
 let inPatchDialog = false;
@@ -81,13 +87,25 @@ for(const line of fileLines){
 
   const h3 = line.match(/<h3>([\s\S]*?)<\/h3>/);
   if(h3) currentGame = stripTags(h3[1]);
-  if(line.includes('class="patch-entry"') && addedSet.has(line.trim())){
+  if(line.includes('class="patch-entry"') && (addedSet === null || addedSet.has(line.trim()))){
     const entry = parseEntry(line);
     if(entry) found.push({ game: currentGame, ...entry });
   }
 
   // 開始と終了が同じ行にある場合もあるため、判定は必ず開始チェックの後に置く
   if(line.includes('</dialog>')) inPatchDialog = false;
+}
+
+// 全件モードでは古い順に並べ替える。HTMLは新しい版が上だが、Discordは下へ流れるため、
+// そのまま送ると新→古の逆順に見えてしまう。ゲームの並びは元のまま保つ。
+if(sendAll){
+  const byGame = new Map();
+  for(const e of found){
+    if(!byGame.has(e.game)) byGame.set(e.game, []);
+    byGame.get(e.game).push(e);
+  }
+  found.length = 0;
+  for(const [, entries] of byGame) found.push(...entries.reverse());
 }
 
 if(!found.length){

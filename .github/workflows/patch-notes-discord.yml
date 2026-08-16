@@ -10,11 +10,19 @@ on:
     branches: [main]
     paths:
       - 'index.html'
-  # 手動実行。過去のコミットぶんを送り直したい時に使う
+  # 手動実行。過去分をまとめて流したい時や、送り直したい時に使う
   workflow_dispatch:
     inputs:
+      mode:
+        description: '送る範囲'
+        required: true
+        default: 'diff'
+        type: choice
+        options:
+          - diff   # 比較元との差分だけ（通常）
+          - all    # 現在のパッチノート全件。チャンネル開設直後の一括投稿用
       base:
-        description: '比較元のコミット（既定は1つ前）'
+        description: 'diffモードの比較元コミット'
         required: false
         default: 'HEAD~1'
 
@@ -33,7 +41,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 追加されたパッチノートを送信
+      - name: パッチノートを送信
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: node tools/patch-notes-to-discord.mjs --base "${{ github.event.inputs.base || 'HEAD~1' }}"
+          MODE: ${{ github.event.inputs.mode || 'diff' }}
+          BASE: ${{ github.event.inputs.base || 'HEAD~1' }}
+        run: |
+          if [ "$MODE" = "all" ]; then
+            node tools/patch-notes-to-discord.mjs --all
+          else
+            node tools/patch-notes-to-discord.mjs --base "$BASE"
+          fi
