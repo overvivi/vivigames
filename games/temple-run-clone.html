@@ -133,7 +133,13 @@
   .pauseVolumeValue{ color:#f4d675; text-align:right; font-variant-numeric:tabular-nums; }
   .overlay{
     position:absolute; inset:0;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    display:flex; flex-direction:column; align-items:center;
+    /* 中身が画面より高い時、justify-content:center だけだと上下均等にはみ出し、
+       下へはスクロールできるのに上へは戻れず、見出しやボタンが永久に見切れる。
+       safe を付けると、収まる時は中央・はみ出す時は先頭揃えへ自動で切り替わる。
+       safe を解さない古いブラウザは1行目のcenterを使う（従来どおりの挙動）。 */
+    justify-content:center;
+    justify-content:safe center;
     background:
       radial-gradient(ellipse at center, rgba(20,14,10,0.9), rgba(6,4,3,1)),
       #0a0603;
