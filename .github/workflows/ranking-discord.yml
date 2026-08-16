@@ -1,0 +1,51 @@
+# ランキングの1位が更新されていたら Discord へ通知する。
+#
+# 「前回の1位」を tools/ranking-state.json に持ち、変化した時だけ投稿する。
+# 状態ファイルはこのワークフローが書き戻すため contents: write が必要。
+#
+# 必要なSecrets:
+#   DISCORD_WEBHOOK_URL  投稿先（パッチノート通知と同じものでよい）
+#   NG_WORDS             任意。カンマ区切り。名前に含まれたら伏せ字にする
+name: ランキング更新をDiscordへ通知
+
+on:
+  schedule:
+    # 1時間ごと（UTC基準。GitHubの混雑状況により数分〜数十分ずれることがある）
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+# 同時に走って状態ファイルの書き戻しが衝突しないようにする
+concurrency:
+  group: ranking-discord
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 1位の更新を確認して送信
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          NG_WORDS: ${{ secrets.NG_WORDS }}
+        run: node tools/ranking-to-discord.mjs
+
+      - name: 状態ファイルを保存
+        run: |
+          if git diff --quiet -- tools/ranking-state.json; then
+            echo "更新なし。コミットしない。"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/ranking-state.json
+          # [skip ci] を付けて、この書き戻しで他のワークフローが走らないようにする
+          git commit -m "chore: ランキングの通知済み記録を更新 [skip ci]"
+          git push

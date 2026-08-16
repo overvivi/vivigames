@@ -163,7 +163,8 @@ for(const [i, content] of messages.entries()){
   const res = await fetch(webhook, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
+    // パッチノートに @everyone 等が紛れても通知が飛ばないようにする
+    body: JSON.stringify({ content, allowed_mentions: { parse: [] } })
   });
   if(!res.ok){
     // 本文にWebhook URLを含めない。ログへ残すと誰でも投稿できてしまうため
