@@ -2,225 +2,221 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ゲーム置き場</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#05040a">
+<meta name="description" content="VIVI GAME ARCADE — 深夜のゲームセンターから遊びたいゲームを選ぼう。">
+<title>VIVI GAME ARCADE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  .pixelFont{ font-family:'Press Start 2P','Georgia',monospace !important; }
-  :root{
-    --gold:#2ee6ff;
-    --card-bg-a:rgba(96,58,30,0.42);
-    --card-bg-b:rgba(36,20,14,0.60);
+  :root{--black:#05040a;--panel:#111425;--cyan:#20e6ff;--magenta:#ff2ba6;--text:#f2f5ff;--muted:#98a2bd;--line:rgba(32,230,255,.32)}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-width:320px;min-height:100vh;overflow-x:hidden;color:var(--text);background:linear-gradient(180deg,rgba(5,4,10,.2),var(--black) 88%),radial-gradient(circle at 18% 22%,rgba(255,43,166,.15),transparent 25%),radial-gradient(circle at 82% 25%,rgba(32,230,255,.13),transparent 27%),var(--black);font-family:'Noto Sans JP',system-ui,sans-serif}
+  body.modal-open{overflow:hidden}
+  button,a{font:inherit} a{color:inherit}
+  :focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
+  .pixel{font-family:'Press Start 2P',monospace}
+  .shell{width:min(1280px,calc(100% - 64px));margin:0 auto}
+  .hero{position:relative;min-height:clamp(520px,55vw,680px);display:flex;align-items:flex-start;isolation:isolate;background:linear-gradient(180deg,rgba(5,4,10,.28) 0%,rgba(5,4,10,.18) 48%,var(--black) 100%),url('images/portal/arcade-bg-desktop.webp') center/cover no-repeat}
+  .hero::before,.hero::after{content:'';position:absolute;z-index:-1;inset:0;pointer-events:none}
+  .hero::before{background:linear-gradient(90deg,rgba(255,43,166,.12),transparent 26%,transparent 74%,rgba(32,230,255,.11)),repeating-linear-gradient(90deg,transparent 0 92px,rgba(32,230,255,.025) 93px 94px)}
+  .hero::after{inset:auto 0 0;height:42%;background:linear-gradient(180deg,transparent,rgba(8,13,26,.75))}
+  .topbar{position:absolute;top:0;left:0;right:0;z-index:3;border-bottom:1px solid rgba(32,230,255,.2);background:rgba(5,4,10,.72);backdrop-filter:blur(12px)}
+  .topbar-inner{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+  .mini-brand{color:var(--cyan);font-size:11px;letter-spacing:.1em;text-decoration:none}
+  .nav{display:flex;gap:clamp(18px,3vw,42px)}
+  .nav a{color:var(--muted);font-size:10px;letter-spacing:.08em;text-decoration:none;transition:color .25s}
+  .nav a:hover{color:var(--cyan)}
+  .hero-copy{width:100%;padding-top:clamp(138px,16vw,190px);text-align:center}
+  .brand-frame{position:relative;max-width:850px;margin:0 auto;padding:clamp(28px,4vw,52px) clamp(18px,5vw,72px);border:1px solid rgba(32,230,255,.44);clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);background:linear-gradient(135deg,rgba(17,20,37,.95),rgba(5,4,10,.88));box-shadow:0 0 42px rgba(32,230,255,.08),inset 0 0 38px rgba(255,43,166,.06)}
+  .brand-frame::before{content:'';position:absolute;inset:8px;border:1px solid rgba(255,43,166,.22);clip-path:inherit;pointer-events:none}
+  .site-logo{position:absolute;z-index:2;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+  .brand-frame.logo-ready h1{visibility:hidden}
+  h1{margin:0;font-size:clamp(31px,5.4vw,74px);line-height:1.15;letter-spacing:.025em;text-shadow:-3px 0 18px rgba(255,43,166,.8),3px 0 18px rgba(32,230,255,.8)}
+  h1 span:nth-child(1),h1 span:nth-child(3){color:#ffe8f7} h1 span:nth-child(2){color:#e8fcff}
+  .tagline{margin:24px 0 0;color:var(--cyan);font-size:clamp(8px,1.2vw,13px);line-height:1.8;letter-spacing:.12em}
+  .arcade-status{display:flex;justify-content:center;gap:28px;margin-top:22px;color:var(--muted);font-size:11px}
+  .arcade-status strong{color:var(--text);font-weight:700}
+  main{position:relative;z-index:1;margin-top:-108px}
+  .section-title{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 0 28px;color:var(--cyan);font-size:clamp(12px,1.4vw,17px);letter-spacing:.11em}
+  .section-title::before,.section-title::after{content:'';width:min(130px,18vw);height:1px;background:linear-gradient(90deg,transparent,var(--cyan))}
+  .section-title::after{transform:scaleX(-1)}
+  .cabinet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px}
+  .cabinet{--accent:var(--cyan);--accent-rgb:32,230,255;position:relative;padding:12px 12px 22px;border:1px solid color-mix(in srgb,var(--accent) 55%,#1b1d2b);clip-path:polygon(20px 0,calc(100% - 20px) 0,100% 20px,100% calc(100% - 20px),calc(100% - 20px) 100%,20px 100%,0 calc(100% - 20px),0 20px);background:linear-gradient(155deg,rgba(23,26,43,.98),rgba(6,6,12,.99));box-shadow:0 22px 60px rgba(0,0,0,.5),0 0 26px rgba(var(--accent-rgb),.09)}
+  .cabinet.hell{--accent:#ff4d2e;--accent-rgb:255,77,46}.cabinet.boss{--accent:#8d66ff;--accent-rgb:141,102,255}
+  .cabinet::before{content:'';position:absolute;inset:5px;border:1px solid rgba(var(--accent-rgb),.25);clip-path:inherit;pointer-events:none}
+  .cabinet-top{min-height:77px;display:flex;align-items:center;justify-content:center;padding:14px;border:1px solid rgba(var(--accent-rgb),.42);background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(0,0,0,.5))}
+  .cabinet h2{margin:0;color:#fff;font-size:clamp(20px,3vw,38px);text-align:center;letter-spacing:.03em;text-shadow:0 0 16px rgba(var(--accent-rgb),.9)}
+  .screen{position:relative;aspect-ratio:16/9;margin:12px 0 0;overflow:hidden;border:3px solid #080914;border-radius:3px;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.38)),radial-gradient(circle at 50% 43%,rgba(var(--accent-rgb),.32),transparent 48%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px),#080a13;box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35),inset 0 0 38px rgba(0,0,0,.9),0 2px 0 rgba(255,255,255,.06)}
+  .screen::before{content:'';position:absolute;inset:0;z-index:1;background:var(--keyart) center/cover no-repeat}
+  .screen::after{content:'';position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse at 45% -18%,rgba(255,255,255,.22),transparent 38%),linear-gradient(125deg,rgba(255,255,255,.13),transparent 19% 72%,rgba(var(--accent-rgb),.1)),linear-gradient(180deg,transparent 74%,rgba(0,0,0,.22));mix-blend-mode:screen;pointer-events:none}
+  .hell .screen{--keyart:url('images/portal/keyart-hell-runner.webp')}.boss .screen{--keyart:url('images/portal/keyart-boss-2048.webp')}
+  .screen-fallback{position:absolute;z-index:0;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.72);font-size:clamp(38px,7vw,76px);text-shadow:0 0 26px rgba(var(--accent-rgb),.72)}
+  .control-panel{position:relative;z-index:2;height:112px;margin:-3px -2px -8px;background:var(--control-deck) center/100% auto no-repeat;filter:drop-shadow(0 8px 8px rgba(0,0,0,.72));pointer-events:none}
+  .hell .control-panel{--control-deck:url('images/portal/control-deck-hell-runner.webp')}.boss .control-panel{--control-deck:url('images/portal/control-deck-boss-2048.webp')}
+  .cabinet-body{position:relative;z-index:2;padding:18px 14px 0}
+  .cabinet-body::before{content:'';display:block;height:13px;margin:-18px -14px 16px;border-top:1px solid rgba(var(--accent-rgb),.3);border-bottom:1px solid rgba(255,255,255,.05);background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(0,0,0,.7)),repeating-linear-gradient(90deg,transparent 0 28px,rgba(var(--accent-rgb),.18) 29px 30px);box-shadow:0 5px 18px rgba(0,0,0,.55)}
+  .status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .status{flex:0 0 100%;color:var(--accent);font-size:8px;letter-spacing:.08em}.status::before{content:'●';margin-right:7px}
+  .mini-tag{padding:4px 8px;border:1px solid rgba(255,255,255,.15);border-radius:999px;color:var(--muted);font-size:10px}
+  .description{min-height:52px;margin:14px 0 18px;color:#c9d0e2;font-size:13px;line-height:1.75}
+  .play{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;min-height:60px;padding:0 58px;border:1px solid var(--accent);clip-path:polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px);overflow:hidden;color:#fff;background:radial-gradient(circle at 23px 50%,var(--accent) 0 3px,transparent 4px),radial-gradient(circle at calc(100% - 23px) 50%,var(--accent) 0 3px,transparent 4px),linear-gradient(180deg,rgba(var(--accent-rgb),.5),rgba(var(--accent-rgb),.14) 55%,rgba(0,0,0,.45));box-shadow:inset 0 0 24px rgba(var(--accent-rgb),.24),0 0 18px rgba(var(--accent-rgb),.16);text-decoration:none;text-shadow:0 0 12px rgba(var(--accent-rgb),.9);font-size:15px;letter-spacing:.12em;transition:transform .2s,filter .2s,box-shadow .2s}
+  .play::before{content:'';position:absolute;z-index:-1;inset:5px;border:1px solid rgba(255,255,255,.18);clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)}
+  .play::after{content:'';position:absolute;z-index:-1;top:0;left:-35%;width:28%;height:100%;transform:skewX(-24deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transition:left .4s}
+  .play:hover{transform:translateY(-2px);filter:brightness(1.18);box-shadow:inset 0 0 30px rgba(var(--accent-rgb),.38),0 0 28px rgba(var(--accent-rgb),.3)}.play:hover::after{left:110%}.play:active{transform:translateY(2px)}
+  .cabinet-base{height:30px;margin:18px 9% -22px;clip-path:polygon(6% 0,94% 0,100% 100%,0 100%);border-top:1px solid rgba(var(--accent-rgb),.24);background:linear-gradient(180deg,#11131e,#05050a);box-shadow:inset 0 1px rgba(255,255,255,.05)}
+  .coming{position:relative;max-width:520px;margin:28px auto 58px;padding:9px 10px 0;border:1px solid rgba(106,112,135,.55);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:linear-gradient(155deg,#171923,#05050a);color:#737b92;text-align:center;box-shadow:0 16px 38px rgba(0,0,0,.55)}
+  .coming-screen{position:relative;display:grid;place-items:center;min-height:92px;border:2px solid #05050a;background:linear-gradient(rgba(3,3,8,.1),rgba(3,3,8,.42)),url('images/portal/coming-soon-cabinet.webp') center/cover;box-shadow:inset 0 0 0 1px rgba(106,112,135,.28),inset 0 0 28px #000}
+  .coming strong{position:relative;z-index:1;display:block;color:#777e91;font-size:clamp(14px,2vw,22px);letter-spacing:.12em;text-shadow:0 0 13px rgba(135,146,170,.28)}
+  .coming-controls{height:86px;margin:-2px -5px -9px;background:url('images/portal/control-deck-coming-soon.webp') center/100% auto no-repeat;filter:drop-shadow(0 7px 7px rgba(0,0,0,.72));pointer-events:none}
+  .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .cabinet.has-artwork{padding:0;border:0;clip-path:none;background:transparent;box-shadow:none}
+  .cabinet.has-artwork::before{display:none}
+  .cabinet.has-artwork,.coming.has-artwork{--cabinet-x:0px;--cabinet-y:0px;--cabinet-scale:1;transform:translate(var(--cabinet-x),var(--cabinet-y)) scale(var(--cabinet-scale));transform-origin:center top}
+  .cabinet-artwork-wrap{position:relative;width:100%;--title-x:18%;--title-y:2.4%;--title-scale:1;--play-x:30%;--play-y:62%;--play-scale:1}
+  .cabinet-artwork{display:block;width:100%;height:auto;filter:drop-shadow(0 22px 24px rgba(0,0,0,.7))}
+  .cabinet-title{position:absolute;z-index:2;left:var(--title-x);top:var(--title-y);display:block;width:64%;height:auto;pointer-events:none;transform:scale(var(--title-scale));transform-origin:center top;filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.35))}
+  .cabinet-play{position:absolute;z-index:3;left:var(--play-x);top:var(--play-y);display:block;width:40%;min-height:0;aspect-ratio:4/1;padding:0;border:0;clip-path:none;overflow:visible;background:none;box-shadow:none;text-decoration:none}
+  .cabinet-play::before,.cabinet-play::after{display:none}.cabinet-play img{position:absolute;left:0;top:50%;display:block;width:100%;height:auto;transform:translateY(-50%) scale(var(--play-scale));transition:filter .2s,transform .2s}.cabinet-play:hover,.cabinet-play:active{transform:none;filter:none;box-shadow:none}.cabinet-play:active img{transform:translateY(-50%) scale(calc(var(--play-scale) - .03));filter:brightness(1.22)}
+  @media(hover:hover){.cabinet-play:hover img{filter:brightness(1.17) drop-shadow(0 0 14px rgba(var(--accent-rgb),.48));transform:translateY(-50%) scale(calc(var(--play-scale) + .025))}}
+  .cabinet.has-artwork .cabinet-body{margin-top:-3%;padding:8px 5% 0;background:linear-gradient(180deg,rgba(6,7,13,.92),rgba(6,7,13,0))}.cabinet.has-artwork .cabinet-body::before{display:none}
+  .coming.has-artwork{width:100%;max-width:461px;margin:8px auto 24px;padding:0;border:0;clip-path:none;background:transparent;box-shadow:none}.coming-artwork{display:block;width:100%;height:auto;filter:drop-shadow(0 18px 22px rgba(0,0,0,.72))}
+  .portal-debug{position:fixed;z-index:20;right:12px;top:72px;width:300px;max-height:calc(100vh - 84px);overflow:auto;padding:12px;border:1px solid #20e6ff;color:#eafcff;background:rgba(4,7,15,.96);box-shadow:0 0 30px rgba(32,230,255,.2);font:12px/1.35 system-ui,sans-serif}.portal-debug h2{margin:0;color:#20e6ff;font-size:14px}.portal-debug-summary{display:flex;align-items:center;justify-content:space-between;gap:8px}.portal-debug-toggle{min-width:36px;height:32px;border:1px solid #20e6ff;color:#20e6ff;background:#08111c;cursor:pointer}.portal-debug-group{margin-top:12px;padding-top:10px;border-top:1px solid rgba(32,230,255,.2)}.portal-debug-group strong{display:block;margin-bottom:7px}.portal-debug-control{display:grid;grid-template-columns:42px 1fr 58px;align-items:center;gap:6px;margin:5px 0}.portal-debug-control input{width:100%;box-sizing:border-box}.portal-debug-control input[type=number]{height:28px;padding:2px 4px;border:1px solid rgba(32,230,255,.4);color:#eafcff;background:#08111c;text-align:right;font:inherit;font-variant-numeric:tabular-nums}.portal-debug-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.portal-debug-actions button,.portal-debug-output button{min-height:38px;border:1px solid rgba(32,230,255,.5);color:#dffaff;background:#0b1422;cursor:pointer}.portal-debug-output{margin-top:10px}.portal-debug-output textarea{display:block;width:100%;height:180px;box-sizing:border-box;padding:8px;border:1px solid rgba(32,230,255,.45);color:#fff;background:#030711;font:11px/1.4 ui-monospace,monospace}.portal-debug-output button{width:100%;margin-top:6px}.portal-debug-note{margin:9px 0 0;color:#9caabd;font-size:10px}.portal-debug.is-collapsed .portal-debug-body{display:none}
+  .info-section{padding:2px 0 80px}.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px;border:1px solid rgba(32,230,255,.2);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:linear-gradient(180deg,rgba(16,20,35,.85),rgba(5,6,12,.92));box-shadow:inset 0 0 0 5px rgba(32,230,255,.025),0 20px 50px rgba(0,0,0,.35)}
+  .info-button{position:relative;min-height:124px;padding:17px 42px 17px 17px;overflow:hidden;border:1px solid var(--line);clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);color:var(--text);background:linear-gradient(145deg,rgba(17,25,42,.98),rgba(6,8,16,.98));text-align:left;cursor:pointer;transition:border-color .25s,transform .25s,background .25s,box-shadow .25s}
+  .info-button::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(32,230,255,.08),transparent 38%),repeating-linear-gradient(0deg,transparent 0 5px,rgba(255,255,255,.012) 6px)}
+  .info-button::after{content:'›';position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--cyan);font-size:28px;line-height:1;text-shadow:0 0 12px rgba(32,230,255,.65)}
+  .info-button:hover{transform:translateY(-3px);border-color:var(--cyan);background:linear-gradient(145deg,rgba(18,39,54,.98),rgba(8,10,20,.98));box-shadow:0 0 22px rgba(32,230,255,.12)}
+  .info-icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:12px;border:1px solid rgba(32,230,255,.45);color:var(--cyan);background:rgba(32,230,255,.055);font-size:22px;line-height:1;text-shadow:0 0 12px rgba(32,230,255,.7)}.info-name{display:block;color:var(--cyan);font-size:9px;letter-spacing:.06em}.info-copy{display:block;margin-top:8px;color:var(--muted);font-size:11px;line-height:1.5}
+  footer{padding:28px 0 36px;border-top:1px solid rgba(32,230,255,.12);color:#666e84;font-size:10px}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer a{color:#8c95ae;text-decoration:none}footer a:hover{color:var(--cyan)}
+  dialog{width:min(760px,calc(100% - 32px));max-height:min(82vh,850px);padding:0;border:1px solid var(--cyan);color:var(--text);background:linear-gradient(160deg,#12162a,#080913);box-shadow:0 0 70px rgba(32,230,255,.17)}
+  dialog::backdrop{background:rgba(2,2,7,.84);backdrop-filter:blur(5px)}
+  .dialog-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:19px 22px;border-bottom:1px solid rgba(32,230,255,.2);background:rgba(10,12,24,.96)}
+  .dialog-head h2{margin:0;color:var(--cyan);font-size:13px;letter-spacing:.06em}.dialog-close{width:42px;height:42px;border:1px solid rgba(32,230,255,.4);color:var(--cyan);background:transparent;cursor:pointer;font-size:22px}
+  .dialog-body{padding:24px;overflow:auto}.dialog-body h3{margin:26px 0 10px;color:#fff;font-size:16px}.dialog-body h3:first-child{margin-top:0}
+  .patch-entry{margin-bottom:12px;padding:15px 17px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.025)}.patch-entry strong{color:var(--cyan);font-size:12px}.patch-entry ul{margin:9px 0 0;padding-left:20px;color:#bdc5d9;font-size:12px;line-height:1.8}
+  .dialog-body p,.dialog-body li{color:#bdc5d9;font-size:13px;line-height:1.8}.dialog-body a{color:var(--cyan)}
+  @media(max-width:899px){.shell{width:min(100% - 40px,820px)}.hero{min-height:560px}.nav a:nth-child(2){display:none}main{margin-top:-78px}.cabinet-grid{gap:18px}.info-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:900px){
+    .topbar-inner{min-height:60px}.hero{min-height:500px;height:500px}.hero-copy{padding-top:88px}.brand-frame{display:flex;align-items:center;justify-content:center;max-width:760px;height:180px;padding:0 48px}.tagline{position:absolute;z-index:3;left:0;right:0;bottom:10px;margin:0}.arcade-status{margin-top:8px;font-size:10px}
+    main{margin-top:-200px}.section-title{margin-bottom:10px}.cabinet-grid{width:min(940px,100%);margin:0 auto;gap:18px}.cabinet{padding:8px 8px 18px}.cabinet-top{min-height:51px;padding:7px}.cabinet h2{font-size:clamp(21px,2.3vw,29px)}
+    .screen{margin-top:7px}.control-panel{height:122px}.cabinet-body{padding:10px 10px 0}.cabinet-body::before{height:7px;margin:-10px -10px 9px}.cabinet-body .status-row,.cabinet-body .description{display:none}.play{min-height:46px;font-size:12px}.cabinet-base{height:20px;margin-top:9px}
+    .cabinet.has-artwork .cabinet-body{display:none}.coming.has-artwork{width:calc(50% - 9px);max-width:461px;margin:0 auto 2px}
+    .info-section{padding-bottom:18px}.info-section .section-title{margin-bottom:8px}.info-grid{padding:8px;gap:7px}.info-button{min-height:76px;padding:9px 32px 8px 9px}.info-icon{float:left;width:28px;height:28px;margin:0 8px 0 0;font-size:16px}.info-name{padding-top:1px}.info-copy{margin-top:5px;font-size:9px}footer{padding:15px 0 18px}
   }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0; padding:0; min-height:100%;
-    background:
-      radial-gradient(ellipse at 50% -10%, rgba(224,130,50,0.14), transparent 52%),
-      radial-gradient(ellipse at 50% 110%, rgba(110,30,150,0.16), transparent 58%),
-      #08060c;
-    font-family:'Georgia','Yu Mincho',serif;
-    color:#f0e4c8;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .wrap{ max-width:640px; margin:0 auto; padding:36px 20px 60px; }
-  header{ text-align:center; margin-bottom:8px; }
-  h1{
-    color:var(--gold); font-size:clamp(28px,7vw,38px); letter-spacing:4px; margin:0 0 10px;
-    text-shadow:0 0 24px rgba(46,230,255,0.75), 0 2px 1px rgba(0,0,0,0.7);
-    position:relative; display:inline-block; padding-bottom:14px;
-  }
-  h1::after{
-    content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
-    width:140px; height:2px;
-    background:linear-gradient(90deg, transparent, var(--gold), transparent);
-  }
-  .sub{ color:#c9b28a; font-size:12px; letter-spacing:2px; margin:0 0 40px; text-align:center; }
-
-  .card{
-    display:flex; align-items:center; gap:16px;
-    background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
-    border:2px solid #6b4f2e; border-radius:12px;
-    padding:16px 18px; margin-bottom:16px;
-    box-shadow:inset 0 0 0 1px rgba(46,230,255,0.14), 0 4px 12px rgba(0,0,0,0.4);
-  }
-  .icon{
-    width:56px; height:56px; flex-shrink:0; border-radius:10px;
-    display:flex; align-items:center; justify-content:center; font-size:28px;
-    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.15), rgba(0,0,0,0.25));
-    border:1px solid rgba(46,230,255,0.35);
-  }
-  .info{ flex:1; min-width:0; }
-  .titleRow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .gTitle{ color:var(--gold); font-size:16px; letter-spacing:1px; font-weight:bold; }
-  .tag{
-    font-size:9px; letter-spacing:1px; padding:2px 8px; border-radius:10px;
-    border:1px solid; white-space:nowrap;
-  }
-  .tag.done{ color:#8fd694; border-color:#4a7a4e; background:rgba(80,160,90,0.12); }
-  .tag.wip{ color:#ffd699; border-color:#a87a3a; background:rgba(200,140,50,0.14); }
-  .tag.proto{ color:#a8c4e0; border-color:#4a6a8a; background:rgba(70,110,150,0.14); }
-  .desc{ color:#c9b28a; font-size:12px; margin-top:5px; line-height:1.6; }
-  .playBtn{
-    flex-shrink:0;
-    background:linear-gradient(180deg, #ff5cc4, #d1207e 55%, #7a0f42);
-    color:#fff8ec; border:2px solid var(--gold);
-    padding:10px 18px; font-size:12px; letter-spacing:2px;
-    border-radius:5px; cursor:pointer; font-family:inherit; text-decoration:none;
-    text-shadow:0 1px 2px rgba(0,0,0,0.55);
-    box-shadow:0 3px 0 #5a0a35, 0 5px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
-    transition:transform 0.08s, box-shadow 0.08s;
-    display:inline-block; text-align:center;
-  }
-  .playBtn:active{
-    transform:translateY(2px);
-    box-shadow:0 1px 0 #5a2408, 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
-  }
-  footer{ text-align:center; color:#6b5a42; font-size:10px; margin-top:30px; letter-spacing:1px; }
-
-  .patchSection{ margin-bottom:30px; }
-  .patchToggle{
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    color:var(--gold); font-size:12px; letter-spacing:2px; text-align:center;
-    cursor:pointer; padding:10px; list-style:none;
-  }
-  .patchToggle::-webkit-details-marker{ display:none; }
-  .patchToggle::after{ content:'▾'; font-size:10px; transition:transform 0.2s; }
-  details[open] .patchToggle::after{ transform:rotate(180deg); }
-  .patchGame{ margin-bottom:18px; }
-  .patchGame h3{
-    color:var(--gold); font-size:13px; letter-spacing:1px; margin:0 0 8px;
-    border-bottom:1px solid rgba(46,230,255,0.25); padding-bottom:6px;
-  }
-  .patchEntry{
-    background:linear-gradient(155deg, var(--card-bg-a), var(--card-bg-b));
-    border:1px solid #6b4f2e; border-radius:8px; padding:10px 14px; margin-bottom:8px;
-  }
-  .patchEntry .pv{ color:var(--gold); font-size:11px; font-weight:bold; letter-spacing:1px; }
-  .patchEntry ul{ margin:6px 0 0; padding-left:18px; color:#d8c39a; font-size:11.5px; line-height:1.7; }
-
-  @media (max-width:420px){
-    .card{ flex-wrap:wrap; }
-    .playBtn{ width:100%; margin-top:4px; }
-  }
+  @media(min-width:600px){[data-tune="hell"]{--title-x:18.4%;--title-y:2.6%;--title-scale:1.22;--play-x:30%;--play-y:61.9%;--play-scale:1.21}[data-tune="boss"]{--title-x:18.7%;--title-y:2.6%;--title-scale:1.28;--play-x:28.7%;--play-y:61.3%;--play-scale:1.17}[data-tune="coming"]{--title-x:18%;--title-y:2.4%;--title-scale:1.25}}
+  @media(max-width:599px){[data-tune="hell"]{--title-x:18.3%;--title-y:2.4%;--title-scale:1.3;--play-x:17.3%;--play-y:59.7%;--play-scale:.74}[data-tune="boss"]{--title-x:18%;--title-y:2.1%;--title-scale:1.3;--play-x:16.5%;--play-y:59.2%;--play-scale:.77}[data-tune="coming"]{--title-x:18%;--title-y:2.1%;--title-scale:1.3}}
+  @media(max-width:599px){.shell{width:calc(100% - 32px)}.hero{min-height:500px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 53%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:30px 12px}h1{font-size:clamp(29px,10.5vw,43px);line-height:1.3}h1 span{display:block}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-50px}.section-title{margin-bottom:20px}.cabinet-grid{grid-template-columns:1fr;gap:22px}.cabinet{padding:10px 10px 18px}.cabinet-top{min-height:64px}.cabinet h2{font-size:clamp(22px,8vw,32px)}.control-panel{height:108px}.cabinet-body{padding:15px 8px 0}.cabinet-body::before{margin:-15px -8px 15px}.description{min-height:0}.play{padding:0 48px}.cabinet-play{min-height:56px;padding:0}.coming{margin:22px auto 58px}.coming.has-artwork{width:100%;max-width:none}.coming-controls{height:96px}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px;padding:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
+  @media(max-width:599px){.portal-debug{right:8px;top:66px;width:min(300px,calc(100vw - 16px));max-height:calc(100vh - 74px)}.portal-debug.is-collapsed{width:170px}.portal-debug-control{grid-template-columns:38px 1fr 54px}}
+  @media(max-width:360px){.info-grid{grid-template-columns:1fr}.info-button{min-height:98px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>ゲーム置き場</h1>
-    <p class="sub">GAME COLLECTION — 遊びたいものをタップ</p>
-  </header>
-
-  <div class="patchSection">
-    <details>
-      <summary class="patchToggle">📜 パッチノート(更新履歴)</summary>
-
-      <div class="patchGame">
-        <h3>HELL RUNNER(旧: 奈落回避ランナー)</h3>
-        <div class="patchEntry">
-          <div class="pv">v0.3</div>
-          <ul>
-            <li>距離に応じて変化する6つの背景ステージと、新しい地面グラフィックを追加</li>
-            <li>各ステージ専用BGMを追加し、場面転換に合わせて滑らかに切り替わるように</li>
-            <li>プレイヤーとライバルをドット絵キャラクターへ刷新</li>
-            <li>20000mで「デスイーター」が降臨し、死神の追従とコイン吸引が発動</li>
-            <li>画像キャラクターの足先に合わせ、足場の端での着地判定を調整</li>
-            <li>30000m以降の加速を緩やかにし、100000mで最高速度に到達するよう調整</li>
-            <li>PCとスマホの画面比率・見える範囲を統一し、カメラを少し引いて視認性を改善</li>
-          </ul>
-        </div>
-        <div class="patchEntry">
-          <div class="pv">v0.2</div>
-          <ul>
-            <li>タイトルを「HELL RUNNER」に改名</li>
-            <li>修羅モード(速度1.5倍)を廃止 — 難易度が高すぎたため</li>
-            <li>新能力「滑空」を追加(ジャンプ中に長押しで滑空)</li>
-            <li>30000m到達後、ゆるやかに加速するように(50000mで頭打ち・最大+40%)</li>
-            <li>ランキング機能を追加(ハイスコア更新時に名前を登録可能)</li>
-            <li>ベスト記録・能力解放状況を個別にリセットできる機能を追加</li>
-            <li>ライバルを追加</li>
-          </ul>
-        </div>
-        <div class="patchEntry">
-          <div class="pv">v0.1</div>
-          <ul>
-            <li>2段ジャンプの横スクロールアクションとして完成</li>
-            <li>能力システム(転生・レッドブル・修羅モード・十倍界王拳)を実装</li>
-            <li>コイン・段差・奈落・BGM・悲鳴音などを実装</li>
-          </ul>
-        </div>
-        <div class="patchEntry">
-          <div class="pv">v0.0(構想段階)</div>
-          <ul>
-            <li>当初はRoblox風の縦スクロールゲームとして着想</li>
-            <li>2D Canvasベースの横スクロールランナーへ路線変更し、現在の形の土台に</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="patchGame">
-        <h3>討伐2048</h3>
-        <div class="patchEntry">
-          <div class="pv">v0.2</div>
-          <ul>
-            <li>チャレンジランキングの得点を、最大タイルからゲーム終了時の盤面合計へ変更</li>
-          </ul>
-        </div>
-        <div class="patchEntry">
-          <div class="pv">v0.1</div>
-          <ul>
-            <li>2048方式の合体パズル+ボス撃破RPGとして完成</li>
-            <li>勇者選択・3ステージ+チャレンジモード・ランキング機能を実装</li>
-            <li>ボスのヒール(HP1割で1回だけ回復)と、目標タイル到達での必殺技即撃破を実装</li>
-          </ul>
-        </div>
-      </div>
-    </details>
-  </div>
-
-  <div class="patchSection" id="credits">
-    <details>
-      <summary class="patchToggle">🎵 素材クレジット</summary>
-      <div class="patchGame">
-        <h3>HELL RUNNER</h3>
-        <div class="patchEntry">
-          <ul>
-            <li>音楽：<a href="https://youfulca.com/2022/08/13/stage_labyrinth-of-time/" target="_blank" rel="noopener">ユーフルカ</a></li>
-            <li>スケルトンCV：たくぞう</li>
-          </ul>
-        </div>
-      </div>
-    </details>
-  </div>
-
-  <div class="card">
-    <div class="icon">🏃</div>
-    <div class="info">
-      <div class="titleRow">
-        <span class="gTitle">HELL RUNNER</span>
-        <span class="tag done">完成</span>
-      </div>
-      <div class="desc">崩れた足場を2段ジャンプで飛び越え、どこまで走れるかに挑む横スクロールランナー。能力解放・BGM・悲鳴音つき。</div>
+<header class="hero" id="entrance">
+  <div class="topbar"><div class="shell topbar-inner"><a class="mini-brand pixel" href="#entrance">VIVI ARCADE</a><nav class="nav pixel" aria-label="メインメニュー"><a href="#game-floor">GAME FLOOR</a><a href="#information">INFORMATION</a><a href="#credits" data-dialog="credits-dialog">CREDITS</a></nav></div></div>
+  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span>VIVI</span> <span>GAME</span> <span>ARCADE</span></h1><img class="site-logo" src="images/portal/vivi-game-arcade-logo.png" alt="" width="1600" height="600" onload="this.parentElement.classList.add('logo-ready')" onerror="this.hidden=true"><p class="tagline pixel">INSERT COIN — SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>2</strong></span><span>LAST UPDATE <strong>2026.08.16</strong></span></div></div>
+</header>
+<main>
+  <section class="shell" id="game-floor" aria-labelledby="game-floor-title">
+    <h2 class="section-title pixel" id="game-floor-title">GAME FLOOR</h2>
+    <div class="cabinet-grid">
+      <article class="cabinet hell has-artwork">
+        <h2 class="sr-only">HELL RUNNER</h2><div class="cabinet-artwork-wrap" data-tune="hell"><img class="cabinet-artwork" src="images/portal/cabinet-hell-runner.webp" alt="HELL RUNNER アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-hell-runner.webp" alt="" width="1024" height="192"><a class="play cabinet-play" href="games/temple-run-clone.html" aria-label="HELL RUNNERをプレイ"><img src="images/portal/play-button-hell-runner.webp" alt="" width="1024" height="256"></a></div>
+        <div class="cabinet-body"><div class="status-row"><span class="status pixel">NOW PLAYING</span><span class="mini-tag">ランキング</span><span class="mini-tag">スマホ対応</span><span class="mini-tag">音あり</span></div><p class="description">崩れる足場を飛び越え、地獄の果てを目指す横スクロールランナー。走るほど世界と音楽が変化する。</p></div>
+      </article>
+      <article class="cabinet boss has-artwork">
+        <h2 class="sr-only">討伐2048</h2><div class="cabinet-artwork-wrap" data-tune="boss"><img class="cabinet-artwork" src="images/portal/cabinet-boss-2048.webp" alt="討伐2048 アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-boss-2048.webp" alt="" width="1024" height="192"><a class="play cabinet-play" href="games/boss-battle-demo.html" aria-label="討伐2048をプレイ"><img src="images/portal/play-button-boss-2048.webp" alt="" width="1024" height="256"></a></div>
+        <div class="cabinet-body"><div class="status-row"><span class="status pixel">NOW PLAYING</span><span class="mini-tag">ランキング</span><span class="mini-tag">スマホ対応</span><span class="mini-tag">音あり</span></div><p class="description">数字タイルを合体させて巨大ボスを討伐。勇者と戦略を選んで挑む、2048＋ボスバトルRPG。</p></div>
+      </article>
     </div>
-    <a class="playBtn pixelFont" href="games/temple-run-clone.html" style="font-size:10px;">PLAY</a>
-  </div>
-
-  <div class="card">
-    <div class="icon">⚔️</div>
-    <div class="info">
-      <div class="titleRow">
-        <span class="gTitle">討伐2048</span>
-        <span class="tag wip">開発中</span>
-      </div>
-      <div class="desc">2048の合体でボスにダメージを与える、勇者選択・ステージ制のRPG風バトルデモ。</div>
+    <article class="coming has-artwork" aria-label="次のゲームは準備中です"><div class="cabinet-artwork-wrap" data-tune="coming"><img class="coming-artwork" src="images/portal/cabinet-coming-soon.webp" alt="砂嵐画面のCOMING SOON アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-coming-soon.webp" alt="" width="1024" height="192"></div></article>
+  </section>
+  <section class="shell info-section" id="information" aria-labelledby="information-title">
+    <h2 class="section-title pixel" id="information-title">INFORMATION COUNTER</h2>
+    <div class="info-grid">
+      <button class="info-button" type="button" data-dialog="news-dialog"><span class="info-icon" aria-hidden="true">▤</span><span class="info-name pixel">NEWS</span><span class="info-copy">最新のお知らせ</span></button>
+      <button class="info-button" type="button" data-dialog="patch-dialog"><span class="info-icon" aria-hidden="true">▧</span><span class="info-name pixel">PATCH NOTES</span><span class="info-copy">ゲームの更新履歴</span></button>
+      <button class="info-button" type="button" data-dialog="credits-dialog" id="credits"><span class="info-icon" aria-hidden="true">✦</span><span class="info-name pixel">CREDITS</span><span class="info-copy">素材と協力者</span></button>
+      <button class="info-button" type="button" data-dialog="about-dialog"><span class="info-icon" aria-hidden="true">ⓘ</span><span class="info-name pixel">ABOUT</span><span class="info-copy">このゲームセンターについて</span></button>
     </div>
-    <a class="playBtn pixelFont" href="games/boss-battle-demo.html" style="font-size:10px;">PLAY</a>
-  </div>
-
-  <footer>MADE WITH CLAUDE</footer>
-</div>
+  </section>
+</main>
+<footer><div class="shell footer-inner"><span>© 2026 VIVI</span><span><a href="https://github.com/overvivi/vivigames" target="_blank" rel="noopener">GITHUB</a> · <a href="#credits">CREDITS</a> · SITE VERSION 0.1</span></div></footer>
+<dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>VIVI GAME ARCADE リニューアル</h3><p>ゲーム置き場を、深夜のゲームセンターで筐体を選ぶ新しいデザインへ刷新しました。PCとスマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.08.16</strong><ul><li>HELL RUNNER v0.3 稼働中</li><li>討伐2048 v0.2 稼働中</li></ul></div></div></dialog>
+<dialog id="patch-dialog" aria-labelledby="patch-title"><div class="dialog-head"><h2 class="pixel" id="patch-title">PATCH NOTES</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body">
+  <h3>HELL RUNNER（旧：奈落回避ランナー）</h3>
+  <div class="patch-entry"><strong>v0.3</strong><ul><li>距離に応じて変化する6つの背景ステージと、新しい地面グラフィックを追加</li><li>各ステージ専用BGMを追加し、場面転換に合わせて滑らかに切り替わるように</li><li>プレイヤーとライバルをドット絵キャラクターへ刷新</li><li>20000mで「デスイーター」が降臨し、死神の追従とコイン吸引が発動</li><li>画像キャラクターの足先に合わせ、足場の端での着地判定を調整</li><li>30000m以降の加速を緩やかにし、100000mで最高速度に到達するよう調整</li><li>PCとスマホの画面比率・見える範囲を統一し、カメラを少し引いて視認性を改善</li></ul></div>
+  <div class="patch-entry"><strong>v0.2</strong><ul><li>タイトルを「HELL RUNNER」に改名</li><li>修羅モード（速度1.5倍）を廃止</li><li>新能力「滑空」、ランキング、記録リセット、ライバルを追加</li></ul></div>
+  <div class="patch-entry"><strong>v0.1</strong><ul><li>2段ジャンプの横スクロールアクションとして完成</li><li>能力システム、コイン、段差、奈落、BGM、悲鳴音などを実装</li></ul></div>
+  <div class="patch-entry"><strong>v0.0（構想段階）</strong><ul><li>Roblox風の縦スクロール構想から、2D Canvasの横スクロールランナーへ変更</li></ul></div>
+  <h3>討伐2048</h3>
+  <div class="patch-entry"><strong>v0.2</strong><ul><li>チャレンジランキングの得点を、最大タイルからゲーム終了時の盤面合計へ変更</li></ul></div>
+  <div class="patch-entry"><strong>v0.1</strong><ul><li>2048方式の合体パズル＋ボス撃破RPGとして完成</li><li>勇者選択、3ステージ＋チャレンジモード、ランキング機能を実装</li><li>ボスのヒールと、目標タイル到達時の必殺技を実装</li></ul></div>
+</div></dialog>
+<dialog id="credits-dialog" aria-labelledby="credits-title"><div class="dialog-head"><h2 class="pixel" id="credits-title">CREDITS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>HELL RUNNER</h3><ul><li>音楽：<a href="https://youfulca.com/2022/08/13/stage_labyrinth-of-time/" target="_blank" rel="noopener">ユーフルカ</a></li><li>スケルトンCV：たくぞう</li></ul></div></dialog>
+<dialog id="about-dialog" aria-labelledby="about-title"><div class="dialog-head"><h2 class="pixel" id="about-title">ABOUT</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><p>VIVIが制作したブラウザゲームを集めた、深夜のオンラインゲームセンターです。インストール不要で、PCとスマホのブラウザから遊べます。</p><p>ゲームは完成したものから順次追加します。COMING SOONの筐体は、次のゲームが遊べる状態になるまで秘密です。</p></div></dialog>
+<script>
+  const dialogTriggers=document.querySelectorAll('[data-dialog]');
+  const dialogs=document.querySelectorAll('dialog');
+  function openDialog(dialog){if(!dialog)return;dialog.showModal();document.body.classList.add('modal-open')}
+  function closeDialog(dialog){dialog.close();document.body.classList.remove('modal-open')}
+  dialogTriggers.forEach(trigger=>{trigger.addEventListener('click',event=>{event.preventDefault();openDialog(document.getElementById(trigger.dataset.dialog))})});
+  dialogs.forEach(dialog=>{dialog.querySelector('.dialog-close').addEventListener('click',()=>closeDialog(dialog));dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog(dialog)});dialog.addEventListener('close',()=>document.body.classList.remove('modal-open'))});
+  if(new URLSearchParams(location.search).get('portalDebug')==='1'){
+    const desktopDefaults={
+      hell:{titleX:18.4,titleY:2.6,titleScale:1.22,playX:30,playY:61.9,playScale:1.21,cabinetX:0,cabinetY:0,cabinetScale:1},
+      boss:{titleX:18.7,titleY:2.6,titleScale:1.28,playX:28.7,playY:61.3,playScale:1.17,cabinetX:0,cabinetY:0,cabinetScale:1},
+      coming:{titleX:18,titleY:2.4,titleScale:1.25,cabinetX:0,cabinetY:0,cabinetScale:1}
+    };
+    const mobileDefaults={
+      hell:{titleX:18.3,titleY:2.4,titleScale:1.3,playX:17.3,playY:59.7,playScale:.74,cabinetX:0,cabinetY:0,cabinetScale:1},
+      boss:{titleX:18,titleY:2.1,titleScale:1.3,playX:16.5,playY:59.2,playScale:.77,cabinetX:0,cabinetY:0,cabinetScale:1},
+      coming:{titleX:18,titleY:2.1,titleScale:1.3,cabinetX:0,cabinetY:0,cabinetScale:1}
+    };
+    const defaults=matchMedia('(min-width:600px)').matches?desktopDefaults:mobileDefaults;
+    const state=structuredClone(defaults);
+    const panel=document.createElement('aside');
+    panel.className='portal-debug';
+    panel.setAttribute('aria-label','筐体位置調整');
+    panel.innerHTML='<div class="portal-debug-summary"><h2>PORTAL TUNER</h2><button class="portal-debug-toggle" type="button" aria-label="調整パネルを縮小">−</button></div><div class="portal-debug-body"><div class="portal-debug-groups"></div><div class="portal-debug-actions"><button type="button" data-action="copy">COPY VALUES</button><button type="button" data-action="reset">RESET</button></div><div class="portal-debug-output" hidden><textarea readonly aria-label="調整値"></textarea><button type="button" data-action="select">SELECT ALL</button></div><p class="portal-debug-note">自動コピーできない携帯では、表示された調整値を長押ししてコピーしてください。</p></div>';
+    document.body.append(panel);
+    const groups=panel.querySelector('.portal-debug-groups');
+    const definitions=[
+      ['hell','HELL CABINET','cabinet'],['boss','2048 CABINET','cabinet'],['coming','SOON CABINET','cabinet'],
+      ['hell','HELL TITLE','title'],['boss','2048 TITLE','title'],['coming','SOON TITLE','title'],
+      ['hell','HELL PLAY','play'],['boss','2048 PLAY','play']
+    ];
+    const apply=()=>{
+      Object.entries(state).forEach(([key,value])=>{
+        const target=document.querySelector(`[data-tune="${key}"]`);
+        target.style.setProperty('--title-x',`${value.titleX}%`);target.style.setProperty('--title-y',`${value.titleY}%`);target.style.setProperty('--title-scale',value.titleScale);
+        if(value.playX!==undefined){target.style.setProperty('--play-x',`${value.playX}%`);target.style.setProperty('--play-y',`${value.playY}%`);target.style.setProperty('--play-scale',value.playScale)}
+        const cabinet=target.closest('.cabinet,.coming');cabinet.style.setProperty('--cabinet-x',`${value.cabinetX}px`);cabinet.style.setProperty('--cabinet-y',`${value.cabinetY}px`);cabinet.style.setProperty('--cabinet-scale',value.cabinetScale);
+      });
+    };
+    const makeControl=(key,kind,axis,label,min,max,step)=>{
+      const property=kind+axis;
+      const row=document.createElement('label');row.className='portal-debug-control';
+      row.innerHTML=`<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${state[key][property]}" data-key="${key}" data-property="${property}"><input type="number" min="${min}" max="${max}" step="${step}" value="${state[key][property]}" data-key="${key}" data-property="${property}" aria-label="${label}を数値入力">`;
+      return row;
+    };
+    definitions.forEach(([key,label,kind])=>{
+      const group=document.createElement('div');group.className='portal-debug-group';group.innerHTML=`<strong>${label}</strong>`;
+      const isCabinet=kind==='cabinet';
+      group.append(makeControl(key,kind,'X','X',isCabinet?-150:10,isCabinet?150:50,.1),makeControl(key,kind,'Y','Y',isCabinet?-150:0,isCabinet?250:80,.1),makeControl(key,kind,'Scale','SIZE',isCabinet?0.55:0.7,isCabinet?1.25:1.3,.01));groups.append(group);
+    });
+    panel.addEventListener('input',event=>{const input=event.target;if(!input.matches('input[data-key]')||input.value==='')return;const value=Number(input.value);state[input.dataset.key][input.dataset.property]=value;panel.querySelectorAll(`[data-key="${input.dataset.key}"][data-property="${input.dataset.property}"]`).forEach(peer=>{if(peer!==input)peer.value=value});apply()});
+    panel.querySelector('.portal-debug-toggle').addEventListener('click',event=>{panel.classList.toggle('is-collapsed');event.currentTarget.textContent=panel.classList.contains('is-collapsed')?'+':'−'});
+    panel.querySelector('[data-action="reset"]').addEventListener('click',()=>{Object.keys(defaults).forEach(key=>Object.assign(state[key],defaults[key]));panel.querySelectorAll('input').forEach(input=>{input.value=state[input.dataset.key][input.dataset.property]});apply()});
+    const showOutput=()=>{const output=panel.querySelector('.portal-debug-output');const textarea=output.querySelector('textarea');textarea.value=JSON.stringify(state,null,2);output.hidden=false;textarea.focus();textarea.select();textarea.setSelectionRange(0,textarea.value.length);return textarea};
+    panel.querySelector('[data-action="select"]').addEventListener('click',()=>showOutput());
+    panel.querySelector('[data-action="copy"]').addEventListener('click',async event=>{const button=event.currentTarget;const textarea=showOutput();let copied=false;try{if(navigator.clipboard&&isSecureContext){await navigator.clipboard.writeText(textarea.value);copied=true}}catch(error){}if(!copied){try{copied=document.execCommand('copy')}catch(error){}}button.textContent=copied?'COPIED':'COPY MANUALLY';setTimeout(()=>button.textContent='COPY VALUES',1600)});
+    window.__portalDebug={state,apply};
+    apply();
+  }
+</script>
 </body>
 </html>
