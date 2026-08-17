@@ -113,6 +113,52 @@
     display:flex; flex-direction:column; align-items:center; gap:10px;
   }
   .hint{ font-size:11px; color:#8f7a5c; letter-spacing:1px; text-align:center; }
+  .pauseBtn{
+    --pause-size:97px;
+    position:absolute; top:86px; left:0; z-index:12;
+    width:max(48px,var(--pause-size)); height:max(48px,var(--pause-size)); padding:0; border:0; border-radius:50%; background:transparent;
+    display:none; align-items:center; justify-content:center; cursor:pointer; touch-action:manipulation;
+  }
+  .pauseBtn.show{ display:flex; }
+  .pauseBtn img{ width:var(--pause-size); height:var(--pause-size); display:block; object-fit:contain; pointer-events:none; }
+  .pauseBtn:active img{ transform:translateY(1px) scale(0.96); filter:brightness(1.18); }
+  .pauseOverlay{ z-index:20; background:rgba(4,3,10,0.94); }
+  .pausePanel{ width:min(100%,340px); display:flex; flex-direction:column; align-items:center; }
+  .pauseVolumeBox{
+    width:min(92%,310px); margin-top:8px; padding:12px; border:1px solid rgba(46,230,255,0.42);
+    border-radius:7px; background:rgba(5,8,22,0.78); box-shadow:inset 0 0 18px rgba(46,100,255,0.08);
+  }
+  .pauseVolumeRow{ display:grid; grid-template-columns:72px 1fr 42px; align-items:center; gap:8px; font-size:11px; text-align:left; }
+  .pauseVolumeRow + .pauseVolumeRow{ margin-top:12px; }
+  .pauseVolumeRow input{ width:100%; touch-action:manipulation; accent-color:#2ee6ff; }
+  .pauseVolumeValue{ color:#7fefff; text-align:right; font-variant-numeric:tabular-nums; }
+  .debugPanel{
+    display:none; position:fixed; z-index:50; top:8px; right:8px; width:270px; max-height:calc(100dvh - 16px);
+    overflow:auto; padding:9px; border:1px solid rgba(46,230,255,0.7); border-radius:8px;
+    background:rgba(4,7,18,0.93); box-shadow:0 0 20px rgba(0,0,0,0.7); touch-action:pan-y;
+  }
+  .debugPanel.show{ display:block; }
+  .debugPanelHeader{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .debugTitle{ color:#2ee6ff; font:9px 'Press Start 2P',monospace; letter-spacing:1px; }
+  .debugCollapseBtn,.debugCopyBtn{
+    border:1px solid #356b76; border-radius:4px; background:#102a30; color:#bff7ff;
+    padding:5px 7px; font:8px 'Press Start 2P',monospace; cursor:pointer;
+  }
+  .debugPanel.collapsed{ width:auto; max-height:none; overflow:hidden; }
+  .debugPanel.collapsed .debugPanelBody{ display:none; }
+  .debugSizeRow{ margin-top:9px; padding-top:8px; border-top:1px solid rgba(46,230,255,0.2); }
+  .debugSizeRow label{ display:block; color:#f0e4c8; font:8px 'Press Start 2P',monospace; margin-bottom:5px; }
+  .debugGroupLabel{ margin-top:11px; color:#ffd54f; font:9px 'Press Start 2P',monospace; letter-spacing:1px; }
+  .debugSizeControls{ display:grid; grid-template-columns:1fr 58px; gap:7px; align-items:center; }
+  .debugSizeControls input[type="range"]{ width:100%; touch-action:pan-x; accent-color:#2ee6ff; }
+  .debugSizeControls input[type="number"]{ width:58px; padding:5px 3px; border:1px solid #356b76; border-radius:4px; background:#07141b; color:#bff7ff; text-align:center; }
+  .debugCopyBtn{ width:100%; margin-top:10px; }
+  .debugOutput{ display:none; width:100%; min-height:82px; margin-top:7px; resize:none; background:#050a12; color:#bff7ff; border:1px solid #356b76; font:10px monospace; user-select:text; }
+  @media (max-width:899px){
+    .debugPanel{ top:auto; bottom:8px; right:8px; width:min(270px,calc(100% - 16px)); }
+    .debugPanel.mobileInitial{ width:auto; max-height:none; overflow:hidden; }
+    .debugPanel.mobileInitial .debugPanelBody{ display:none; }
+  }
 
   .overlay{
     position:absolute; inset:0;
@@ -320,6 +366,7 @@
   </div>
 
   <div class="msgBanner" id="msgBanner"><span id="msgBannerText"></span></div>
+  <button class="pauseBtn" id="pauseBtn" type="button" aria-label="一時停止"><img src="../images/stop-button-magic-blue.png" alt=""></button>
 
   <div class="overlay show" id="selectScreen">
     <h1>ホーム</h1>
@@ -373,6 +420,19 @@
     <div class="rulesFlow" id="rulesFlow"></div>
   </div>
 
+  <div class="overlay pauseOverlay" id="pauseOverlay">
+    <div class="pausePanel">
+      <h1 class="pixelFont" style="font-size:22px;">PAUSE</h1>
+      <div class="pauseVolumeBox">
+        <label class="pauseVolumeRow"><span>BGM</span><input id="pauseBgmVolume" type="range" min="0" max="100" step="1" value="100"><span class="pauseVolumeValue" id="pauseBgmVolumeValue">100</span></label>
+        <label class="pauseVolumeRow"><span>効果音</span><input id="pauseSfxVolume" type="range" min="0" max="100" step="1" value="100"><span class="pauseVolumeValue" id="pauseSfxVolumeValue">100</span></label>
+      </div>
+      <button class="btn pixelFont" id="pauseResumeBtn" style="font-size:12px;">PLAY</button>
+      <button class="btn btnGhost pixelFont btnYellow" id="pauseRetryBtn" style="font-size:11px;">RETRY</button>
+      <button class="btn btnGhost pixelFont btnCyan" id="pauseHomeBtn" style="font-size:11px;">HOME</button>
+    </div>
+  </div>
+
   <div class="overlay" id="winOverlay">
     <h1 id="winTitle">撃破！</h1>
     <p id="winSub">STAGE 1 CLEAR</p>
@@ -394,9 +454,19 @@
   </div>
 </div>
 
+<aside class="debugPanel" id="debugPanel">
+  <div class="debugPanelHeader"><span class="debugTitle">SIZE / POS</span><button class="debugCollapseBtn" id="debugCollapseBtn" type="button">−</button></div>
+  <div class="debugPanelBody">
+    <div id="debugControls"></div>
+    <button class="debugCopyBtn" id="debugCopyBtn" type="button">COPY VALUES</button>
+    <textarea class="debugOutput" id="debugOutput" readonly></textarea>
+  </div>
+</aside>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
+  const DEBUG_MODE = new URLSearchParams(location.search).get('debug')==='1';
   // ---------- ランキング(Supabase) ----------
   const sb = supabase.createClient(
     'https://hqbjlblvijynijvgknih.supabase.co',
@@ -448,6 +518,88 @@
   const stageSelectListEl = document.getElementById('stageSelectList');
   const startBattleBtn = document.getElementById('startBattleBtn');
   const stageTagEl = document.getElementById('stageTag');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+  const pauseRetryBtn = document.getElementById('pauseRetryBtn');
+  const pauseHomeBtn = document.getElementById('pauseHomeBtn');
+  const pauseBgmVolume = document.getElementById('pauseBgmVolume');
+  const pauseSfxVolume = document.getElementById('pauseSfxVolume');
+  const pauseBgmVolumeValue = document.getElementById('pauseBgmVolumeValue');
+  const pauseSfxVolumeValue = document.getElementById('pauseSfxVolumeValue');
+  const debugPanel = document.getElementById('debugPanel');
+  const debugCollapseBtn = document.getElementById('debugCollapseBtn');
+  const debugCopyBtn = document.getElementById('debugCopyBtn');
+  const debugOutput = document.getElementById('debugOutput');
+  const debugControlsEl = document.getElementById('debugControls');
+  const debugValues = {
+    pauseSize:97,pauseX:0,pauseY:86,
+    heroSize:117,heroX:20.1,heroY:90.7,
+    mimicSize:155,mimicX:73.4,mimicY:33.4,
+    dragonSize:155,dragonX:68.2,dragonY:34,
+    demonSize:180,demonX:77.9,demonY:34
+  };
+  const debugControlDefs = [
+    {group:'STOP BUTTON',items:[['pauseSize','SIZE',48,120,1],['pauseX','X PX',0,200,1],['pauseY','Y PX',0,200,1]]},
+    {group:'HERO (ALL)',items:[['heroSize','SIZE',40,130,1],['heroX','X %',0,100,0.1],['heroY','Y %',5,100,0.1]]},
+    {group:'MIMIC',items:[['mimicSize','SIZE',50,180,1],['mimicX','X %',0,100,0.1],['mimicY','Y %',5,100,0.1]]},
+    {group:'DRAGON',items:[['dragonSize','SIZE',50,180,1],['dragonX','X %',0,100,0.1],['dragonY','Y %',5,100,0.1]]},
+    {group:'DEMON KING',items:[['demonSize','SIZE',50,180,1],['demonX','X %',0,100,0.1],['demonY','Y %',5,100,0.1]]}
+  ];
+  const debugControls = {};
+  function applyDebugValues(){
+    pauseBtn.style.setProperty('--pause-size',debugValues.pauseSize+'px');
+    if(DEBUG_MODE){ pauseBtn.style.left=debugValues.pauseX+'px'; pauseBtn.style.top=debugValues.pauseY+'px'; }
+    Object.keys(debugControls).forEach(key=>{
+      debugControls[key].range.value = String(debugValues[key]);
+      debugControls[key].number.value = String(debugValues[key]);
+    });
+  }
+  function setDebugValue(key,value){
+    const control = debugControls[key];
+    if(!control) return;
+    const n = Math.max(Number(control.range.min),Math.min(Number(control.range.max),Number(value)));
+    if(!Number.isFinite(n)) return;
+    debugValues[key] = n;
+    applyDebugValues();
+  }
+  if(DEBUG_MODE){
+    debugPanel.classList.add('show');
+    if(matchMedia('(max-width:899px)').matches){ debugPanel.classList.add('mobileInitial'); debugCollapseBtn.textContent='+'; }
+    debugControlDefs.forEach(group=>{
+      const title=document.createElement('div'); title.className='debugGroupLabel'; title.textContent=group.group; debugControlsEl.appendChild(title);
+      group.items.forEach(([key,label,min,max,step])=>{
+        const row=document.createElement('div'); row.className='debugSizeRow';
+        row.innerHTML=`<label for="debug-${key}-range">${label}</label><div class="debugSizeControls"><input id="debug-${key}-range" type="range" min="${min}" max="${max}" step="${step}"><input id="debug-${key}-number" type="number" min="${min}" max="${max}" step="${step}"></div>`;
+        debugControlsEl.appendChild(row);
+        const range=row.querySelector('input[type="range"]'), number=row.querySelector('input[type="number"]');
+        debugControls[key]={range,number};
+        range.addEventListener('input',e=>setDebugValue(key,e.target.value));
+        number.addEventListener('input',e=>{ if(e.target.value!=='') setDebugValue(key,e.target.value); });
+      });
+    });
+    debugCollapseBtn.addEventListener('click',()=>{
+      if(debugPanel.classList.contains('mobileInitial')) debugPanel.classList.remove('mobileInitial');
+      else debugPanel.classList.toggle('collapsed');
+      debugCollapseBtn.textContent = debugPanel.classList.contains('collapsed') ? '+' : '−';
+    });
+    debugCopyBtn.addEventListener('click',async()=>{
+      const text = JSON.stringify({
+        pause:{size:debugValues.pauseSize,x:debugValues.pauseX,y:debugValues.pauseY},
+        hero:{size:debugValues.heroSize,x:debugValues.heroX,y:debugValues.heroY},
+        bosses:{
+          mimic:{size:debugValues.mimicSize,x:debugValues.mimicX,y:debugValues.mimicY},
+          dragon:{size:debugValues.dragonSize,x:debugValues.dragonX,y:debugValues.dragonY},
+          demon:{size:debugValues.demonSize,x:debugValues.demonX,y:debugValues.demonY}
+        }
+      },null,2);
+      debugOutput.value = text;
+      debugOutput.style.display = 'block';
+      debugOutput.focus(); debugOutput.select();
+      try{ await navigator.clipboard.writeText(text); }catch(e){}
+    });
+  }
+  applyDebugValues();
 
   // ---------- 勇者データ(画像+専用エフェクト) ----------
   const HEROES = [
@@ -461,15 +613,56 @@
   });
   let currentHero = null;
   let inBattle = false; // 「出発する」を押して戦闘中かどうか(選択画面でのタップ誤反応を防ぐ)
+  let battlePaused = false;
+  const battleTimers = new Set();
+  function armBattleTimer(timer){
+    timer.startedAt = performance.now();
+    timer.id = setTimeout(()=>{
+      battleTimers.delete(timer);
+      timer.id = null;
+      timer.fn();
+    },timer.remaining);
+  }
+  function battleDelay(fn,delay){
+    const timer = {fn,remaining:delay,id:null,startedAt:0};
+    battleTimers.add(timer);
+    armBattleTimer(timer);
+    return timer;
+  }
+  function pauseBattleTimers(){
+    const now = performance.now();
+    battleTimers.forEach(timer=>{
+      if(timer.id!==null){
+        clearTimeout(timer.id);
+        timer.id = null;
+        timer.remaining = Math.max(0,timer.remaining-(now-timer.startedAt));
+      }
+    });
+  }
+  function resumeBattleTimers(){ battleTimers.forEach(timer=>{ if(timer.id===null) armBattleTimer(timer); }); }
+  function clearBattleTimers(){
+    battleTimers.forEach(timer=>{ if(timer.id!==null) clearTimeout(timer.id); });
+    battleTimers.clear();
+  }
   let challengeMode = false; // ホーム画面でチャレンジモードを選んでいるか
   let bossHealed = false; // このステージ挑戦中にヒールを使ったか(1回だけ)
   let challengeScore = 0;
   let challengeBest = 0;
   try{ challengeBest = parseInt(localStorage.getItem('bossDemoChallengeBest_v2'),10)||0; }catch(e){}
   function persistChallengeBest(){ try{ localStorage.setItem('bossDemoChallengeBest_v2', String(challengeBest)); }catch(e){} }
+  function formatHudNumber(value){
+    const n = Math.max(0,Math.floor(value));
+    if(n<10000) return String(n);
+    if(n<1000000){
+      const k=n/1000;
+      return `${k<100 ? k.toFixed(1).replace(/\.0$/,'') : Math.floor(k)}K`;
+    }
+    const m=n/1000000;
+    return `${m<100 ? m.toFixed(1).replace(/\.0$/,'') : Math.floor(m)}M`;
+  }
   function updateChallengeUI(){
-    challengeScoreValEl.textContent = challengeScore;
-    challengeBestValEl.textContent = challengeBest;
+    challengeScoreValEl.textContent = formatHudNumber(challengeScore);
+    challengeBestValEl.textContent = formatHudNumber(challengeBest);
   }
   let msgBannerTimer = null;
   function flashMessage(text, duration){
@@ -482,6 +675,7 @@
   let unlockedStages = 1;
   try{ unlockedStages = parseInt(localStorage.getItem('bossDemoUnlockedStages'),10)||1; }catch(e){}
   function persistUnlock(){
+    if(DEBUG_MODE) return; // デバッグ試遊で本番プレイヤーの解放進捗を進めない
     try{ localStorage.setItem('bossDemoUnlockedStages', String(unlockedStages)); }catch(e){}
   }
 
@@ -511,7 +705,7 @@
   function buildStageSelect(){
     stageSelectListEl.innerHTML = '';
     STAGES.forEach((s,i)=>{
-      const locked = i >= unlockedStages;
+      const locked = !DEBUG_MODE && i >= unlockedStages;
       const card = document.createElement('div');
       card.className = 'stageCard2' + (locked?' locked':'') + (!locked && !challengeMode && selectedStageIndex===i ? ' selected':'');
       if(locked){
@@ -568,6 +762,8 @@
   }
   startBattleBtn.addEventListener('click', ()=>{
     if(!currentHero) return;
+    clearBattleTimers();
+    battlePaused = false;
     selectScreen.classList.remove('show');
     inBattle = true;
     if(challengeMode){
@@ -578,6 +774,54 @@
       playBGM('stage' + (selectedStageIndex+1)); // 「出発する」を押した瞬間だけBGMを鳴らす
     }
   });
+  function setPlayerVolume(kind,value){
+    const normalized = Math.max(0,Math.min(1,Number(value)/100));
+    if(kind==='bgm') bgmVolume = normalized;
+    else sfxVolume = normalized;
+    try{ localStorage.setItem(kind==='bgm'?'bossBattleBgmVolume':'bossBattleSfxVolume',String(normalized)); }catch(e){}
+    applyAudioVolumes();
+  }
+  pauseBgmVolume.addEventListener('input',()=>setPlayerVolume('bgm',pauseBgmVolume.value));
+  pauseSfxVolume.addEventListener('input',()=>setPlayerVolume('sfx',pauseSfxVolume.value));
+  function openPause(){
+    if(!inBattle || battlePaused || winOverlay.classList.contains('show') || loseOverlay.classList.contains('show')) return;
+    battlePaused = true;
+    gridTouchStart = null;
+    pauseBattleTimers();
+    if(audioCtx && audioCtx.state==='running') audioCtx.suspend();
+    pauseOverlay.classList.add('show');
+  }
+  function resumeBattle(){
+    if(!battlePaused) return;
+    battlePaused = false;
+    pauseOverlay.classList.remove('show');
+    resumeBattleTimers();
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+  }
+  function retryBattleFromPause(){
+    clearBattleTimers();
+    battlePaused = false;
+    pauseOverlay.classList.remove('show');
+    floaters=[]; particles=[];
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+    if(challengeMode){ loadChallenge(); playBGM('stage3'); }
+    else { loadStage(stageIndex); playBGM('stage'+(stageIndex+1)); }
+  }
+  function returnHomeFromPause(){
+    clearBattleTimers();
+    battlePaused = false;
+    pauseOverlay.classList.remove('show');
+    floaters=[]; particles=[];
+    stopBGM();
+    inBattle = false;
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+    buildHeroSelect(); buildStageSelect(); updateStartBtnState();
+    selectScreen.classList.add('show');
+  }
+  pauseBtn.addEventListener('click',openPause);
+  pauseResumeBtn.addEventListener('click',resumeBattle);
+  pauseRetryBtn.addEventListener('click',retryBattleFromPause);
+  pauseHomeBtn.addEventListener('click',returnHomeFromPause);
 
   // ---------- ステージ(ボス)データ ----------
   const STAGES = [
@@ -826,9 +1070,35 @@
 
   // ---------- audio(合体音・被弾音・撃破音) ----------
   let audioCtx = null;
+  let bgmMasterGain = null, sfxMasterGain = null;
+  let bgmVolume = 1, sfxVolume = 1;
+  try{
+    const savedBgm = localStorage.getItem('bossBattleBgmVolume');
+    const savedSfx = localStorage.getItem('bossBattleSfxVolume');
+    if(savedBgm!==null) bgmVolume = Math.max(0,Math.min(1,Number(savedBgm)));
+    if(savedSfx!==null) sfxVolume = Math.max(0,Math.min(1,Number(savedSfx)));
+  }catch(e){}
+  function applyAudioVolumes(){
+    if(bgmMasterGain) bgmMasterGain.gain.value = bgmVolume;
+    if(sfxMasterGain) sfxMasterGain.gain.value = sfxVolume;
+    pauseBgmVolume.value = String(Math.round(bgmVolume*100));
+    pauseSfxVolume.value = String(Math.round(sfxVolume*100));
+    pauseBgmVolumeValue.textContent = pauseBgmVolume.value;
+    pauseSfxVolumeValue.textContent = pauseSfxVolume.value;
+  }
+  applyAudioVolumes();
   function ensureAudio(){
-    if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
-    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+    if(!audioCtx){
+      try{
+        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        bgmMasterGain = audioCtx.createGain();
+        sfxMasterGain = audioCtx.createGain();
+        bgmMasterGain.connect(audioCtx.destination);
+        sfxMasterGain.connect(audioCtx.destination);
+        applyAudioVolumes();
+      }catch(e){}
+    }
+    if(audioCtx && audioCtx.state==='suspended' && !battlePaused) audioCtx.resume();
   }
   function playTone(freq,dur,type,peak,delay){
     if(!audioCtx) return;
@@ -839,7 +1109,7 @@
     gain.gain.setValueAtTime(0.0001,t0);
     gain.gain.exponentialRampToValueAtTime(Math.max(0.001,peak||0.2), t0+0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
-    osc.connect(gain).connect(audioCtx.destination);
+    osc.connect(gain).connect(sfxMasterGain||audioCtx.destination);
     osc.start(t0); osc.stop(t0+dur+0.02);
   }
   function playHit(big){
@@ -900,7 +1170,7 @@
     src.loopEnd = meta.loopEnd;
     const gain = audioCtx.createGain();
     gain.gain.value = 0.55; // 攻撃音とのバランスを見て引き上げ
-    src.connect(gain).connect(audioCtx.destination);
+    src.connect(gain).connect(bgmMasterGain||audioCtx.destination);
     src.start(0);
     currentBgmSource = src;
   }
@@ -930,7 +1200,7 @@
     src.buffer = buf;
     const g = audioCtx.createGain();
     g.gain.value = gainVal!=null ? gainVal : 0.5;
-    src.connect(g).connect(audioCtx.destination);
+    src.connect(g).connect(sfxMasterGain||audioCtx.destination);
     src.start(0);
   }
 
@@ -955,7 +1225,7 @@
   let gridAnimTiles = []; // 新規/合体タイルの演出用
   let gridOver = false;   // 盤面が詰んだか(退却)
   let gridLocked = false; // 演出中は入力を受け付けない
-  let gridMoveDir = null; // 直近のスワイプ方向(移動アニメーションに使用)
+  let gridMoveFrom = new Array(GRID_SIZE*GRID_SIZE).fill(-1); // 各タイルを実際の移動元から滑らせるため保持する
   let gridMoveT = 1;      // 0=移動直後 → 1=アニメーション完了
 
   function gIdx(r,c){ return r*GRID_SIZE+c; }
@@ -964,7 +1234,7 @@
     gridAnimTiles = [];
     gridOver = false;
     gridLocked = false;
-    gridMoveDir = null;
+    gridMoveFrom = new Array(GRID_SIZE*GRID_SIZE).fill(-1);
     gridMoveT = 1;
     spawnTile(); spawnTile();
   }
@@ -986,19 +1256,25 @@
     return                  gIdx(GRID_SIZE-1-k, i); // down
   }
   function slideAndMergeGrid(line){
-    let arr = line.filter(v=>v!==0);
+    const arr = [], from = [];
+    for(let i=0;i<line.length;i++){
+      if(line[i]!==0){ arr.push(line[i]); from.push(i); }
+    }
     const mergedTiers = [];
     const mergedAt = [];
     for(let i=0;i<arr.length-1;i++){
       if(arr[i]===arr[i+1]){
         arr[i] = Math.min(GRID_MAX_TIER, arr[i]+1);
         mergedTiers.push(arr[i]);
+        // 合体は遠い方を移動元にすると、長い滑り込みと着地時のポップで合体が伝わる
+        from[i] = from[i+1];
         arr.splice(i+1,1);
+        from.splice(i+1,1);
         mergedAt.push(i);
       }
     }
-    while(arr.length<GRID_SIZE) arr.push(0);
-    return {arr, mergedTiers, mergedAt};
+    while(arr.length<GRID_SIZE){ arr.push(0); from.push(-1); }
+    return {arr, from, mergedTiers, mergedAt};
   }
   function isGridStuck(){
     for(let i=0;i<grid.length;i++) if(grid[i]===0) return false;
@@ -1015,14 +1291,24 @@
     // 最大タイルだけでは2048到達後の頑張りが記録に残らないため、盤面に残った数字をすべて得点にする。
     return (tiles||grid).reduce((sum,tier)=>sum+(tier ? Math.pow(2,tier) : 0),0);
   }
-  if(new URLSearchParams(location.search).get('debug')==='1'){
-    window.__bossBattleDebug = { scoreForGrid:gridValueSum };
+  if(DEBUG_MODE){
+    window.__bossBattleDebug = {
+      scoreForGrid:gridValueSum, formatHudNumber, slideAndMergeGrid, cellForDir,
+      metricsForBoss:(key,cw,ch)=>bossVisualMetricsForKey(key,cw,ch),
+      setValues:values=>{ Object.keys(debugValues).forEach(key=>{ if(values && values[key]!=null) setDebugValue(key,values[key]); }); },
+      getState:()=>({
+        inBattle, battlePaused, animT, gridMoveT, grid:[...grid], debugValues:{...debugValues},
+        bgmVolume, sfxVolume, pendingBattleTimers:battleTimers.size,
+        audioState:audioCtx ? audioCtx.state : 'uninitialized'
+      })
+    };
   }
   function moveGrid(dir){
     if(gridOver || gridLocked || defeated || !currentHero) return;
     let moved = false;
     const allMergedTiers = [];
     const mergedCells = [];
+    gridMoveFrom.fill(-1);
     for(let i=0;i<GRID_SIZE;i++){
       // 1. 抽出
       const line = [];
@@ -1030,14 +1316,17 @@
       // 2. スライド+合体
       const res = slideAndMergeGrid(line);
       for(let k=0;k<GRID_SIZE;k++){ if(line[k]!==res.arr[k]) moved = true; }
-      // 3. 書き戻し(同じ cellForDir を使うので抽出時とズレようがない)
-      for(let k=0;k<GRID_SIZE;k++) grid[cellForDir(dir,i,k)] = res.arr[k];
+      // 3. 書き戻しと移動元の記録に同じ cellForDir を使い、4方向の座標ズレを防ぐ
+      for(let k=0;k<GRID_SIZE;k++){
+        const dest = cellForDir(dir,i,k);
+        grid[dest] = res.arr[k];
+        gridMoveFrom[dest] = res.from[k]>=0 ? cellForDir(dir,i,res.from[k]) : -1;
+      }
       allMergedTiers.push(...res.mergedTiers);
       res.mergedAt.forEach(k=>mergedCells.push(cellForDir(dir,i,k)));
     }
     if(!moved) return;
-    gridMoveDir = dir;
-    gridMoveT = 0; // 移動アニメーションを頭出し(全タイルが移動方向から滑り込む見た目にする)
+    gridMoveT = 0; // 各タイルを記録した移動元から滑らせるアニメーションを頭出しする
     mergedCells.forEach(c=>gridAnimTiles.push({cell:c, born:false, t:0}));
     spawnTile();
     if(challengeMode){
@@ -1054,7 +1343,7 @@
     }
     if(isGridStuck() && !gridOver){
       gridOver = true;
-      setTimeout(()=>{
+      battleDelay(()=>{
         // 最後の一手でボスも倒していた場合は、そちらの勝利演出を優先する
         if(defeated) return;
         if(challengeMode){
@@ -1067,8 +1356,8 @@
           loseSub.textContent = '盤面が埋まりました';
           loseScoreLine.style.display = '';
           loseBestLine.style.display = '';
-          loseScoreVal.textContent = challengeScore;
-          loseBestVal.textContent = challengeBest;
+          loseScoreVal.textContent = formatHudNumber(challengeScore);
+          loseBestVal.textContent = formatHudNumber(challengeBest);
           retryStageBtn.textContent = 'RETRY';
           if(isNewChallengeBest && challengeScore>0){
             nameInput.value = '';
@@ -1162,6 +1451,13 @@
     const scale = targetH/bboxH;
     return { w: bboxW*scale, h: targetH };
   }
+  function currentBossDebugKey(){ return stageIndex===0 ? 'mimic' : (stageIndex===1 ? 'dragon' : 'demon'); }
+  function bossVisualMetricsForKey(key,cw,ch){
+    const size=debugValues[key+'Size'];
+    const groundY=ch*debugValues[key+'Y']/100;
+    return {key,size,x:cw*debugValues[key+'X']/100,groundY,centerY:groundY-size/2+8,scale:size/90};
+  }
+  function bossVisualMetrics(cw,ch){ return bossVisualMetricsForKey(currentBossDebugKey(),cw,ch); }
 
   // 画像ごとに周囲の透明な余白の量がバラバラだと、同じ枠に収めても
   // 「絵そのものの大きさ」が揃わない(ミミック/魔王が余白少なめで大きく見えていた原因)。
@@ -1278,17 +1574,6 @@
     roundRectPath(ctx, boardX, boardY, boardSize, boardSize, 8);
     ctx.fill(); ctx.stroke();
 
-    // 直近の移動方向から、全タイルが「移動してきた」ように見える滑り込みオフセット
-    let moveOffX = 0, moveOffY = 0;
-    if(gridMoveT < 1){
-      const eased = 1 - Math.pow(1-gridMoveT, 3); // ease-out(最初速く、着地間際で減速)
-      const remain = (1 - eased) * cellSize * 0.85;
-      if(gridMoveDir==='left') moveOffX = remain;
-      else if(gridMoveDir==='right') moveOffX = -remain;
-      else if(gridMoveDir==='up') moveOffY = remain;
-      else if(gridMoveDir==='down') moveOffY = -remain;
-    }
-
     for(let r=0;r<GRID_SIZE;r++){
       for(let c=0;c<GRID_SIZE;c++){
         const cx0 = boardX + pad + c*(cellSize+pad);
@@ -1302,10 +1587,18 @@
           const anim = gridAnimTiles.find(a=>a.cell===gIdx(r,c) && a.t<1);
           let scale = 1;
           if(anim){ scale = anim.born ? 0.3+0.7*anim.t : 1+0.2*(1-anim.t); }
-          // 新規発生タイルは滑り込みオフセットの影響を受けない(合体後や末尾に生成されたタイルのため)
-          const applyOff = !(anim && anim.born);
-          const ccx = cx0+cellSize/2 + (applyOff?moveOffX:0);
-          const ccy = cy0+cellSize/2 + (applyOff?moveOffY:0);
+          let offX = 0, offY = 0;
+          const dest = gIdx(r,c), src = gridMoveFrom[dest];
+          if(gridMoveT<1 && src>=0 && src!==dest){
+            const eased = 1 - Math.pow(1-gridMoveT, 3); // 速度感を変えず、移動距離だけをタイルごとにする
+            const sr = Math.floor(src/GRID_SIZE), sc = src%GRID_SIZE;
+            const sx = boardX + pad + sc*(cellSize+pad);
+            const sy = boardY + pad + sr*(cellSize+pad);
+            offX = (sx-cx0)*(1-eased);
+            offY = (sy-cy0)*(1-eased);
+          }
+          const ccx = cx0+cellSize/2+offX;
+          const ccy = cy0+cellSize/2+offY;
           const tileColor = gridTileColor(tier);
           // 段階が上がるほど強い発光を後ろに敷く
           if(tier>=4){
@@ -1352,7 +1645,7 @@
     const dx = lunge * 30; // 突進で前(右=ボス方向)へ寄る
     const bob = Math.sin(animT*3)*1.4;
     const punch = 1 + lunge*0.08; // 攻撃の瞬間だけ少し拡大して勢いを出す
-    const fit = scaleToHeight(bbox.w, bbox.h, 74);
+    const fit = scaleToHeight(bbox.w, bbox.h, debugValues.heroSize);
     const baseW = fit.w * punch, baseH = fit.h * punch;
 
     // 影
@@ -1392,7 +1685,8 @@
     ctx.beginPath(); ctx.arc(0,-46,auraR,0,Math.PI*2); ctx.fill();
 
     // ボス本体(画像。余白を除いた実寸を基準に、勇者/ドラゴンと同じ土俵のサイズに揃える)
-    const fit = scaleToHeight(bbox.w, bbox.h, 90);
+    const bossKey = currentBossDebugKey();
+    const fit = scaleToHeight(bbox.w, bbox.h, debugValues[bossKey+'Size']);
     const w = fit.w, h = fit.h;
     if(flash>0.05){
       drawFlashedImage(ctx, img, bbox, -w/2, -h+8, w, h, Math.min(1,flash));
@@ -1415,7 +1709,7 @@
     animateLunge();
     playBuffer(currentHero.atkBuffer, currentHero.id==='mage' ? 0.42 : 0.55); // 勇者ごとの専用攻撃音(振りの瞬間)
 
-    setTimeout(()=>{
+    battleDelay(()=>{
       if(challengeMode){
         // チャレンジモードもHPは扱わないが、魔王を表示しているので殴った手応えは出す
         bossFlash = 1;
@@ -1451,7 +1745,7 @@
       spawnHitParticles(big);
       triggerHitEffect(big);
       if(healedThisHit){
-        setTimeout(()=>{
+        battleDelay(()=>{
           flashMessage(`${STAGES[stageIndex].name} が ヒールを唱えた！`, 2400);
           spawnHealParticles();
           playHealSound();
@@ -1468,10 +1762,11 @@
     playBuffer(currentHero.atkBuffer, currentHero.id==='mage' ? 0.55 : 0.7);
     playFinisherSound();
 
-    setTimeout(()=>{
+    battleDelay(()=>{
       bossFlash = 1;
       shake = 1.7;
-      floaters.push({ x: W*0.78/devicePixelRatio, y: H*0.16/devicePixelRatio, text:'必殺技！', big:true, life:1.3, vy:-30 });
+      const boss=bossVisualMetrics(stageEl.clientWidth,stageEl.clientHeight);
+      floaters.push({ x:boss.x, y:boss.centerY, text:'必殺技！', big:true, life:1.3, vy:-30 });
       spawnHitParticles(true);
       spawnHitParticles(true);
       triggerHitEffect(true);
@@ -1479,10 +1774,10 @@
       hp = 0;
       updateHPUI();
       defeated = true;
-      setTimeout(()=>{
+      battleDelay(()=>{
         playDefeat();
         spawnDefeatBurst();
-        setTimeout(()=>{
+        battleDelay(()=>{
           const isLast = stageIndex >= STAGES.length-1;
           if(stageIndex+2 > unlockedStages){
             unlockedStages = Math.min(STAGES.length, stageIndex+2);
@@ -1498,10 +1793,11 @@
   }
 
   function spawnHealParticles(){
+    const boss=bossVisualMetrics(stageEl.clientWidth,stageEl.clientHeight);
     for(let i=0;i<22;i++){
       particles.push({
-        x: W*0.78/devicePixelRatio + (Math.random()-0.5)*70,
-        y: H*0.20/devicePixelRatio + (Math.random()-0.5)*50,
+        x: boss.x + (Math.random()-0.5)*70*boss.scale,
+        y: boss.centerY + (Math.random()-0.5)*50*boss.scale,
         vx:(Math.random()-0.5)*50,
         vy:-70-Math.random()*90,
         life:0.8+Math.random()*0.5,
@@ -1512,11 +1808,13 @@
   }
 
   function animateLunge(){
-    let t = 0;
+    let t = 0, elapsed = 0;
     const dur = 300;
-    const t0 = performance.now();
+    let last = performance.now();
     function step(now){
-      t = Math.min(1,(now-t0)/dur);
+      if(!battlePaused) elapsed += now-last;
+      last = now;
+      t = Math.min(1,elapsed/dur);
       heroLunge = t<0.5 ? (t/0.5) : (1-(t-0.5)/0.5);
       if(t<1) requestAnimationFrame(step);
       else heroLunge = 0;
@@ -1525,18 +1823,20 @@
   }
 
   function spawnFloater(dmg, big){
+    const boss=bossVisualMetrics(stageEl.clientWidth,stageEl.clientHeight);
     floaters.push({
-      x: W*0.78/devicePixelRatio + (Math.random()-0.5)*30,
-      y: H*0.16/devicePixelRatio,
+      x: boss.x + (Math.random()-0.5)*30*boss.scale,
+      y: boss.centerY,
       text: (challengeMode ? '+' : '-')+dmg,
       big, life: 1, vy:-38
     });
   }
   function spawnHitParticles(big){
     const n = big?22:10;
+    const boss=bossVisualMetrics(stageEl.clientWidth,stageEl.clientHeight);
     for(let i=0;i<n;i++){
       particles.push({
-        x: W*0.78/devicePixelRatio, y:H*0.15/devicePixelRatio,
+        x:boss.x, y:boss.centerY,
         vx:(Math.random()-0.5)*(big?260:150),
         vy:-Math.random()*(big?220:120),
         life: 0.5+Math.random()*0.4,
@@ -1550,9 +1850,10 @@
     hitEffect = { t:0, dur: big?0.5:0.35, big };
   }
   function spawnDefeatBurst(){
+    const boss=bossVisualMetrics(stageEl.clientWidth,stageEl.clientHeight);
     for(let i=0;i<60;i++){
       particles.push({
-        x: W*0.78/devicePixelRatio, y:H*0.13/devicePixelRatio,
+        x:boss.x, y:boss.centerY,
         vx:(Math.random()-0.5)*420,
         vy:-100-Math.random()*260,
         life: 0.8+Math.random()*0.6,
@@ -1563,6 +1864,7 @@
 
   // 攻撃ボタンは廃止(グリッドでタイルを合体させると自動的に攻撃が発生する)
   againBtn.addEventListener('click', ()=>{
+    clearBattleTimers();
     floaters=[]; particles=[];
     stopBGM();
     inBattle = false;
@@ -1573,6 +1875,7 @@
     selectScreen.classList.add('show');
   });
   retryStageBtn.addEventListener('click', ()=>{
+    clearBattleTimers();
     floaters=[]; particles=[];
     loseOverlay.classList.remove('show');
     if(challengeMode){
@@ -1584,6 +1887,7 @@
     }
   });
   loseHomeBtn.addEventListener('click', ()=>{
+    clearBattleTimers();
     floaters=[]; particles=[];
     stopBGM();
     inBattle = false;
@@ -1599,12 +1903,12 @@
   // 「出発する」を押して戦闘が始まっているかどうかを厳密にチェックする
   let gridTouchStart = null;
   stage.addEventListener('touchstart', (e)=>{
-    if(!inBattle) return;
+    if(!inBattle || battlePaused) return;
     const t = e.touches[0];
     gridTouchStart = {x:t.clientX, y:t.clientY};
   }, {passive:true});
   stage.addEventListener('touchend', (e)=>{
-    if(!inBattle || !gridTouchStart) return;
+    if(!inBattle || battlePaused || !gridTouchStart) return;
     const t = e.changedTouches[0];
     const dx = t.clientX-gridTouchStart.x, dy = t.clientY-gridTouchStart.y;
     gridTouchStart = null;
@@ -1613,11 +1917,20 @@
     else moveGrid(dy>0?'down':'up');
   }, {passive:true});
   window.addEventListener('keydown', (e)=>{
-    if(!inBattle) return;
+    if((e.key==='Escape' || e.key.toLowerCase()==='p') && inBattle){
+      if(battlePaused) resumeBattle(); else openPause();
+      e.preventDefault();
+      return;
+    }
+    if(!inBattle || battlePaused) return;
     if(e.key==='ArrowLeft'){ moveGrid('left'); e.preventDefault(); }
     else if(e.key==='ArrowRight'){ moveGrid('right'); e.preventDefault(); }
     else if(e.key==='ArrowUp'){ moveGrid('up'); e.preventDefault(); }
     else if(e.key==='ArrowDown'){ moveGrid('down'); e.preventDefault(); }
+  });
+  document.addEventListener('visibilitychange',()=>{
+    // アプリ切替中に盤面や攻撃演出だけが進まないよう、プレイ中は自動で停止する
+    if(document.hidden && inBattle && !battlePaused) openPause();
   });
 
   // ---------- 描画ループ ----------
@@ -1625,22 +1938,25 @@
   function loop(now){
     const dt = Math.min(0.033,(now-lastTime)/1000);
     lastTime = now;
-    animT += dt;
+    if(!battlePaused) animT += dt;
     backToHubBtn.classList.toggle('hide', !selectScreen.classList.contains('show') || rulesOverlay.classList.contains('show') || rankingOverlay.classList.contains('show') || confirmOverlay.classList.contains('show'));
+    pauseBtn.classList.toggle('show', inBattle && !battlePaused && !winOverlay.classList.contains('show') && !loseOverlay.classList.contains('show'));
 
-    if(shake>0) shake = Math.max(0, shake-dt*3.2);
-    if(bossFlash>0) bossFlash = Math.max(0, bossFlash-dt*5);
-    if(defeated) bossScale = Math.max(0, bossScale-dt*0.9);
+    if(!battlePaused){
+      if(shake>0) shake = Math.max(0, shake-dt*3.2);
+      if(bossFlash>0) bossFlash = Math.max(0, bossFlash-dt*5);
+      if(defeated) bossScale = Math.max(0, bossScale-dt*0.9);
 
-    floaters.forEach(f=>{ f.y+=f.vy*dt; f.life-=dt*0.9; });
-    floaters = floaters.filter(f=>f.life>0);
-    particles.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=dt*260; p.life-=dt; });
-    particles = particles.filter(p=>p.life>0);
-    if(hitEffect){ hitEffect.t += dt; if(hitEffect.t>hitEffect.dur) hitEffect=null; }
-    gridAnimTiles.forEach(a=>{ a.t = Math.min(1, a.t + dt*4.5); });
-    gridAnimTiles = gridAnimTiles.filter(a=>a.t<1);
-    if(gridMoveT<1) gridMoveT = Math.min(1, gridMoveT + dt*7);
-    if(inBattle) updateGridSparks(dt, stageEl.clientWidth, stageEl.clientHeight);
+      floaters.forEach(f=>{ f.y+=f.vy*dt; f.life-=dt*0.9; });
+      floaters = floaters.filter(f=>f.life>0);
+      particles.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=dt*260; p.life-=dt; });
+      particles = particles.filter(p=>p.life>0);
+      if(hitEffect){ hitEffect.t += dt; if(hitEffect.t>hitEffect.dur) hitEffect=null; }
+      gridAnimTiles.forEach(a=>{ a.t = Math.min(1, a.t + dt*4.5); });
+      gridAnimTiles = gridAnimTiles.filter(a=>a.t<1);
+      if(gridMoveT<1) gridMoveT = Math.min(1, gridMoveT + dt*7);
+      if(inBattle) updateGridSparks(dt, stageEl.clientWidth, stageEl.clientHeight);
+    }
 
     draw();
     requestAnimationFrame(loop);
@@ -1660,25 +1976,27 @@
     const bg = ctx.createLinearGradient(0,0,0,ch);
     bg.addColorStop(0,'#1c0f22'); bg.addColorStop(0.5,'#241530'); bg.addColorStop(1,'#0c0810');
     ctx.fillStyle = bg; ctx.fillRect(0,0,cw,ch);
-    const warmGlow = ctx.createRadialGradient(cw*0.78,ch*0.20,10,cw*0.78,ch*0.20,cw*0.55);
+    const bossMetrics=bossVisualMetrics(cw,ch);
+    const warmGlow = ctx.createRadialGradient(bossMetrics.x,bossMetrics.centerY,10,bossMetrics.x,bossMetrics.centerY,cw*0.55);
     warmGlow.addColorStop(0,'rgba(224,140,60,0.10)');
     warmGlow.addColorStop(1,'rgba(224,140,60,0)');
     ctx.fillStyle = warmGlow; ctx.fillRect(0,0,cw,ch);
 
     // 床(斜め上視点っぽい菱形の地面タイル。勇者の足元だけの小さな装飾に留める)
-    const floorY = ch*0.90;
+    const floorY = ch*debugValues.heroY/100;
+    const heroFloorX = cw*debugValues.heroX/100;
     ctx.fillStyle = 'rgba(60,30,70,0.30)';
     ctx.beginPath();
-    ctx.moveTo(cw*0.20, floorY-16);
-    ctx.lineTo(cw*0.42, floorY+10);
-    ctx.lineTo(cw*0.20, floorY+34);
-    ctx.lineTo(cw*-0.02, floorY+10);
+    ctx.moveTo(heroFloorX, floorY-16);
+    ctx.lineTo(heroFloorX+cw*0.22, floorY+10);
+    ctx.lineTo(heroFloorX, floorY+34);
+    ctx.lineTo(heroFloorX-cw*0.22, floorY+10);
     ctx.closePath(); ctx.fill();
 
     // ボス(右上寄り。中央〜下は2048グリッド用に空けておく。HPバー/記録ボックスと被らないよう少し下げている)
-    drawBoss(cw*0.78, ch*0.30, bossFlash, Math.max(0,bossScale));
+    drawBoss(bossMetrics.x, bossMetrics.groundY, bossFlash, Math.max(0,bossScale));
     // 勇者(左下寄り)
-    if(bossScale>0 || !defeated) drawHero(cw*0.18, ch*0.90, heroLunge);
+    if(bossScale>0 || !defeated) drawHero(cw*debugValues.heroX/100, ch*debugValues.heroY/100, heroLunge);
 
     // 2048グリッド(中央)
     if(currentHero) drawGrid(cw, ch);
@@ -1689,12 +2007,12 @@
       const scale = (hitEffect.big?1.5:1.0) * (0.55+p*0.85);
       const alpha = Math.max(0, 1-p);
       const fxImg = currentHero.fx;
-      const size = (hitEffect.big?150:100) * scale;
+      const size = (hitEffect.big?150:100) * scale * bossMetrics.scale;
       const fh = size * (fxImg.naturalHeight/fxImg.naturalWidth);
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.imageSmoothingEnabled = false;
-      ctx.translate(cw*0.78, ch*0.16);
+      ctx.translate(bossMetrics.x, bossMetrics.centerY);
       ctx.drawImage(fxImg, -size/2, -fh/2, size, fh);
       ctx.restore();
     }
