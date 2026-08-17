@@ -252,12 +252,6 @@
     color:var(--gold); font-size:16px; opacity:0; transition:opacity 0.15s; flex-shrink:0;
   }
   .abilityCard.selected .abilityCheck{ opacity:1; }
-  .abilityCard.locked{
-    cursor:default;
-    opacity:0.55;
-    filter:grayscale(0.6);
-  }
-  .abilityCard.locked .abilityName{ color:#8f7a5c; }
   .unlockBanner{
     position:absolute; top:60px; left:50%;
     transform:translateX(-50%) translateY(-14px) scale(0.92);
@@ -424,7 +418,7 @@ JUMPS 0 / MODE FULL</div>
         短く押す：小ジャンプ<br>
         長く押す：大ジャンプ<br>
         空中でもう一度押す：2段ジャンプ<br>
-        滑空の解放後は、落下中の長押しで滑空<br>
+        滑空を選ぶと、落下中の長押しで滑空<br>
         小さな段差は歩いて登れるが、大きな段差はジャンプ必須
       </div>
     </div>
@@ -735,32 +729,18 @@ JUMPS 0 / MODE FULL</div>
   // ---------- abilities(能力選択) ----------
   // v0.2: 修羅モード(1.5倍速)は実質詰みの難易度だったため廃止し「滑空」に差し替え。
   // 十倍界王拳はプレイヤーが選ぶ能力ではなく、20000m到達で誰でも自動発動するステージギミックへ変更。
-  // 保存キーをv2に切り替えることで、旧バージョンのベスト記録・解放状況を自然にリセットしている。
-  const ABILITY_THRESHOLDS = { reincarnate:2500, redbull:5000, glide:10000 };
+  // 保存キーをv2に切り替えることで、旧バージョンのベスト記録を自然にリセットしている。
+  // v0.5: 距離による解放と端末への保存をやめ、最初から3つとも選べるようにした。
+  // 保存データが消えた人だけ能力を失い、ランキングで不利になる状態を無くすため。
   const ABILITY_LABELS = { reincarnate:'転生', redbull:'レッドブル', glide:'滑空' };
   let abilities = { reincarnate:false, redbull:false, glide:false }; // このプレイで選択中の能力
-  let unlocked  = { reincarnate:false, redbull:false, glide:false }; // 解放済みか(永続)
-  try{
-    const savedU = JSON.parse(localStorage.getItem('ruinDashUnlocks_v2') || '{}');
-    unlocked.reincarnate = !!savedU.reincarnate;
-    unlocked.redbull = !!savedU.redbull;
-    unlocked.glide = !!savedU.glide;
-  }catch(e){ /* ignore */ }
-  if(debugEnabled){
-    // 転生などの確認を記録作りから始めず試せるよう、デバッグ中だけメモリ上で全能力を解放する。
-    // persistUnlocks()は呼ばず、通常URLの保存データやランキング条件へ持ち越さない。
-    unlocked = {reincarnate:true,redbull:true,glide:true};
-  }
-  function persistUnlocks(){
-    try{ localStorage.setItem('ruinDashUnlocks_v2', JSON.stringify(unlocked)); }catch(e){}
-  }
   function resetPlayerRecord(){
     try{
       localStorage.removeItem('ruinDashBestScore_v2');
+      // 旧バージョンが保存していた解放状況。もう読まないが、残骸を残さないため一緒に消す。
       localStorage.removeItem('ruinDashUnlocks_v2');
     }catch(e){}
     bestScore = 0;
-    unlocked = { reincarnate:false, redbull:false, glide:false };
     bestEl.textContent = 0;
     renderAbilityScreen();
   }
@@ -768,7 +748,6 @@ JUMPS 0 / MODE FULL</div>
   let reviveTimer = 0; // 転生後の「地面に足をつけて3秒カウントダウン」用
   let pauseTimer = 0; // 停止地点へいきなり戻して事故らないよう、再開前だけ進める
   let maxJumpsThisRun = 2;
-  let milestoneHit = { reincarnate:false, redbull:false, glide:false }; // このプレイで既に通知したか
   let unlockTimer = 0;
   let kaiokenActive = false;   // 20000m到達で自動発動するステージギミック(このプレイ限定)
   let kaiokenAnnounced = false;
@@ -783,31 +762,24 @@ JUMPS 0 / MODE FULL</div>
 
   function renderAbilityScreen(){
     const ICONS = { reincarnate:'🕊️', redbull:'⚡', glide:'🪂' };
+    const DESCS = {
+      reincarnate:'一度だけ、死んでも地上で途中からリスタート',
+      redbull:'3段ジャンプが可能になる',
+      glide:'落下中に長押しで滑空できる'
+    };
+    // 3つとも常に選べる。ロック表示の分岐は無くした（v0.5で距離解放を廃止したため）
     ['reincarnate','redbull','glide'].forEach(key=>{
       const card = document.getElementById('card-'+key);
       if(!card) return;
-      card.classList.toggle('locked', !unlocked[key]);
-      card.classList.toggle('selected', !!abilities[key] && unlocked[key]);
-      const nameEl = card.querySelector('.abilityName');
-      const descEl = card.querySelector('.abilityDesc');
-      const iconEl = card.querySelector('.abilityIcon');
-      if(unlocked[key]){
-        iconEl.textContent = ICONS[key];
-        nameEl.textContent = ABILITY_LABELS[key];
-        if(key==='reincarnate') descEl.textContent = '一度だけ、死んでも地上で途中からリスタート';
-        if(key==='redbull') descEl.textContent = '3段ジャンプが可能になる';
-        if(key==='glide') descEl.textContent = '落下中に長押しで滑空できる';
-      } else {
-        iconEl.textContent = '🔒';
-        nameEl.textContent = '???';
-        descEl.textContent = `距離 ${ABILITY_THRESHOLDS[key]}m 到達で解放`;
-      }
+      card.classList.toggle('selected', !!abilities[key]);
+      card.querySelector('.abilityIcon').textContent = ICONS[key];
+      card.querySelector('.abilityName').textContent = ABILITY_LABELS[key];
+      card.querySelector('.abilityDesc').textContent = DESCS[key];
     });
   }
   document.querySelectorAll('.abilityCard').forEach(card=>{
     card.addEventListener('click', ()=>{
       const key = card.dataset.key;
-      if(!unlocked[key]) return;
       abilities[key] = !abilities[key];
       renderAbilityScreen();
     });
@@ -845,17 +817,8 @@ JUMPS 0 / MODE FULL</div>
     playCoinSound('lucky');
   }
 
+  // v0.5で能力の距離解放を廃止したため、ここに残るのはステージギミックだけになった。
   function checkMilestones(distM){
-    ['reincarnate','redbull','glide'].forEach(key=>{
-      if(!milestoneHit[key] && distM >= ABILITY_THRESHOLDS[key]){
-        milestoneHit[key] = true;
-        if(!unlocked[key]){
-          unlocked[key] = true;
-          persistUnlocks();
-          flashBanner('解放！', ABILITY_LABELS[key]); // 初めて解放した時だけ通知(既に解放済みなら毎回は出さない)
-        }
-      }
-    });
     // デスイーター: 20000m到達で誰でも自動発動するステージギミック(旧・十倍界王拳)
     if(!kaiokenActive && distM >= 20000){
       kaiokenActive = true;
@@ -971,7 +934,6 @@ JUMPS 0 / MODE FULL</div>
     reviveTimer = 0;
     pauseTimer = 0;
     maxJumpsThisRun = abilities.redbull ? 3 : 2;
-    milestoneHit = { reincarnate:false, redbull:false, glide:false };
     kaiokenActive = false;
     kaiokenAnnounced = false;
     kaiokenCompanionX = kaiokenCompanionY = null;
@@ -1565,7 +1527,7 @@ JUMPS 0 / MODE FULL</div>
   }
 
   // URLに ?debug=1 がある時だけ使える。通常プレイではUIも外部APIも作らず、
-  // 誤操作で記録や能力解放を書き換える可能性を残さない。
+  // 誤操作でベスト記録を書き換える可能性を残さない。
   function debugJumpToM(targetM){
     if(!debugEnabled) return;
     const safeM = Math.max(0, Math.min(999999, Math.floor(Number(targetM)||0)));
@@ -1589,8 +1551,7 @@ JUMPS 0 / MODE FULL</div>
     try{ generateTerrain(); }
     finally{ Math.random = originalRandom; }
 
-    // デバッグ移動で解放状況やベスト記録を保存しない。見た目に必要な覚醒段階だけ再現する。
-    milestoneHit = { reincarnate:true, redbull:true, glide:true };
+    // デバッグ移動でベスト記録を保存しない。見た目に必要な覚醒段階だけ再現する。
     kaiokenActive = safeM>=20000;
     kaiokenAnnounced = kaiokenActive;
     kaiokenCompanionX = kaiokenCompanionY = null;
@@ -2080,7 +2041,7 @@ JUMPS 0 / MODE FULL</div>
 
   const resetRecordBtn = document.getElementById('resetRecordBtn');
   resetRecordBtn.addEventListener('click', ()=>{
-    showConfirm('ベスト記録と能力の解放状況をリセットします。よろしいですか？', resetPlayerRecord);
+    showConfirm('ベスト記録をリセットします。よろしいですか？', resetPlayerRecord);
   });
 
   // ---------- input: タップのみ(スワイプ操作は廃止)。大小ジャンプと滑空のため押下元を区別する ----------
