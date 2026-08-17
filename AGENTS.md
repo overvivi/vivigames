@@ -18,6 +18,27 @@ CodexとClaude Codeが並行して作業するため、このファイルを両�
 
 ---
 
+## 最重要: HELL RUNNER(無印)は完成品。触らない
+
+`games/temple-run-clone.html` は **v0.5をもって完成とし、機能凍結した。**
+
+- **ユーザーからの明示的な指示がない限り、一切変更しない**
+- 新機能・見た目の調整・快適化を思いついても入れない
+- 入れてよいのは「遊べなくなるレベルの致命的なバグ修正」だけ
+- 良かれと思って討伐2048やHELL RUNNER 2の修正を横展開しない
+
+**新しい開発はすべて HELL RUNNER 2 で行う。** ローグライト化(経験値・レベルアップ3択)は
+2の側の機能であり、無印へ持ち込まない。
+
+無印を凍結したのは、**シンプルにスコアを狙う今のゲーム性をそのまま残したい**という
+ユーザーの判断による。2は同じ土台から派生した別ゲームとして扱い、
+ランキングも別テーブルで分ける。
+
+この2本はコードの大半が同じため、**片方だけ直すと必ず食い違っていく。**
+だからこそ「無印は触らない」を機械的に守ること。迷ったらユーザーに確認する。
+
+---
+
 ## 最重要: ファイルを丸ごと読んではいけない
 
 `games/temple-run-clone.html` は **6.5MB**、`games/boss-battle-demo.html` は **7.3MB** ある。
@@ -48,7 +69,7 @@ sed -n '1740,1810p' games/temple-run-clone.html
 ## Node.jsとPlaywrightで検証できる
 
 - Node.js 24 LTSとPlaywrightを導入済み。ビルド工程はなく、HTMLをブラウザで開けば動く構成は維持する
-- `npm test` でPlaywrightテスト、`npm run test:syntax` でHTML内JavaScriptの構文検査を実行できる
+- `npm test` でPlaywrightテスト、`npm run verify` で構文・構造・素材参照をまとめて検査できる
 - Node.jsを導入した直後のCodexではPATHが古い場合がある。その時はCodexを再起動するか、
   `C:\Program Files\nodejs\npm.cmd` をフルパスで使う
 - 背景の基準画像を意図的に変更した時だけ `npm run test:update-backgrounds` で更新する。
@@ -58,29 +79,25 @@ sed -n '1740,1810p' games/temple-run-clone.html
 繰り返すたびに、背景比較や別ゲームなど無関係なテストまで毎回実行しない。
 
 ```bash
-# HELL RUNNERのUI・音・ゲーム処理
-npx playwright test tests/debug-mode.spec.js
-
-# HELL RUNNERの背景描画を変更した場合
-npm run test:backgrounds
-
-# 討伐2048を変更した場合
-npx playwright test tests/boss-battle.spec.js
-
-# 複数ゲームにまたがる変更・テスト設定変更・大きな公開前確認だけ全件実行
-npm test
+npm run test:runner   # HELL RUNNER(debug-mode + 背景比較)
+npm run test:boss     # 討伐2048
+npm run test:portal   # ポータル
+npm test              # 複数ゲームにまたがる変更・テスト設定変更・公開前確認だけ
 ```
 
-構文検査は変更した巨大HTMLを含むため基本的に実行し、最低限の構造確認も行う:
+**巨大HTMLを変更したら、必ず最後にこれを実行する。**
 
 ```bash
-npm run test:syntax
-
-# 構造が壊れていないか
-tail -c 40 games/temple-run-clone.html          # </html> で終わること
-grep -c '<script' games/temple-run-clone.html   # 開きタグと閉じタグの数が一致すること
-grep -c '</script>' games/temple-run-clone.html
+npm run verify
 ```
+
+以前は `tail -c 40` や `grep -c '<script'` を毎回手で叩いていたが、手順が長いと省略されるうえ、
+**素材の欠落だけは目視でしか気づけなかった**（実際にポータルで参照切れを4件見落としていた）。
+`npm run verify` は次を1コマンドで検査する。手作業の構造確認はもう不要。
+
+1. インラインスクリプトの構文
+2. `<script>` の開閉数と `</html>` での終端（base64行を壊す編集の検出）
+3. 参照している素材が実在するか
 
 テスト選択の目安:
 

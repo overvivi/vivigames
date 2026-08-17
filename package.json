@@ -2,8 +2,12 @@
   "name": "vivigames-local-tests",
   "private": true,
   "scripts": {
+    "verify": "node tests/verify.cjs",
     "test": "playwright test",
-    "test:syntax": "node tests/syntax-check.cjs",
+    "test:runner": "playwright test tests/debug-mode.spec.js tests/backgrounds.spec.js",
+    "test:boss": "playwright test tests/boss-battle.spec.js",
+    "test:portal": "playwright test tests/portal.spec.js",
+    "test:syntax": "node tests/verify.cjs",
     "test:backgrounds": "playwright test tests/backgrounds.spec.js",
     "test:update-backgrounds": "playwright test tests/backgrounds.spec.js --update-snapshots",
     "test:ui": "playwright test --ui"
