@@ -776,7 +776,7 @@ if(typeof importScripts === 'function'){
     }
     const spanX = (maxX-minX)/10 + SQRT3, spanY = (maxY-minY)/10 + 2;
     // 小さい盤面で1マスが巨大になりすぎないよう上限を設ける
-    const size = Math.min(Math.min(W/(spanX+2.2), H/(spanY+2.2)) * 0.94, 46);
+    const size = Math.min(Math.min(W/(spanX+3.4), H/(spanY+3.4)) * 0.96, 46);
     const ox = W/2 - (minX+maxX)/20*size, oy = H/2 - (minY+maxY)/20*size;
     const pos = i => {
       const p = axialToPixel(board.cells[i][0], board.cells[i][1], size);
@@ -797,24 +797,36 @@ if(typeof importScripts === 'function'){
     viewGroup.appendChild(bonds);
 
     // 直線ヒント(盤面の外側へ置く)
-    // 数字を軸の向きへ回転させる。六角格子は3軸あるので、回転が無いと
+    // 数字は軸の向きへ回転させる。六角格子は3軸あるので、回転が無いと
     // その数字がどの列のものか判別できない(本家も同じ理由で回転させている)。
+    //
+    // 置く位置は「その列の延長線上」に限る。ずらす時も列に沿って外へ押し出すので、
+    // どの列のヒントかが崩れない。穴のある盤面では別の軸の位置とぶつかりやすく、
+    // 重なると読めなくなるため、既に置いた位置と近い場合は1マスずつ外へ逃がす。
     const lineHints = puzzle.hints.filter(h => h.kind === 'line');
     const stepBack = { q:[0,1], r:[1,0], s:[1,-1] };
     const axisAngle = { q:0, r:30, s:-30 };
+    const placedLabels = [];
     for(const line of board.lines){
       const h = lineHints.find(x => x.cells.length === line.cells.length &&
                                     x.cells.every((v,k)=> v === line.cells[k]));
       if(!h) continue;
       const first = board.cells[line.cells[0]];
       const back = stepBack[line.axis];
-      const p = axialToPixel(first[0]-back[0], first[1]-back[1], size);
-      const lx = p.x+ox, ly = p.y+oy, ang = axisAngle[line.axis];
-      const t = el('text', { x:lx, y:ly, class:'label',
+      let lx = 0, ly = 0;
+      for(let step=1; step<=4; step++){
+        const p = axialToPixel(first[0]-back[0]*step, first[1]-back[1]*step, size);
+        lx = p.x+ox; ly = p.y+oy;
+        const clash = placedLabels.some(q => Math.hypot(q.x-lx, q.y-ly) < size*1.15);
+        if(!clash) break;
+      }
+      placedLabels.push({ x:lx, y:ly });
+
+      const ang = axisAngle[line.axis];
+      const t = el('text', { x:lx, y:ly, class:'label lineHint',
         fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1),
         transform:'rotate(' + ang + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
-      t.setAttribute('class', 'label lineHint');
       const scope = line.cells.slice();
       t.addEventListener('mouseenter', ()=> showScope(scope, null));
       t.addEventListener('mouseleave', clearScope);
