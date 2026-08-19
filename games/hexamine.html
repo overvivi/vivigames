@@ -38,6 +38,13 @@
   .bond{stroke:rgba(32,230,255,.10); stroke-width:2; pointer-events:none;}
   /* ヒントの対象範囲。どのマスを数えているのかが分からないと推理できないため、
      本家と同じく触れている間だけ範囲を光らせる。 */
+  /* 誘導用のハイライト。hl はホバーで消されるので、別の層に分けて残す */
+  #guideHl{pointer-events:none;}
+  #guideHl .gt{fill:rgba(255,43,166,.18); stroke:var(--magenta); stroke-width:3.2;
+    animation:gpulse 1.1s ease-in-out infinite;}
+  #guideHl .gs{fill:none; stroke:var(--magenta); stroke-width:2.2; stroke-dasharray:5 4;}
+  @keyframes gpulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
   #hl{pointer-events:none;}
   #hl polygon{fill:rgba(255,43,166,.13); stroke:var(--magenta); stroke-width:2.4;}
   #hl .src{fill:rgba(255,43,166,.30);}
@@ -113,6 +120,10 @@
     box-shadow:0 6px 24px rgba(0,0,0,.5);}
   #lesson.hidden{display:none;}
   #lesson b{color:var(--cyan); font-weight:700;}
+  #lesson .guide{display:block; margin-top:7px; padding-top:7px;
+    border-top:1px solid rgba(32,230,255,.18); color:#ffd9ec;}
+  #lesson .guide.hidden{display:none;}
+  #lesson .guide em{color:var(--magenta); font-style:normal; font-weight:700;}
   #lesson .step{display:block; margin-bottom:4px; font-size:9.5px; letter-spacing:.18em; color:var(--muted);}
   #lessonClose{position:absolute; top:0; right:0; width:36px; height:100%;
     background:transparent; border:0; color:var(--muted); font-size:15px; cursor:pointer;}
@@ -139,7 +150,7 @@
   <div id="boardWrap">
     <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
 
-    <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><button id="lessonClose">×</button></div>
+    <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><span class="guide hidden"></span><button id="lessonClose">×</button></div>
 
     <div id="title" class="screen">
       <div class="logo">HEXAMINE</div>
@@ -757,17 +768,17 @@ if(typeof importScripts === 'function'){
   };
 
   const STAGES = [
-    { key:'benzene',    name:'ベンゼン',     formula:'C6H6',      seed:1011, notation:'plain',  omitBlue:true, silentRatio:0, keepRatio:0.55, density:0.42,
+    { key:'benzene',    name:'ベンゼン',     formula:'C6H6',      seed:1011, guide:true, notation:'plain',  omitBlue:true, silentRatio:0, keepRatio:0.55, density:0.42,
       trivia:'6つの炭素が正六角形に並ぶ。この形がこのゲームの盤面そのもの。' },
-    { key:'glucose',    name:'グルコース',   formula:'C6H12O6',   seed:2022, notation:'plain',  silentRatio:0, keepRatio:0.50, density:0.42,
+    { key:'glucose',    name:'グルコース',   formula:'C6H12O6',   seed:2022, guide:true, notation:'plain',  silentRatio:0, keepRatio:0.50, density:0.42,
       trivia:'血糖のブドウ糖。六角形の環をつくって水に溶ける。' },
-    { key:'caffeine',   name:'カフェイン',   formula:'C8H10N4O2', seed:3033, notation:'consec', silentRatio:0, keepRatio:0.35, density:0.44,
+    { key:'caffeine',   name:'カフェイン',   formula:'C8H10N4O2', seed:3033, guide:3, notation:'consec', silentRatio:0, keepRatio:0.35, density:0.44,
       trivia:'コーヒー1杯におよそ90mg。眠気の信号を横取りして遮る。' },
-    { key:'adrenaline', name:'アドレナリン', formula:'C9H13NO3',  seed:4044, silentRatio:0, keepRatio:0.30, density:0.44,
+    { key:'adrenaline', name:'アドレナリン', formula:'C9H13NO3',  seed:4044, guide:3, silentRatio:0, keepRatio:0.30, density:0.44,
       trivia:'分泌されると心拍が上がり、痛みを感じにくくなる。' },
-    { key:'hexamine',   name:'ヘキサミン',   formula:'(CH2)6N4',  seed:5055, keepRatio:0.10, density:0.44,
+    { key:'hexamine',   name:'ヘキサミン',   formula:'(CH2)6N4',  seed:5055, guide:2, keepRatio:0.10, density:0.44,
       trivia:'このゲームの名前。固形燃料にも、爆薬の原料にもなる。' },
-    { key:'graphene',   name:'グラフェン',   formula:'C',         seed:6066, keepRatio:0.00, density:0.44,
+    { key:'graphene',   name:'グラフェン',   formula:'C',         seed:6066, guide:2, keepRatio:0.00, density:0.44,
       trivia:'炭素が六角格子に並んだ厚さ原子1個のシート。鋼鉄の200倍強い。' }
   ];
 
@@ -855,7 +866,7 @@ if(typeof importScripts === 'function'){
 
   let worker = null, puzzle = null, board = null, state = null;
   let cellNodes = [], mistakes = 0, cellHint = [], busy = false;
-  let layout = null, hlLayer = null;   // ハイライト描画に位置情報が要る
+  let layout = null, hlLayer = null, guideLayer = null;   // ハイライト描画に位置情報が要る
   // 盤面が画面に収まらない大きさになるため、拡大縮小と移動を持つ。
   // 端末で盤面を小さくするとデイリーランキングの公平性が崩れるので、
   // 盤面はそのままにして見る側を動かす。
@@ -1087,6 +1098,8 @@ if(typeof importScripts === 'function'){
     });
 
     // 最前面へ。pointer-events:none なので下のセルの操作を妨げない
+    guideLayer = el('g', { id:'guideHl' });
+    viewGroup.appendChild(guideLayer);
     hlLayer = el('g', { id:'hl' });
     viewGroup.appendChild(hlLayer);
     view = { x:0, y:0, k:1 };
@@ -1205,6 +1218,7 @@ if(typeof importScripts === 'function'){
     paintCell(i);
     solvedCount++;
     advanceLesson();
+    refreshGuide();
     updateStats();
   }
 
@@ -1220,9 +1234,19 @@ if(typeof importScripts === 'function'){
 
   function initLessons(){
     lessons = (current.type === 'tutorial' && LESSONS[current.stage.key]) || [];
+    guideOn = !!(current.type === 'tutorial' && current.stage.guide);
     lessonIdx = -1; solvedCount = 0;
+    guideEl.classList.add('hidden');
+    guideClear();
     lessonBox.classList.add('hidden');
     advanceLesson();
+    refreshGuide();
+    // 解説パネルは盤面へ重なるので、その高さのぶん盤面を下げる。
+    // 一番上の列ヒントがパネルの裏に入ると読めなくなるため。
+    if(!lessonBox.classList.contains('hidden')){
+      view.y += Math.min(lessonBox.offsetHeight * 0.62, 110);
+      applyView();
+    }
   }
   function advanceLesson(){
     // 条件を満たしたものの中で最後を出す。まとめて進んだ時に説明を飛ばさないため。
@@ -1235,6 +1259,124 @@ if(typeof importScripts === 'function'){
     lessonBox.classList.remove('hidden');   // 閉じていても新しい説明は出し直す
   }
   $('lessonClose').addEventListener('click', ()=> lessonBox.classList.add('hidden'));
+
+  // ---------- 手順つきの誘導 ----------
+  // 「開いた瞬間、最初にどこを押せばいいのか分からない」のが一番の壁なので、
+  // ソルバーが実際に辿る手順をそのまま台本にして、
+  //   根拠(どの数字を見るか) → 理由(なぜそう言えるか) → 操作(タップか長押しか)
+  // の順に1手ずつ示し、押すマスを盤面上で光らせる。
+  // 台本は毎回いまの盤面から作り直す。台本と違う順で開けても破綻しないため。
+  const guideEl = lessonBox.querySelector('.guide');
+  let guideOn = false, guideRestore = null;
+
+  function guideStep(){
+    const api = ensureLocalApi();
+    const b = api.makeBoard(current.shape);
+    const sim = state.slice();
+    const first = api.nextStep(b, puzzle.hints, sim);
+    if(!first) return null;
+    const key = first.hints.slice().sort().join(',');
+    const cells = [first.cell], values = [first.value];
+    sim[first.cell] = first.value;
+    // 同じ根拠でまとめて決まるマスは1手にまとめる。
+    // 「ここの2か所を空孔に」と言えたほうが手順として自然なため。
+    for(let k=0; k<10; k++){
+      const r = api.nextStep(b, puzzle.hints, sim);
+      if(!r || r.hints.slice().sort().join(',') !== key) break;
+      cells.push(r.cell); values.push(r.value); sim[r.cell] = r.value;
+    }
+    return { hints:first.hints, cells:cells, values:values };
+  }
+
+  function guideText(step){
+    const h = puzzle.hints[step.hints[0]];
+    const same = step.values.every(v => v === step.values[0]);
+    const toBlue = step.values[0] === BLUE;
+    const many = step.cells.length > 1;
+    const act = toBlue
+      ? '光っている' + (many ? step.cells.length + 'マスを' : 'マスを') + '<em>タップ</em>して原子にしましょう。'
+      : '光っている' + (many ? step.cells.length + 'マスを' : 'マスを') + '<em>長押し</em>して空孔にしましょう。';
+    if(step.hints.length > 1 || !same){
+      return '光っている数字を<em>2つとも</em>見比べてください。両方を満たす置き方はひとつしかありません。' + act;
+    }
+    const scope = h.cells || [];
+    let found = 0, unknown = 0;
+    for(const i of scope){ if(state[i] === BLUE) found++; else if(state[i] === UNKNOWN) unknown++; }
+    const need = h.count - found;
+    let where, why = '';
+    if(h.kind === 'line'){
+      where = h.count === 0
+        ? '盤面の外の光った <em>0</em> は「この列に原子はひとつも無い」という意味です。'
+        : '盤面の外の光った <em>' + h.count + '</em> は、その列にある原子の数です。';
+    } else if(h.kind === 'blue'){
+      where = '光っている <em>' + h.count + '</em> は、そのマスから<em>2マス以内</em>にある原子の数です。';
+    } else if(h.kind === 'total'){
+      where = '右上の REMAINING は、盤面に残っている原子の数です。';
+    } else {
+      where = '光っている <em>' + h.count + '</em> は、そのマスが<em>触れている6マス</em>にある原子の数です。';
+    }
+    if(toBlue){
+      why = found > 0
+        ? 'あと ' + need + ' 個必要で、空いているマスもちょうど ' + need + ' か所。だから全部が原子です。'
+        : '空いているマスがちょうど ' + unknown + ' か所。だから全部が原子です。';
+    } else if(h.count === 0){
+      // 直線ヒントは where 側で言い切っているので繰り返さない
+      why = (h.kind === 'line') ? '' : 'この範囲に原子はひとつもありません。';
+    } else {
+      why = found + ' 個ぶんはもう見つかっているので、残りはすべて空孔です。';
+    }
+    return where + why + act;
+  }
+
+  function guideHighlight(step){
+    guideClear();
+    if(!guideLayer || !layout) return;
+    for(const i of step.cells){
+      const p = layout.at(i);
+      guideLayer.appendChild(el('polygon', { class:'gt', points:hexPoints(p.x, p.y, layout.size*0.92) }));
+    }
+    // 根拠のほうも示す。押す場所だけ光っても「なぜ」が伝わらないため。
+    const restores = [];
+    for(const hi of step.hints){
+      const h = puzzle.hints[hi];
+      if(!h) continue;
+      if(h.owner !== null && h.owner !== undefined){
+        const p = layout.at(h.owner);
+        guideLayer.appendChild(el('polygon', { class:'gs', points:hexPoints(p.x, p.y, layout.size*1.04) }));
+      } else if(hintNodes.lines.get(h)){
+        const t = hintNodes.lines.get(h);
+        restores.push([t, t.getAttribute('fill'), t.getAttribute('font-weight')]);
+        t.setAttribute('fill', 'var(--magenta)');
+        t.setAttribute('font-weight', '900');
+      }
+      if(h.cells) for(const i of h.cells){
+        const p = layout.at(i);
+        guideLayer.appendChild(el('polygon', { class:'gs', points:hexPoints(p.x, p.y, layout.size*0.92) }));
+      }
+    }
+    guideRestore = ()=>{
+      for(const r of restores){ r[0].setAttribute('fill', r[1]); r[0].setAttribute('font-weight', r[2]); }
+    };
+  }
+  function guideClear(){
+    if(guideRestore){ guideRestore(); guideRestore = null; }
+    if(guideLayer) guideLayer.innerHTML = '';
+  }
+
+  function refreshGuide(){
+    // guide が数値の面は、その手数だけ誘導して手を離す。
+    // 「開いた瞬間どこを押せばいいか分からない」のはどの面でも同じなため。
+    const limit = (current.stage && typeof current.stage.guide === 'number')
+      ? current.stage.guide : Infinity;
+    if(!guideOn || solvedCount >= limit || busy || !puzzle){ guideEl.classList.add('hidden'); guideClear(); return; }
+    const step = guideStep();
+    if(!step){ guideEl.classList.add('hidden'); guideClear(); return; }
+    guideEl.innerHTML = 'つぎの一手 ── ' + guideText(step);
+    guideEl.classList.remove('hidden');
+    guideHighlight(step);
+    // ここでパネルを開き直さないのは、閉じた人の意思を尊重するため。
+    // 盤面のハイライトは残るので、閉じても次に押す場所は分かる。
+  }
 
   let hintNodes = { cells:[], lines:[] };   // 描画時に作った参照
   let hintBusy = false;
@@ -1456,7 +1598,7 @@ if(typeof importScripts === 'function'){
     });
   });
   document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
-  $('toTitle').addEventListener('click', ()=>{ stopTimer(); lessonBox.classList.add('hidden'); showScreen('title'); });
+  $('toTitle').addEventListener('click', ()=>{ stopTimer(); guideOn = false; guideClear(); lessonBox.classList.add('hidden'); showScreen('title'); });
   $('hintBtn').addEventListener('click', ()=> requestHint());
   $('dailyBtn').addEventListener('click', ()=> startMode({
     type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
@@ -1517,6 +1659,9 @@ if(typeof importScripts === 'function'){
     if(busy) return;
     busy = true;
     stopTimer();
+    // 誘導の光は結果画面の裏に残るので、ここで消す
+    guideOn = false; guideClear();
+    lessonBox.classList.add('hidden');
     const elapsed = Date.now() - startedAt;
     const isBest = saveRecord(current.id, elapsed, mistakes);
 

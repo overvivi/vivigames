@@ -212,6 +212,23 @@ ok(isConsecutive([0,1,2], new Set([1]), true) === true, '1個以下は常に連�
   });
   // 教えたものが一度も出ないのも困る(説明だけあって現物が無い状態)
   for(const k of Object.keys(allowFrom)) ok(seen[k] > 0, `${k} を実際に出す面がある`);
+
+  // 出だしで詰まらせないため、どの面も「最初の一手」を示せる必要がある。
+  // 誘導は nextStep をそのまま台本にしているので、初期状態で手が出るかを見る。
+  STAGES.forEach((st, idx)=>{
+    ok(st.guide !== undefined, `${idx+1}. ${st.key}: 誘導の設定がある`);
+    let p = null, seed = st.seed;
+    for(let a=0; a<40 && !p; a++, seed++){
+      p = generate(makeBoard(SHAPES[st.key]), { seed, density:st.density,
+            keepRatio:st.keepRatio, notation:st.notation,
+            omitBlue:st.omitBlue, silentRatio:st.silentRatio });
+    }
+    if(!p) return;
+    const b = makeBoard(SHAPES[st.key]);
+    const init = new Array(b.size).fill(0);
+    for(const rv of revealedFrom(p.hints)) init[rv[0]] = rv[1];
+    ok(!!nextStep(b, p.hints, init), `${idx+1}. ${st.key}: 開いた直後に示せる一手がある`);
+  });
 }
 
 console.log(`\n${pass} 件成功 / ${fail} 件失敗`);
