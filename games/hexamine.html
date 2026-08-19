@@ -110,7 +110,10 @@
 <body>
 <div id="app">
   <div id="hud">
-    <button class="backBtn" id="toTitle" style="visibility:hidden">← MENU</button>
+    <div style="display:flex; gap:8px">
+      <button class="backBtn" id="toTitle" style="visibility:hidden">← MENU</button>
+      <button class="backBtn" id="hintBtn" style="visibility:hidden">HINT</button>
+    </div>
     <div class="stats">
       <div class="stat"><span>TIME</span><b id="statTime">0:00</b></div>
       <div class="stat"><span>REMAINING</span><b id="statRemain">-</b></div>
@@ -453,6 +456,82 @@ function solve(board, hints, revealed, opts){
   return { ok:true, solved: state.every(v => v !== UNKNOWN), state:state, depth:usedDepth, steps:steps };
 }
 
+// ---------- 次の一手 ----------
+// 今の盤面から、次に確定できるマスとその根拠を探す。
+// 推測なしで解けることが保証されているので、詰まった時は必ず見落としがある。
+// 答えのマスではなく「どのヒントを見ればよいか」を返すのが目的。
+function nextStep(board, hints, state){
+  // まず単独のヒントで決まるものを探す
+  for(let hi=0; hi<hints.length; hi++){
+    const res = enumerateHint(hints[hi], state);
+    if(res.contradiction || res.skip) continue;
+    if(res.forced !== undefined && res.unknown.length){
+      return { hints:[hi], cell:res.unknown[0], value:res.forced, depth:1 };
+    }
+    if(res.valid){
+      for(const i of res.unknown){
+        if(res.valid.every(v => v.indexOf(i) >= 0)) return { hints:[hi], cell:i, value:BLUE, depth:1 };
+        if(res.valid.every(v => v.indexOf(i) < 0))  return { hints:[hi], cell:i, value:BLACK, depth:1 };
+      }
+    }
+  }
+
+  // 単独で決まらない場合は、重なる2つを見比べる必要がある
+  const byCell = new Array(board.size);
+  for(let i=0;i<board.size;i++) byCell[i] = [];
+  hints.forEach((h,hi)=>{ for(const c of h.cells) byCell[c].push(hi); });
+  const seen = new Set();
+  for(let c=0;c<board.size;c++){
+    if(state[c] !== UNKNOWN) continue;
+    const list = byCell[c];
+    for(let a=0;a<list.length;a++) for(let b=a+1;b<list.length;b++){
+      const key = list[a]*hints.length + list[b];
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const A = hints[list[a]], B = hints[list[b]];
+      const union = [...new Set(A.cells.concat(B.cells))];
+      const unknown = union.filter(i => state[i] === UNKNOWN);
+      if(!unknown.length || unknown.length > 14) continue;
+      const slot = new Map();
+      for(let k=0;k<unknown.length;k++) slot.set(unknown[k], k);
+      const prep = h =>{
+        let m = 0, known = 0;
+        for(const i of h.cells){
+          if(state[i] === BLUE) known++;
+          else if(slot.has(i)) m |= (1 << slot.get(i));
+        }
+        return { m:m, need:h.count - known, h:h };
+      };
+      const pa = prep(A), pb = prep(B);
+      if(pa.need < 0 || pb.need < 0) continue;
+      const ok = [];
+      for(let mask=0; mask < (1<<unknown.length); mask++){
+        let ca=0, cb=0;
+        for(let k=0;k<unknown.length;k++) if(mask>>k & 1){ if(pa.m>>k & 1) ca++; if(pb.m>>k & 1) cb++; }
+        if(ca !== pa.need || cb !== pb.need) continue;
+        let fits = true;
+        for(const p of [pa, pb]){
+          if(p.h.mode === 'plain') continue;
+          const blues = new Set();
+          for(const i of p.h.cells){
+            if(state[i] === BLUE) blues.add(i);
+            else if(slot.has(i) && (mask >> slot.get(i) & 1)) blues.add(i);
+          }
+          const consec = isConsecutive(p.h.order, blues, p.h.ring);
+          if(p.h.mode === 'consec' ? !consec : consec){ fits = false; break; }
+        }
+        if(fits) ok.push(mask);
+      }
+      if(!ok.length) continue;
+      for(let k=0;k<unknown.length;k++){
+        if(ok.every(m => (m>>k & 1)))  return { hints:[list[a],list[b]], cell:unknown[k], value:BLUE,  depth:2 };
+        if(ok.every(m => !(m>>k & 1))) return { hints:[list[a],list[b]], cell:unknown[k], value:BLACK, depth:2 };
+      }
+    }
+  }
+  return null;
+}
+
 const revealedFrom = hints => hints.filter(h => h.reveal).map(h => h.reveal);
 
 // ---------- 生成 ----------
@@ -534,6 +613,10 @@ if(typeof importScripts === 'function'){
   self.onmessage = function(e){
     const req = e.data;
     const board = makeBoard(req.shape);
+    if(req.type === 'next'){
+      postMessage({ type:'next', result: nextStep(board, req.hints, req.state) });
+      return;
+    }
     let puzzle = null, seed = req.seed;
     // 生成に失敗する種(青が偏りすぎ等)は隣の種へずらして再挑戦する
     for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
@@ -630,6 +713,7 @@ if(typeof importScripts === 'function'){
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
   const LONG_MS = 340; // 長押しで空孔。実機で詰める値
+  const HINT_TEXT = 'タップ＝原子あり　／　長押し＝空孔　／　ドラッグで移動・ピンチで拡大（PCは左右クリックとホイール、0キーで表示リセット）';
 
   const $ = id => document.getElementById(id);
   const svg = $('board'), loading = $('loading'), loadBar = $('loadBar'), loadNote = $('loadNote');
@@ -688,7 +772,7 @@ if(typeof importScripts === 'function'){
   function ensureLocalApi(){
     if(localApi) return localApi;
     const src = document.getElementById('solverSource').textContent;
-    localApi = new Function(src + ';return { makeBoard, generate };')();
+    localApi = new Function(src + ';return { makeBoard, generate, nextStep };')();
     return localApi;
   }
   function generateLocally(req, onDone){
@@ -812,6 +896,7 @@ if(typeof importScripts === 'function'){
     // 以前入れていた「重なったら外へ押し出す」処理は、面ではなく1マス外へ
     // 置いていたことによる自作の問題だったので廃止した。
     const lineHints = puzzle.hints.filter(h => h.kind === 'line');
+    const lineNodeMap = new Map();
     const FACE = {
       q: { end:'first', nx:0,                ny:-1,   angle:0   }, // 上面
       r: { end:'first', nx:-Math.sqrt(3)/2,  ny:-0.5, angle:-60 }, // 左上面
@@ -848,8 +933,11 @@ if(typeof importScripts === 'function'){
       t.addEventListener('pointerdown', e=>{ e.preventDefault(); on(); });
       t.addEventListener('pointerup', off);
       t.addEventListener('pointercancel', off);
+      lineNodeMap.set(h, t);
       viewGroup.appendChild(t);
     }
+
+    hintNodes.lines = lineNodeMap;
 
     // セル
     cellNodes = [];
@@ -984,6 +1072,76 @@ if(typeof importScripts === 'function'){
     updateStats();
   }
 
+  // ---------- 次の一手 ----------
+  // 詰まった時に「どのヒントを見ればよいか」だけを示す。
+  // 答えのマスは出さない。推測なしで解ける設計なので、必ず見落としがある。
+  let hintNodes = { cells:[], lines:[] };   // 描画時に作った参照
+  let hintBusy = false;
+  let hintFlash = null;   // 実行中の点滅。重なると前の後始末が新しい表示を消してしまう
+
+  function flashHint(indices){
+    if(hintFlash){ hintFlash(); hintFlash = null; }   // 前の点滅を片付けてから始める
+    // 該当するヒントを一定時間だけ強く光らせる
+    const targets = [];
+    for(const hi of indices){
+      const h = puzzle.hints[hi];
+      if(!h) continue;
+      if(h.reveal){
+        const n = cellNodes[h.reveal[0]];
+        if(n) targets.push({ el:n.hex, attr:'stroke', from:n.hex.getAttribute('stroke') });
+      } else {
+        const t = hintNodes.lines.get(h);
+        if(t) targets.push({ el:t, attr:'fill', from:t.getAttribute('fill') });
+      }
+      if(h.cells && h.cells.length) showScope(h.cells, h.reveal ? h.reveal[0] : null);
+    }
+    // 押した瞬間から光らせる。初回を間隔待ちにすると反応が無いように見える
+    let on = false, count = 0;
+    let timer = null;
+    const tick = ()=>{
+      on = !on; count++;
+      for(const t of targets) t.el.setAttribute(t.attr, on ? 'var(--magenta)' : t.from);
+      if(count >= 8) stop();
+    };
+    const stop = ()=>{
+      if(timer) clearInterval(timer);
+      timer = null;
+      for(const t of targets) t.el.setAttribute(t.attr, t.from);
+      clearScope();
+      hintFlash = null;
+    };
+    hintFlash = stop;
+    tick();
+    timer = setInterval(tick, 300);
+  }
+
+  function requestHint(){
+    if(hintBusy || busy || !puzzle) return;
+    hintBusy = true;
+    const note = msg => { $('hintbar').textContent = msg; hintBusy = false; };
+    const done = res =>{
+      if(!res){ note('確定できるマスが見つかりませんでした'); return; }
+      flashHint(res.hints);
+      note(res.depth === 1
+        ? '光っているヒントだけで1マス確定できます'
+        : '光っている2つのヒントを見比べると1マス確定できます');
+      setTimeout(()=>{ $('hintbar').textContent = HINT_TEXT; }, 6000);
+    };
+    const req = { type:'next', shape:current.shape, hints:puzzle.hints, state:state };
+    const w = ensureWorker();
+    if(w){
+      const prev = w.onmessage;
+      w.onmessage = e =>{
+        if(e.data.type === 'next'){ w.onmessage = prev; done(e.data.result); }
+        else if(prev) prev(e);
+      };
+      w.postMessage(req);
+    } else {
+      const api = ensureLocalApi();
+      done(api.nextStep(api.makeBoard(current.shape), puzzle.hints, state));
+    }
+  }
+
   // ---------- 盤面の移動と拡大縮小 ----------
   // 盤面は端末によらず同じ大きさで作る(デイリーの公平性のため)。
   // 画面に収まらない分は、見る側を動かして対応する。
@@ -1063,6 +1221,8 @@ if(typeof importScripts === 'function'){
     for(const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
     const playing = !id;
     $('toTitle').style.visibility = playing ? 'visible' : 'hidden';
+    $('hintBtn').style.visibility = playing ? 'visible' : 'hidden';
+    if(playing) $('hintbar').textContent = HINT_TEXT;
     $('hintbar').style.visibility = playing ? 'visible' : 'hidden';
     if(!playing){ stopTimer(); result.classList.add('hidden'); loading.classList.add('hidden'); }
   }
@@ -1135,6 +1295,7 @@ if(typeof importScripts === 'function'){
   });
   document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
   $('toTitle').addEventListener('click', ()=>{ stopTimer(); showScreen('title'); });
+  $('hintBtn').addEventListener('click', ()=> requestHint());
   $('dailyBtn').addEventListener('click', ()=> startMode({
     type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
     shape:hexagonShape(DAILY_R), keepRatio:0, density:0.44
