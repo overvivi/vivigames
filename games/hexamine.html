@@ -508,8 +508,10 @@ function solve(board, hints, revealed, opts){
 // 推測なしで解けることが保証されているので、詰まった時は必ず見落としがある。
 // 答えのマスではなく「どのヒントを見ればよいか」を返すのが目的。
 function nextStep(board, hints, state){
-  // まず単独のヒントで決まるものを探す
+  // まず単独のヒントで決まるものを探す。
+  // プレイヤーに読めないヒント(隠れている黒マスの数字)を根拠にしてはいけない。
   for(let hi=0; hi<hints.length; hi++){
+    if(!hintActive(hints[hi], state)) continue;
     const res = enumerateHint(hints[hi], state);
     if(res.contradiction || res.skip) continue;
     if(res.forced !== undefined && res.unknown.length){
@@ -536,6 +538,7 @@ function nextStep(board, hints, state){
       if(seen.has(key)) continue;
       seen.add(key);
       const A = hints[list[a]], B = hints[list[b]];
+      if(!hintActive(A, state) || !hintActive(B, state)) continue;
       const union = [...new Set(A.cells.concat(B.cells))];
       const unknown = union.filter(i => state[i] === UNKNOWN);
       if(!unknown.length || unknown.length > 14) continue;

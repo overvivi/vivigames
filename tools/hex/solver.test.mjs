@@ -15,10 +15,10 @@ if(!m) { console.error(`${HTML} から solverSource を取り出せなかった`
 const context = vm.createContext({ console });
 vm.runInContext(m[1] + `
 ;globalThis.__api = { makeBoard, generate, solve, revealedFrom, buildAllHints,
-                      isConsecutive, hexagon, BLUE, BLACK, UNKNOWN };
+                      isConsecutive, hexagon, nextStep, BLUE, BLACK, UNKNOWN };
 `, context, { filename:'hexamine-solver.js' });
 const { makeBoard, generate, solve, revealedFrom, buildAllHints,
-        isConsecutive, hexagon, BLUE } = context.__api;
+        isConsecutive, hexagon, nextStep, BLUE } = context.__api;
 
 let pass = 0, fail = 0;
 const ok = (cond, name)=>{ if(cond){ pass++; } else { fail++; console.error('  NG: ' + name); } };
@@ -134,6 +134,36 @@ ok(isConsecutive([0,1,2], new Set([1]), true) === true, '1個以下は常に連�
   };
   const easy = count(0.6), hard = count(0);
   ok(easy > hard, `keepRatioでヒント数を制御できる (易 ${easy.toFixed(1)} > 難 ${hard.toFixed(1)})`);
+}
+
+
+// ---- 7. HINTが読めるヒントだけを根拠にするか ----
+// 隠れている黒マスの数字はプレイヤーに見えない。それを根拠に示すと
+// 「押す理由が見当たらない場所」を指すことになる。
+{
+  const board = makeBoard(hexagon(4));
+  let bad = 0, checked = 0, given = 0;
+  for(let seed=1; seed<=10; seed++){
+    const g = generate(board, { seed });
+    if(!g) continue;
+    // 開始直後の盤面を作る
+    const state = new Array(board.size).fill(0);
+    for(const rv of revealedFrom(g.hints)) state[rv[0]] = rv[1];
+    // 解き進めながら、毎回HINTが妥当かを見る
+    for(let step=0; step<40; step++){
+      const res = nextStep(board, g.hints, state);
+      if(!res) break;
+      checked++; given++;
+      for(const hi of res.hints){
+        const h = g.hints[hi];
+        if(h.kind === 'black' && !h.shown && state[h.owner] !== 2) bad++;  // まだ読めない
+        if(h.count === null) bad++;                                        // ? は情報を持たない
+      }
+      state[res.cell] = res.value;
+    }
+  }
+  ok(given > 0, `HINTが手を返している (${given}回)`);
+  ok(bad === 0, `読めないヒントを根拠にしていない (違反 ${bad}件)`);
 }
 
 console.log(`\n${pass} 件成功 / ${fail} 件失敗`);
