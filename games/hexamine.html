@@ -201,20 +201,31 @@ function buildAllHints(board, truth){
 }
 
 // ---------- 列挙 ----------
-const ENUM_LIMIT = 22;
+const ENUM_LIMIT = 16;
 
 function enumerateHint(hint, state){
   const unknown = hint.cells.filter(i => state[i] === UNKNOWN);
   const knownBlue = hint.cells.filter(i => state[i] === BLUE).length;
   const need = hint.count - knownBlue;
   if(need < 0 || need > unknown.length) return { contradiction:true };
-  if(unknown.length === 0 || unknown.length > ENUM_LIMIT) return { skip:true };
+  if(unknown.length === 0) return { skip:true };
 
+  // 素の個数指定から確定できるのは、両端の場合だけ。
+  // 「この範囲に n 個ある」という情報だけでは、n が 0 でも全部でもない限り
+  // どのマスが青かは決まらない。並べても答えが出ないので列挙しない。
+  // 大きい盤面では長い列のヒントがここに来るため、効き幅が非常に大きい。
+  if(hint.mode === 'plain'){
+    if(need === 0) return { unknown:unknown, forced:BLACK };
+    if(need === unknown.length) return { unknown:unknown, forced:BLUE };
+    return { skip:true };
+  }
+
+  // 連続/非連続の指定がある時だけ、並び方を実際に試す必要がある
+  if(unknown.length > ENUM_LIMIT) return { skip:true };
   const fixedBlue = hint.cells.filter(i => state[i] === BLUE);
   const valid = [];
   const combo = [];
   const check = ()=>{
-    if(hint.mode === 'plain') return true;
     const set = new Set(fixedBlue);
     for(const i of combo) set.add(i);
     const consec = isConsecutive(hint.order, set, hint.ring);
@@ -241,69 +252,130 @@ function solve(board, hints, revealed, opts){
   for(const rv of revealed) state[rv[0]] = rv[1];
   let usedDepth = 0, steps = 0;
 
-  const applySingle = ()=>{
-    let progress = false;
-    for(const hint of hints){
-      const res = enumerateHint(hint, state);
-      if(res.contradiction) return 'contradiction';
+  // どのマスがどのヒントに含まれるかを先に引けるようにする。
+  // 1マス確定するたび全ヒントを見直していると、盤面が大きいほど無駄が効いてくる。
+  const byCell = new Array(board.size);
+  for(let i=0;i<board.size;i++) byCell[i] = [];
+  hints.forEach((h,hi)=>{ for(const c of h.cells) byCell[c].push(hi); });
+
+  // 見直すべきヒントだけを順に処理する。確定したマスを含むヒントだけを積み直す。
+  const queued = new Uint8Array(hints.length);
+  let queue = [], qh = 0;
+  const push = hi =>{ if(!queued[hi]){ queued[hi] = 1; queue.push(hi); } };
+  const resolve = (i, v)=>{
+    state[i] = v; steps++;
+    for(const hi of byCell[i]) push(hi);
+  };
+  for(let hi=0; hi<hints.length; hi++) push(hi);
+
+  const runQueue = ()=>{
+    while(qh < queue.length){
+      const hi = queue[qh++];
+      queued[hi] = 0;
+      const res = enumerateHint(hints[hi], state);
+      if(res.contradiction) return false;
       if(res.skip) continue;
+      if(res.forced !== undefined){
+        for(const i of res.unknown) resolve(i, res.forced);
+        usedDepth = Math.max(usedDepth, 1);
+        continue;
+      }
       for(const i of res.unknown){
         const inAll  = res.valid.every(v => v.indexOf(i) >= 0);
         const inNone = res.valid.every(v => v.indexOf(i) < 0);
-        if(inAll){ state[i] = BLUE; progress = true; steps++; }
-        else if(inNone){ state[i] = BLACK; progress = true; steps++; }
+        if(inAll){ resolve(i, BLUE); usedDepth = Math.max(usedDepth, 1); }
+        else if(inNone){ resolve(i, BLACK); usedDepth = Math.max(usedDepth, 1); }
       }
-      if(progress) usedDepth = Math.max(usedDepth, 1);
     }
-    return progress;
+    queue = []; qh = 0;
+    return true;
   };
 
+  // 重なる2ヒントの突き合わせ。
+  // 同じ未確定マスを含むヒント同士だけを候補にする(共有マスが確定済みの組は
+  // 互いに新しい情報を与えないため見なくてよい)。同じ組を二度試さないよう記録する。
+  const popcount = x =>{
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0f0f0f0f;
+    return (x * 0x01010101) >> 24;
+  };
+  const PAIR_LIMIT = 14; // 2^14 まで。ここを上げると解ける範囲は広がるが急激に重くなる
   const applyPair = ()=>{
-    for(let a=0; a<hints.length; a++){
-      const A = hints[a];
-      if(!A.cells.some(i=>state[i]===UNKNOWN)) continue;
-      const setA = new Set(A.cells);
-      for(let b=a+1; b<hints.length; b++){
-        const B = hints[b];
-        if(!B.cells.some(i => setA.has(i) && state[i]===UNKNOWN)) continue;
-        const union = [...new Set(A.cells.concat(B.cells))];
-        const unknown = union.filter(i => state[i] === UNKNOWN);
-        if(!unknown.length || unknown.length > 16) continue;
+    // 1件見つけるたびに戻ると、そのたびに走査が最初からやり直しになる。
+    // 1回の走査で見つかった分をまとめて適用してから戻す。
+    let anyProgress = false;
+    const seen = new Set();
+    for(let c=0;c<board.size;c++){
+      if(state[c] !== UNKNOWN) continue;
+      const list = byCell[c];
+      for(let a=0;a<list.length;a++){
+        for(let b=a+1;b<list.length;b++){
+          const ia = list[a], ib = list[b];
+          const pairKey = ia * hints.length + ib;
+          if(seen.has(pairKey)) continue;
+          seen.add(pairKey);
 
-        const ok = [];
-        for(let mask=0; mask < (1<<unknown.length); mask++){
-          const trial = state.slice();
-          for(let k=0;k<unknown.length;k++) trial[unknown[k]] = (mask>>k & 1) ? BLUE : BLACK;
-          let fits = true;
-          for(const hint of [A,B]){
-            const blues = hint.cells.filter(i => trial[i] === BLUE);
-            if(blues.length !== hint.count){ fits = false; break; }
-            if(hint.mode !== 'plain'){
-              const consec = isConsecutive(hint.order, new Set(blues), hint.ring);
-              if(hint.mode === 'consec' ? !consec : consec){ fits = false; break; }
+          const A = hints[ia], B = hints[ib];
+          const union = [...new Set(A.cells.concat(B.cells))];
+          const unknown = union.filter(i => state[i] === UNKNOWN);
+          const n = unknown.length;
+          if(!n || n > PAIR_LIMIT) continue;
+
+          // 未確定マスをビット位置へ割り当て、配列を作り直さずに数え上げる。
+          // ここで state.slice() を毎回作ると、桁違いに遅くなる。
+          const slot = new Map();
+          for(let k=0;k<n;k++) slot.set(unknown[k], k);
+          const prep = h =>{
+            let m = 0, known = 0;
+            for(const i of h.cells){
+              if(state[i] === BLUE) known++;
+              else if(slot.has(i)) m |= (1 << slot.get(i));
             }
-          }
-          if(fits) ok.push(mask);
-        }
-        if(!ok.length) return 'contradiction';
+            return { m:m, need:h.count - known, h:h };
+          };
+          const pa = prep(A), pb = prep(B);
+          if(pa.need < 0 || pb.need < 0) return 'contradiction';
 
-        let progress = false;
-        for(let k=0;k<unknown.length;k++){
-          const all  = ok.every(m => (m>>k & 1));
-          const none = ok.every(m => !(m>>k & 1));
-          if(all){ state[unknown[k]] = BLUE; progress = true; steps++; }
-          else if(none){ state[unknown[k]] = BLACK; progress = true; steps++; }
+          const ok = [];
+          const total = 1 << n;
+          for(let mask=0; mask<total; mask++){
+            if(popcount(mask & pa.m) !== pa.need) continue;
+            if(popcount(mask & pb.m) !== pb.need) continue;
+            if(A.mode !== 'plain' || B.mode !== 'plain'){
+              let fits = true;
+              for(const p of [pa, pb]){
+                if(p.h.mode === 'plain') continue;
+                const blues = new Set();
+                for(const i of p.h.cells){
+                  if(state[i] === BLUE) blues.add(i);
+                  else if(slot.has(i) && (mask >> slot.get(i) & 1)) blues.add(i);
+                }
+                const consec = isConsecutive(p.h.order, blues, p.h.ring);
+                if(p.h.mode === 'consec' ? !consec : consec){ fits = false; break; }
+              }
+              if(!fits) continue;
+            }
+            ok.push(mask);
+          }
+          if(!ok.length) return 'contradiction';
+
+          let progress = false;
+          for(let k=0;k<n;k++){
+            const all  = ok.every(m => (m >> k & 1));
+            const none = ok.every(m => !(m >> k & 1));
+            if(all){ resolve(unknown[k], BLUE); progress = true; }
+            else if(none){ resolve(unknown[k], BLACK); progress = true; }
+          }
+          if(progress){ usedDepth = 2; anyProgress = true; }
         }
-        if(progress){ usedDepth = Math.max(usedDepth, 2); return true; }
       }
     }
-    return false;
+    return anyProgress;
   };
 
   for(;;){
-    const single = applySingle();
-    if(single === 'contradiction') return { ok:false, solved:false, state:state, depth:usedDepth, steps:steps };
-    if(single) continue;
+    if(!runQueue()) return { ok:false, solved:false, state:state, depth:usedDepth, steps:steps };
     if(maxDepth < 2) break;
     const pair = applyPair();
     if(pair === 'contradiction') return { ok:false, solved:false, state:state, depth:usedDepth, steps:steps };
@@ -331,6 +403,10 @@ function generate(board, opts, onProgress){
   const o = opts || {};
   const seed = o.seed || 1, density = o.density || 0.42;
   const maxDepth = o.maxDepth || 2, keepRatio = o.keepRatio || 0;
+  // 削る試行の上限。盤面が大きいほど試行数が増えて生成時間が伸びるため、
+  // ここで頭打ちにする。上限に当たった場合はヒントが多めに残る＝少し易しくなるだけで、
+  // 「推測なしで解ける」という保証は変わらない。
+  const maxTries = o.maxTries || Infinity;
   const rnd = mulberry32(seed);
   const truth = board.cells.map(()=> rnd() < density ? BLUE : BLACK);
   const blues = truth.filter(v=>v===BLUE).length;
@@ -344,19 +420,24 @@ function generate(board, opts, onProgress){
     const j = Math.floor(rnd()*(i+1));
     const t = order[i]; order[i] = order[j]; order[j] = t;
   }
+  // keepRatio の抽選は先に済ませる。手順を種だけで決まる形にしておく。
+  const skipFlag = order.map(()=> keepRatio > 0 && rnd() < keepRatio);
 
+  // まとめて削る方式も試したが、削れるヒントの割合が低く、
+  // 大半のまとめ削除が失敗して解き直しが増えるため、1つずつのほうが速い。
   let kept = all.slice();
-  let done = 0;
-  for(const i of order){
-    done++;
-    if(onProgress && done % 4 === 0) onProgress(done, order.length);
-    const target = all[i];
-    if(kept.indexOf(target) < 0) continue;
-    // keepRatio が高いほどヒントが残り、易しくなる
-    if(keepRatio > 0 && rnd() < keepRatio) continue;
+  let tries = 0;
+  for(let n=0; n<order.length; n++){
+    if(tries >= maxTries) break;
+    if(skipFlag[n]) continue;
+    const target = all[order[n]];
     const trial = kept.filter(h => h !== target);
+    if(!trial.length) continue;
+    tries++;
     if(solve(board, trial, revealedFrom(trial), {maxDepth:maxDepth}).solved) kept = trial;
+    if(onProgress && (n & 3) === 0) onProgress(n, order.length);
   }
+
   const final = solve(board, kept, revealedFrom(kept), {maxDepth:maxDepth});
   return { truth:truth, hints:kept, totalHints:all.length, blues:blues,
            depth:final.depth, steps:final.steps, solved:final.solved };
