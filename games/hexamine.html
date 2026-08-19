@@ -434,7 +434,17 @@ function generate(board, opts, onProgress){
     const trial = kept.filter(h => h !== target);
     if(!trial.length) continue;
     tries++;
-    if(solve(board, trial, revealedFrom(trial), {maxDepth:maxDepth}).solved) kept = trial;
+    if(solve(board, trial, revealedFrom(trial), {maxDepth:maxDepth}).solved){
+      kept = trial;
+    } else if(target.kind === 'black' && target.count !== null && target.cells.length){
+      // 丸ごと消せないなら「?」へ落とす。マスは黒だと見せるが、数字は伏せる。
+      // 「消す」と「残す」の間に一段挟むことで、難易度の刻みが細かくなる。
+      // cells を空にしてあるので制約としては何も課さず、開示だけが残る。
+      const q = { kind:'black', cells:[], order:[], ring:false,
+                  count:null, mode:'plain', reveal:target.reveal };
+      const trial2 = kept.map(h => h === target ? q : h);
+      if(solve(board, trial2, revealedFrom(trial2), {maxDepth:maxDepth}).solved) kept = trial2;
+    }
     if(onProgress && (n & 3) === 0) onProgress(n, order.length);
   }
 
@@ -586,6 +596,7 @@ if(typeof importScripts === 'function'){
     return pts.join(' ');
   }
   function decorate(count, mode){
+    if(count === null || count === undefined) return '?'; // 数字を持たない黒マス
     if(mode === 'consec') return '{' + count + '}';
     if(mode === 'split')  return '-' + count + '-';
     return String(count);
@@ -736,7 +747,7 @@ if(typeof importScripts === 'function'){
     const startPress = ()=>{
       // 数字を持つ確定済みのマスは、押している間だけ対象範囲を見せる
       if(state[i] !== UNKNOWN){
-        if(cellHint[i]) showScope(cellHint[i].cells, i);
+        if(cellHint[i] && cellHint[i].cells.length) showScope(cellHint[i].cells, i);
         return;
       }
       if(busy) return;
@@ -756,7 +767,7 @@ if(typeof importScripts === 'function'){
       if(!longFired) paintCell(i);
     };
     // PCはホバーだけで範囲が見えたほうが速い
-    node.addEventListener('mouseenter', ()=>{ if(state[i] !== UNKNOWN && cellHint[i]) showScope(cellHint[i].cells, i); });
+    node.addEventListener('mouseenter', ()=>{ if(state[i] !== UNKNOWN && cellHint[i] && cellHint[i].cells.length) showScope(cellHint[i].cells, i); });
     node.addEventListener('mouseleave', clearScope);
 
     node.addEventListener('pointerdown', e=>{
