@@ -397,11 +397,11 @@ if(typeof importScripts === 'function'){
   // ---------- 難易度 ----------
   // keepRatio が高いほどヒントが残り、易しくなる。削り切ると必ず難問になる。
   const LEVELS = [
-    { name:'EASY',   R:2, density:0.42, keepRatio:0.55 },
-    { name:'NORMAL', R:3, density:0.44, keepRatio:0.30 },
-    { name:'HARD',   R:3, density:0.44, keepRatio:0.00 }
+    { name:'EASY',     R:3, density:0.42, keepRatio:0.55 },
+    { name:'NORMAL',   R:4, density:0.44, keepRatio:0.25 },
+    { name:'INFINITE', R:5, density:0.44, keepRatio:0.00 }  // 91セル。本家の1面に近い規模
   ];
-  let levelIndex = 1;
+  let levelIndex = 2;
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
   const LONG_MS = 340; // 長押しで空孔。実機で詰める値
@@ -454,13 +454,15 @@ if(typeof importScripts === 'function'){
 
   // ---------- 描画 ----------
   const SQRT3 = Math.sqrt(3);
-  function axialToPixel(q, r, size){ // pointy-top
-    return { x: size * SQRT3 * (q + r/2), y: size * 1.5 * r };
+  // フラットトップ。この向きだと「軸q＝真下に伸びる縦列」ができ、本家と同じ構成になる。
+  // 縦列の数字は回転させずに読めるので、視認性でも有利。
+  function axialToPixel(q, r, size){
+    return { x: size * 1.5 * q, y: size * SQRT3 * (r + q/2) };
   }
   function hexPoints(cx, cy, size){
     const pts = [];
     for(let i=0;i<6;i++){
-      const a = Math.PI/180 * (60*i - 90);
+      const a = Math.PI/180 * (60*i); // 頂点が左右に来る = フラットトップ
       pts.push((cx + size*Math.cos(a)).toFixed(2) + ',' + (cy + size*Math.sin(a)).toFixed(2));
     }
     return pts.join(' ');
@@ -509,8 +511,11 @@ if(typeof importScripts === 'function'){
     svg.appendChild(bonds);
 
     // 直線ヒント(盤面の外側へ置く)
+    // 数字を軸の向きへ回転させる。六角格子は3軸あるので、回転が無いと
+    // その数字がどの列のものか判別できない(本家も同じ理由で回転させている)。
     const lineHints = puzzle.hints.filter(h => h.kind === 'line');
     const stepBack = { q:[0,1], r:[1,0], s:[1,-1] };
+    const axisAngle = { q:0, r:30, s:-30 };
     for(const line of board.lines){
       const h = lineHints.find(x => x.cells.length === line.cells.length &&
                                     x.cells.every((v,k)=> v === line.cells[k]));
@@ -518,8 +523,10 @@ if(typeof importScripts === 'function'){
       const first = board.cells[line.cells[0]];
       const back = stepBack[line.axis];
       const p = axialToPixel(first[0]-back[0], first[1]-back[1], size);
-      const t = el('text', { x:p.x+ox, y:p.y+oy, class:'label',
-        fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1) });
+      const lx = p.x+ox, ly = p.y+oy, ang = axisAngle[line.axis];
+      const t = el('text', { x:lx, y:ly, class:'label',
+        fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1),
+        transform:'rotate(' + ang + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
       svg.appendChild(t);
     }
