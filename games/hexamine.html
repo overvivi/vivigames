@@ -40,6 +40,43 @@
   #hl .src{fill:rgba(255,43,166,.30);}
   .lineHint{cursor:pointer;}
 
+  /* ---- 画面(タイトル・選択) ---- */
+  .screen{position:absolute; inset:0; z-index:4; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px; padding:22px 16px;
+    background:radial-gradient(ellipse at 50% 30%,rgba(32,230,255,.07),transparent 60%),rgba(5,7,13,.98);
+    overflow-y:auto;}
+  .screen.hidden{display:none;}
+  .logo{font-size:clamp(30px,9vw,52px); letter-spacing:.22em; color:var(--cyan);
+    text-shadow:0 0 26px rgba(32,230,255,.55),0 0 60px rgba(255,43,166,.22);}
+  .sub{margin-top:-6px; font-size:11px; letter-spacing:.14em; color:var(--muted);}
+  .menu{display:flex; flex-direction:column; gap:11px; width:min(100%,330px); margin-top:12px;}
+  .menuBtn{display:flex; flex-direction:column; gap:4px; padding:14px 18px; text-align:left;
+    background:linear-gradient(135deg,rgba(17,20,37,.95),rgba(6,8,16,.9));
+    border:1px solid var(--line); color:var(--text); cursor:pointer; transition:border-color .2s, transform .1s;}
+  .menuBtn b{font-size:15px; letter-spacing:.16em; color:var(--cyan);}
+  .menuBtn span{font-size:11px; color:var(--muted);}
+  .menuBtn:hover{border-color:var(--cyan);}
+  .menuBtn:active{transform:translateY(1px);}
+  .menuBtn.accent b{color:var(--magenta);}
+  .menuBtn.accent:hover{border-color:var(--magenta);}
+  .foot{font-size:10px; color:var(--muted); letter-spacing:.08em; text-align:center;}
+  .screenHead{display:flex; align-items:center; gap:14px; width:min(100%,520px);}
+  .screenHead h2{margin:0; font-size:14px; letter-spacing:.2em; color:var(--cyan);}
+  .backBtn{padding:7px 13px; background:transparent; border:1px solid var(--line);
+    color:var(--muted); font-size:11px; cursor:pointer;}
+  .backBtn:hover{color:var(--cyan); border-color:var(--cyan);}
+  .stageGrid,.sizeGrid{display:grid; gap:10px; width:min(100%,520px);
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+  .card{padding:13px 15px; text-align:left; background:rgba(17,20,37,.85);
+    border:1px solid var(--line); color:var(--text); cursor:pointer; transition:border-color .2s, transform .1s;}
+  .card:hover{border-color:var(--cyan);} .card:active{transform:translateY(1px);}
+  .card .cName{font-size:14px; color:var(--cyan);}
+  .card .cSub{margin-top:3px; font-size:10px; color:var(--muted);}
+  .card .cRec{margin-top:6px; font-size:11px; color:#c8d6ef;}
+  .card .cRec.none{color:#5c6884;}
+  .badge{display:inline-block; margin-left:7px; padding:1px 6px; font-size:9px;
+    border:1px solid rgba(255,43,166,.5); color:var(--magenta);}
+
   /* ---- 生成中 ---- */
   #loading{position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:18px; background:rgba(5,7,13,.96);}
@@ -70,8 +107,9 @@
 <body>
 <div id="app">
   <div id="hud">
-    <div class="brand">HEXAMINE</div>
+    <button class="backBtn" id="toTitle" style="visibility:hidden">← MENU</button>
     <div class="stats">
+      <div class="stat"><span>TIME</span><b id="statTime">0:00</b></div>
       <div class="stat"><span>REMAINING</span><b id="statRemain">-</b></div>
       <div class="stat bad"><span>MISTAKES</span><b id="statMiss">0</b></div>
     </div>
@@ -79,6 +117,34 @@
 
   <div id="boardWrap">
     <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+
+    <div id="title" class="screen">
+      <div class="logo">HEXAMINE</div>
+      <div class="sub">分子構造を、論理だけで復元する</div>
+      <div class="menu">
+        <button class="menuBtn" data-go="stageSelect">
+          <b>TUTORIAL</b><span>6つの分子。操作と規則を覚える</span>
+        </button>
+        <button class="menuBtn" data-go="sizeSelect">
+          <b>INFINITE</b><span>好きな大きさで、何度でも</span>
+        </button>
+        <button class="menuBtn accent" id="dailyBtn">
+          <b>DAILY</b><span id="dailyLabel">今日の分子。全員が同じ盤面</span>
+        </button>
+      </div>
+      <div class="foot">推測は要りません。必ず論理だけで解けます</div>
+    </div>
+
+    <div id="stageSelect" class="screen hidden">
+      <div class="screenHead"><button class="backBtn" data-back>← 戻る</button><h2>TUTORIAL</h2></div>
+      <div class="stageGrid" id="stageGrid"></div>
+    </div>
+
+    <div id="sizeSelect" class="screen hidden">
+      <div class="screenHead"><button class="backBtn" data-back>← 戻る</button><h2>INFINITE</h2></div>
+      <div class="sizeGrid" id="sizeGrid"></div>
+      <div class="foot">大きいほど生成に時間がかかります</div>
+    </div>
 
     <div id="loading">
       <svg class="spinner" viewBox="0 0 100 100">
@@ -480,25 +546,84 @@ if(typeof importScripts === 'function'){
 (function(){
   'use strict';
 
-  // ---------- 今日の分子 ----------
-  // ステージごとに実在の分子を割り当てる。クリア時に名前と豆知識を出す。
-  const MOLECULES = [
-    { name:'ベンゼン', formula:'C6H6', trivia:'6つの炭素が正六角形に並ぶ。この形がゲームの盤面そのもの。' },
-    { name:'カフェイン', formula:'C8H10N4O2', trivia:'コーヒー1杯におよそ90mg。眠気の信号を横取りして遮る。' },
-    { name:'ヘキサミン', formula:'(CH2)6N4', trivia:'このゲームの名前。固形燃料にも、爆薬の原料にもなる。' },
-    { name:'グルコース', formula:'C6H12O6', trivia:'血糖のブドウ糖。六角形の環をつくって水に溶ける。' },
-    { name:'アドレナリン', formula:'C9H13NO3', trivia:'分泌されると心拍が上がり、痛みを感じにくくなる。' },
-    { name:'グラフェン', formula:'C', trivia:'炭素が六角格子に並んだ厚さ原子1個のシート。鋼鉄の200倍強い。' }
+  // ---------- 盤面の形 ----------
+  // チュートリアルは分子の輪郭を盤面にする。化学的な厳密さより
+  // 「見て何の分子か分かる輪郭」を優先している。
+  const D6 = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+  const ringOf = (cq,cr,R)=>{
+    if(R === 0) return [[cq,cr]];
+    const out = [];
+    let q = cq + D6[4][0]*R, r = cr + D6[4][1]*R;
+    for(let i=0;i<6;i++) for(let j=0;j<R;j++){ out.push([q,r]); q += D6[i][0]; r += D6[i][1]; }
+    return out;
+  };
+  const discOf = (cq,cr,R)=>{ const o=[]; for(let k=0;k<=R;k++) o.push(...ringOf(cq,cr,k)); return o; };
+  const chainOf = (q,r,dir,n)=>{ const o=[]; for(let i=0;i<n;i++){ o.push([q,r]); q+=D6[dir][0]; r+=D6[dir][1]; } return o; };
+  const uniqCells = list =>{
+    const seen = new Set(), out = [];
+    for(const c of list){ const k = c[0]+','+c[1]; if(!seen.has(k)){ seen.add(k); out.push(c); } }
+    return out;
+  };
+  const SHAPES = {
+    benzene:    uniqCells(ringOf(0,0,2)),
+    glucose:    uniqCells([...ringOf(0,0,2), ...chainOf(3,-1,0,1), ...chainOf(0,3,5,1), ...chainOf(-3,1,3,1), ...chainOf(2,-3,2,1)]),
+    caffeine:   uniqCells([...ringOf(0,0,2), ...ringOf(4,-2,2), ...chainOf(-3,1,3,2), ...chainOf(0,3,5,1), ...chainOf(6,-4,1,1)]),
+    adrenaline: uniqCells([...ringOf(0,0,2), ...chainOf(3,-1,0,3), ...chainOf(-2,-1,2,1), ...chainOf(-3,1,3,1)]),
+    hexamine:   uniqCells([...ringOf(0,0,2), [0,0], ...D6.map(d=>[d[0]*3, d[1]*3])]),
+    graphene:   uniqCells(discOf(0,0,3))
+  };
+
+  const STAGES = [
+    { key:'benzene',    name:'ベンゼン',     formula:'C6H6',      keepRatio:0.55, density:0.42,
+      trivia:'6つの炭素が正六角形に並ぶ。この形がこのゲームの盤面そのもの。' },
+    { key:'glucose',    name:'グルコース',   formula:'C6H12O6',   keepRatio:0.50, density:0.42,
+      trivia:'血糖のブドウ糖。六角形の環をつくって水に溶ける。' },
+    { key:'caffeine',   name:'カフェイン',   formula:'C8H10N4O2', keepRatio:0.35, density:0.44,
+      trivia:'コーヒー1杯におよそ90mg。眠気の信号を横取りして遮る。' },
+    { key:'adrenaline', name:'アドレナリン', formula:'C9H13NO3',  keepRatio:0.30, density:0.44,
+      trivia:'分泌されると心拍が上がり、痛みを感じにくくなる。' },
+    { key:'hexamine',   name:'ヘキサミン',   formula:'(CH2)6N4',  keepRatio:0.10, density:0.44,
+      trivia:'このゲームの名前。固形燃料にも、爆薬の原料にもなる。' },
+    { key:'graphene',   name:'グラフェン',   formula:'C',         keepRatio:0.00, density:0.44,
+      trivia:'炭素が六角格子に並んだ厚さ原子1個のシート。鋼鉄の200倍強い。' }
   ];
 
-  // ---------- 難易度 ----------
-  // keepRatio が高いほどヒントが残り、易しくなる。削り切ると必ず難問になる。
-  const LEVELS = [
-    { name:'EASY',     R:3, density:0.42, keepRatio:0.55 },
-    { name:'NORMAL',   R:4, density:0.44, keepRatio:0.25 },
-    { name:'INFINITE', R:5, density:0.44, keepRatio:0.00 }  // 91セル。本家の1面に近い規模
+  // 無限モードの大きさ。隙間時間にも遊べるよう小さいものから用意する。
+  const SIZES = [
+    { name:'SMALL',   R:3, cells:37,  note:'すぐ生成' },
+    { name:'MEDIUM',  R:4, cells:61,  note:'すぐ生成' },
+    { name:'LARGE',   R:5, cells:91,  note:'1秒ほど' },
+    { name:'HUGE',    R:6, cells:127, note:'数秒' },
+    { name:'GIANT',   R:7, cells:169, note:'十数秒' },
+    { name:'MONSTER', R:9, cells:271, note:'20秒前後' }
   ];
-  let levelIndex = 2;
+
+  // デイリーは携帯でも無理なく解ける規模にする。速さとミスの少なさを competing させたいので、
+  // 画面を何度も動かす必要がある大きさにはしない。
+  const DAILY_R = 5;
+
+  // ---------- 記録(端末保存) ----------
+  const REC_KEY = 'hexamineRecords_v1';
+  let records = {};
+  try{ records = JSON.parse(localStorage.getItem(REC_KEY) || '{}'); }catch(e){}
+  const fmtTime = ms =>{
+    const s = Math.max(0, Math.floor(ms/1000));
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  };
+  function saveRecord(id, time, mistakes){
+    const cur = records[id];
+    // ミスの少なさを優先し、同じなら速い方を残す
+    const better = !cur || mistakes < cur.mistakes || (mistakes === cur.mistakes && time < cur.time);
+    if(better){
+      records[id] = { time:time, mistakes:mistakes };
+      try{ localStorage.setItem(REC_KEY, JSON.stringify(records)); }catch(e){}
+    }
+    return better;
+  }
+  const dailySeed = ()=>{
+    const d = new Date();
+    return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+  };
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
   const LONG_MS = 340; // 長押しで空孔。実機で詰める値
@@ -650,7 +775,8 @@ if(typeof importScripts === 'function'){
       minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y);
     }
     const spanX = (maxX-minX)/10 + SQRT3, spanY = (maxY-minY)/10 + 2;
-    const size = Math.min(W/(spanX+2.2), H/(spanY+2.2)) * 0.94;
+    // 小さい盤面で1マスが巨大になりすぎないよう上限を設ける
+    const size = Math.min(Math.min(W/(spanX+2.2), H/(spanY+2.2)) * 0.94, 46);
     const ox = W/2 - (minX+maxX)/20*size, oy = H/2 - (minY+maxY)/20*size;
     const pos = i => {
       const p = axialToPixel(board.cells[i][0], board.cells[i][1], size);
@@ -904,6 +1030,89 @@ if(typeof importScripts === 'function'){
   window.addEventListener('keydown', e=>{ if(e.key === '0') resetView(); });
 
 
+  // ---------- 画面遷移 ----------
+  const SCREENS = ['title','stageSelect','sizeSelect'];
+  function showScreen(id){
+    for(const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
+    const playing = !id;
+    $('toTitle').style.visibility = playing ? 'visible' : 'hidden';
+    $('hintbar').style.visibility = playing ? 'visible' : 'hidden';
+    if(!playing){ stopTimer(); result.classList.add('hidden'); loading.classList.add('hidden'); }
+  }
+
+  // ---------- 経過時間 ----------
+  let startedAt = 0, timerId = null;
+  function startTimer(){
+    stopTimer();
+    startedAt = Date.now();
+    $('statTime').textContent = '0:00';
+    timerId = setInterval(()=>{ $('statTime').textContent = fmtTime(Date.now()-startedAt); }, 500);
+  }
+  function stopTimer(){ if(timerId){ clearInterval(timerId); timerId = null; } }
+
+  // ---------- 選択画面の中身 ----------
+  function recordLine(id){
+    const r = records[id];
+    return r ? '自己ベスト ' + fmtTime(r.time) + ' / ミス ' + r.mistakes
+             : '未クリア';
+  }
+  function buildStageGrid(){
+    const grid = $('stageGrid');
+    grid.innerHTML = '';
+    STAGES.forEach((st,i)=>{
+      const b = document.createElement('button');
+      b.className = 'card';
+      const rec = records['stage-'+st.key];
+      b.innerHTML = '<div class="cName">' + (i+1) + '. ' + st.name + '</div>' +
+        '<div class="cSub">' + st.formula + '　' + SHAPES[st.key].length + 'マス</div>' +
+        '<div class="cRec' + (rec ? '' : ' none') + '">' + recordLine('stage-'+st.key) + '</div>';
+      b.addEventListener('click', ()=> startMode({
+        type:'tutorial', id:'stage-'+st.key, stage:st,
+        shape:SHAPES[st.key], keepRatio:st.keepRatio, density:st.density
+      }));
+      grid.appendChild(b);
+    });
+  }
+  function buildSizeGrid(){
+    const grid = $('sizeGrid');
+    grid.innerHTML = '';
+    for(const sz of SIZES){
+      const b = document.createElement('button');
+      b.className = 'card';
+      b.innerHTML = '<div class="cName">' + sz.name + '</div>' +
+        '<div class="cSub">' + sz.cells + 'マス　' + sz.note + '</div>' +
+        '<div class="cRec' + (records['size-'+sz.name] ? '' : ' none') + '">' + recordLine('size-'+sz.name) + '</div>';
+      b.addEventListener('click', ()=> startMode({
+        type:'infinite', id:'size-'+sz.name, size:sz,
+        shape:hexagonShape(sz.R), keepRatio:0, density:0.44
+      }));
+      grid.appendChild(b);
+    }
+  }
+
+  // ---------- モード開始 ----------
+  let current = null;
+  function startMode(cfg){
+    current = cfg;
+    showScreen(null);
+    newPuzzle();
+  }
+
+  document.querySelectorAll('[data-go]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const to = b.dataset.go;
+      if(to === 'stageSelect') buildStageGrid();
+      if(to === 'sizeSelect') buildSizeGrid();
+      showScreen(to);
+    });
+  });
+  document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
+  $('toTitle').addEventListener('click', ()=>{ stopTimer(); showScreen('title'); });
+  $('dailyBtn').addEventListener('click', ()=> startMode({
+    type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
+    shape:hexagonShape(DAILY_R), keepRatio:0, density:0.44
+  }));
+
   // ---------- 生成 ----------
   function newPuzzle(){
     busy = true;
@@ -912,9 +1121,11 @@ if(typeof importScripts === 'function'){
     loadBar.style.width = '0%';
     loadNote.textContent = '結合を検証中…';
 
-    const lv = LEVELS[levelIndex];
-    const shape = hexagonShape(lv.R);
-    const seed = (Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0;
+    const shape = current.shape;
+    // デイリーは日付から決まる種を使う。全員が同じ盤面になることが前提。
+    const seed = current.seed !== undefined
+      ? current.seed
+      : ((Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0);
     const w = ensureWorker();
     const handle = m=>{
       if(m.type === 'progress'){
@@ -938,10 +1149,11 @@ if(typeof importScripts === 'function'){
         busy = false;
         loading.classList.add('hidden');
         render();
+        startTimer();
       }
     };
 
-    const req = { shape:shape, seed:seed, density:lv.density, keepRatio:lv.keepRatio };
+    const req = { shape:shape, seed:seed, density:current.density, keepRatio:current.keepRatio };
     if(w){ w.onmessage = e => handle(e.data); w.postMessage(req); }
     else  { generateLocally(req, handle); }
   }
@@ -949,18 +1161,39 @@ if(typeof importScripts === 'function'){
   function finish(){
     if(busy) return;
     busy = true;
-    const mol = MOLECULES[Math.floor(Math.random()*MOLECULES.length)];
-    $('resultMolecule').textContent = mol.name + '　' + mol.formula;
-    $('resultTrivia').textContent = mol.trivia +
-      '（ミス ' + mistakes + ' / 難易度 ' + LEVELS[levelIndex].name + '）';
+    stopTimer();
+    const elapsed = Date.now() - startedAt;
+    const isBest = saveRecord(current.id, elapsed, mistakes);
+
+    let head = '', body = '';
+    if(current.type === 'tutorial'){
+      head = current.stage.name + '　' + current.stage.formula;
+      body = current.stage.trivia;
+    } else if(current.type === 'daily'){
+      head = 'DAILY　' + new Date().toLocaleDateString('ja-JP');
+      body = '全員が同じ盤面に挑んでいます。';
+    } else {
+      head = 'INFINITE　' + current.size.name;
+      body = current.size.cells + 'マスを復元しました。';
+    }
+    $('resultTitle').textContent = mistakes === 0 ? 'PERFECT' : 'STRUCTURE RESTORED';
+    $('resultMolecule').textContent = head;
+    $('resultTrivia').textContent = body +
+      '　／　' + fmtTime(elapsed) + '　ミス ' + mistakes +
+      (isBest ? '　★自己ベスト更新' : '');
     result.classList.remove('hidden');
   }
 
-  $('againBtn').addEventListener('click', ()=>{ busy = false; newPuzzle(); });
+  $('againBtn').addEventListener('click', ()=>{
+    busy = false;
+    if(current && current.type === 'daily'){ showScreen('title'); return; } // 同じ盤面を再挑戦させない
+    if(current && current.type === 'tutorial'){ buildStageGrid(); showScreen('stageSelect'); return; }
+    newPuzzle();
+  });
   document.addEventListener('contextmenu', e=>{ if(e.target.closest('#board')) e.preventDefault(); });
   window.addEventListener('resize', ()=>{ if(board && !busy) render(); });
 
-  newPuzzle();
+  showScreen('title');
 })();
 </script>
 </body>
