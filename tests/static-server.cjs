@@ -8,7 +8,7 @@ const mime = {
   '.css':'text/css; charset=utf-8', '.png':'image/png', '.jpg':'image/jpeg'
 };
 
-http.createServer((req,res)=>{
+const server = http.createServer((req,res)=>{
   const pathname = decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
   const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const file = path.resolve(root, relative);
@@ -21,4 +21,21 @@ http.createServer((req,res)=>{
     res.writeHead(200,{'Content-Type':mime[path.extname(file).toLowerCase()]||'application/octet-stream'});
     res.end(data);
   });
-}).listen(4173,'127.0.0.1');
+});
+
+const PORT = Number(process.env.PORT) || 4173;
+const HOST = '127.0.0.1';
+
+// 既に起動していたらそれを使う。Playwrightが reuseExistingServer で立てたものが
+// 残っている場合があり、二重起動で落ちると開発サーバーごと止まってしまう。
+server.on('error', err=>{
+  if(err.code === 'EADDRINUSE'){
+    console.log('http://' + HOST + ':' + PORT + ' は起動済みのため、そのまま利用します');
+    setInterval(()=>{}, 1 << 30); // 起動元から見て生きている状態を保つ
+    return;
+  }
+  throw err;
+});
+server.listen(PORT, HOST, ()=>{
+  console.log('serving on http://' + HOST + ':' + PORT);
+});
