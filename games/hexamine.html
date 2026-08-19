@@ -103,6 +103,21 @@
     border:1px solid var(--cyan); letter-spacing:.16em; font-size:12px; cursor:pointer;}
   .btn:active{transform:translateY(1px);}
 
+  /* チュートリアルの解説。盤面の上に重ねる。
+     読みながら操作できないと結局どれのことか分からないので、盤面は隠しきらない位置に置く。 */
+  #lesson{position:absolute; left:50%; transform:translateX(-50%); top:10px; z-index:5;
+    width:min(92%,520px); padding:11px 40px 11px 14px; box-sizing:border-box;
+    background:rgba(6,14,26,.93); border:1px solid rgba(32,230,255,.35);
+    border-left:3px solid var(--cyan);
+    font-size:12px; line-height:1.85; color:var(--text); letter-spacing:.03em;
+    box-shadow:0 6px 24px rgba(0,0,0,.5);}
+  #lesson.hidden{display:none;}
+  #lesson b{color:var(--cyan); font-weight:700;}
+  #lesson .step{display:block; margin-bottom:4px; font-size:9.5px; letter-spacing:.18em; color:var(--muted);}
+  #lessonClose{position:absolute; top:0; right:0; width:36px; height:100%;
+    background:transparent; border:0; color:var(--muted); font-size:15px; cursor:pointer;}
+  #lessonClose:hover{color:var(--cyan);}
+
   #hintbar{flex:0 0 auto; padding:8px 14px 12px; text-align:center; font-size:10.5px;
     color:var(--muted); letter-spacing:.06em; border-top:1px solid rgba(32,230,255,.12);}
 </style>
@@ -123,6 +138,8 @@
 
   <div id="boardWrap">
     <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+
+    <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><button id="lessonClose">×</button></div>
 
     <div id="title" class="screen">
       <div class="logo">HEXAMINE</div>
@@ -265,7 +282,16 @@ function makeHint(kind, scope, order, ring, count, mode, owner, shown){
            count:count, mode:mode, owner:owner, shown:shown };
 }
 
-function buildAllHints(board, truth){
+// notation は使ってよい記法の段階。チュートリアルで規則を1つずつ教えるために要る。
+//   'plain'  … 数字だけ。{ } も - - も出さない
+//   'consec' … { } まで。- - は出さない
+//   'all'    … 全部(既定)
+// 下げる方向にしか使わないので、{3} が普通の 3 になるだけで嘘にはならない。
+function buildAllHints(board, truth, notation, omitBlue){
+  const allow = notation || 'all';
+  const pick = m => (allow === 'all') ? m
+                  : (allow === 'consec' && m !== 'split') ? m
+                  : 'plain';
   const hints = [];
   const blueSet = new Set();
   truth.forEach((v,i)=>{ if(v===BLUE) blueSet.add(i); });
@@ -276,11 +302,12 @@ function buildAllHints(board, truth){
       const scope = order.filter(x=>x!==null);
       const count = scope.filter(j=>truth[j]===BLUE).length;
       const consec = isConsecutive(order, blueSet, true);
-      const mode = (count>=2 && count<=4) ? (consec?'consec':'split') : 'plain';
+      const mode = pick((count>=2 && count<=4) ? (consec?'consec':'split') : 'plain');
       hints.push(makeHint('black', scope, order, true, count, mode, i, true));
     } else {
       const scope = board.halo[i];
       const count = scope.filter(j=>truth[j]===BLUE).length;
+      if(omitBlue) return;   // 青の数え方をまだ教えていない面で使う
       hints.push(makeHint('blue', scope, scope, false, count, 'plain', i, true));
     }
   });
@@ -289,7 +316,7 @@ function buildAllHints(board, truth){
     const count = line.cells.filter(j=>truth[j]===BLUE).length;
     // 並びの判定には穴を含めた order を使う。数える対象は cells のまま。
     const consec = isConsecutive(line.order, blueSet, false);
-    const mode = (count>=2) ? (consec?'consec':'split') : 'plain';
+    const mode = pick((count>=2) ? (consec?'consec':'split') : 'plain');
     hints.push(makeHint('line', line.cells, line.order, false, count, mode, null, false));
   }
 
@@ -607,12 +634,13 @@ function generate(board, opts, onProgress){
   // ? へ落とす割合。全部落とすと盤面が ? だらけになり、
   // 「開けたら数字が読める」という手応えが失われる。本家も ? は少数。
   const silentRatio = o.silentRatio === undefined ? 0.22 : o.silentRatio;
+  // o.notation … 使ってよい記法。buildAllHints へそのまま渡す
   const rnd = mulberry32(seed);
   const truth = board.cells.map(()=> rnd() < density ? BLUE : BLACK);
   const blues = truth.filter(v=>v===BLUE).length;
   if(blues < 3 || blues > board.size - 3) return null;
 
-  const all = buildAllHints(board, truth);
+  const all = buildAllHints(board, truth, o.notation, o.omitBlue);
   if(!solve(board, all, revealedFrom(all), {maxDepth:maxDepth}).solved) return null;
 
   const order = all.map((_,i)=>i);
@@ -688,7 +716,8 @@ if(typeof importScripts === 'function'){
     let puzzle = null, seed = req.seed;
     // 生成に失敗する種(青が偏りすぎ等)は隣の種へずらして再挑戦する
     for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
-      puzzle = generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio },
+      puzzle = generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio, notation:req.notation, omitBlue:req.omitBlue,
+         silentRatio:req.silentRatio },
         (done,total)=> postMessage({ type:'progress', done:done, total:total, attempt:attempt }));
     }
     postMessage({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
@@ -728,19 +757,56 @@ if(typeof importScripts === 'function'){
   };
 
   const STAGES = [
-    { key:'benzene',    name:'ベンゼン',     formula:'C6H6',      keepRatio:0.55, density:0.42,
+    { key:'benzene',    name:'ベンゼン',     formula:'C6H6',      seed:1011, notation:'plain',  omitBlue:true, silentRatio:0, keepRatio:0.55, density:0.42,
       trivia:'6つの炭素が正六角形に並ぶ。この形がこのゲームの盤面そのもの。' },
-    { key:'glucose',    name:'グルコース',   formula:'C6H12O6',   keepRatio:0.50, density:0.42,
+    { key:'glucose',    name:'グルコース',   formula:'C6H12O6',   seed:2022, notation:'plain',  silentRatio:0, keepRatio:0.50, density:0.42,
       trivia:'血糖のブドウ糖。六角形の環をつくって水に溶ける。' },
-    { key:'caffeine',   name:'カフェイン',   formula:'C8H10N4O2', keepRatio:0.35, density:0.44,
+    { key:'caffeine',   name:'カフェイン',   formula:'C8H10N4O2', seed:3033, notation:'consec', silentRatio:0, keepRatio:0.35, density:0.44,
       trivia:'コーヒー1杯におよそ90mg。眠気の信号を横取りして遮る。' },
-    { key:'adrenaline', name:'アドレナリン', formula:'C9H13NO3',  keepRatio:0.30, density:0.44,
+    { key:'adrenaline', name:'アドレナリン', formula:'C9H13NO3',  seed:4044, silentRatio:0, keepRatio:0.30, density:0.44,
       trivia:'分泌されると心拍が上がり、痛みを感じにくくなる。' },
-    { key:'hexamine',   name:'ヘキサミン',   formula:'(CH2)6N4',  keepRatio:0.10, density:0.44,
+    { key:'hexamine',   name:'ヘキサミン',   formula:'(CH2)6N4',  seed:5055, keepRatio:0.10, density:0.44,
       trivia:'このゲームの名前。固形燃料にも、爆薬の原料にもなる。' },
-    { key:'graphene',   name:'グラフェン',   formula:'C',         keepRatio:0.00, density:0.44,
+    { key:'graphene',   name:'グラフェン',   formula:'C',         seed:6066, keepRatio:0.00, density:0.44,
       trivia:'炭素が六角格子に並んだ厚さ原子1個のシート。鋼鉄の200倍強い。' }
   ];
+
+  // チュートリアルの解説。解いた数に応じて次の内容へ進む。
+  // ルールが多いので1面につき1〜3個に絞り、順に足していく。
+  // 盤面は固定の種で生成するので、説明と実際の見え方がずれない。
+  const LESSONS = {
+    // 1面: 操作と、黒マスの数字
+    benzene: [
+      { after:0, text:'タップで<b>原子</b>、長押しで<b>空孔</b>。右上の REMAINING は残っている原子の数です' },
+      { after:2, text:'空孔にすると、そのマスに数字が出ます。<b>触れている6マス</b>にいくつ原子があるかを表します' },
+      { after:6, text:'盤面の外側の数字は、その<b>列全体</b>の原子の数。数字に触れると、対象の列が光ります' }
+    ],
+    // 2面: 青マスの数字(範囲が黒と違う)
+    glucose: [
+      { after:0, text:'<b>青いマス</b>にも数字が付きます。こちらは<b>2マス以内</b>=まわり18マスの原子の数で、黒とは範囲が違います' },
+      { after:5, text:'数字に触れると数えている範囲が光ります。黒と青で広さが違うのを見比べてみてください' }
+    ],
+    // 3面: { } 連続
+    caffeine: [
+      { after:0, text:'<b>{3}</b> のように波括弧が付いた数字は、その3つが<b>すべて隣り合っている</b>ことを表します' },
+      { after:6, text:'同じ 3 でも、{3} なら並びが限られます。数字より括弧のほうが効くこともあります' }
+    ],
+    // 4面: - - 非連続
+    adrenaline: [
+      { after:0, text:'<b>-3-</b> のようにハイフンが付いた数字は、<b>すべては隣り合っていない</b>=どこかに切れ目があることを表します' },
+      { after:6, text:'{ } と - - は正反対の情報です。どちらも付いていない数字は、並び方について何も言っていません' }
+    ],
+    // 5面: ? と残数
+    hexamine: [
+      { after:0, text:'<b>?</b> は数字を持たない空孔です。開けても、そこからは何も分かりません' },
+      { after:6, text:'手がかりが足りない時は REMAINING を見てください。<b>残りの原子の数</b>も立派なヒントです' }
+    ],
+    // 6面: 総まとめ
+    graphene: [
+      { after:0, text:'ここまでの規則が全部出ます。<b>あてずっぽうは要りません</b>。必ず論理だけで解けます' },
+      { after:8, text:'詰まったら HINT を押すと、次に読むべき数字が光ります' }
+    ]
+  };
 
   // 無限モードの大きさ。隙間時間にも遊べるよう小さいものから用意する。
   const SIZES = [
@@ -852,7 +918,7 @@ if(typeof importScripts === 'function'){
       const board = api.makeBoard(req.shape);
       let puzzle = null, seed = req.seed;
       for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
-        puzzle = api.generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio });
+        puzzle = api.generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio, notation:req.notation, omitBlue:req.omitBlue, silentRatio:req.silentRatio });
       }
       onDone({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
     }, 60);
@@ -1137,12 +1203,39 @@ if(typeof importScripts === 'function'){
     if(guess !== actual) mistakes++;   // 間違えても失敗にはせず、正しい値を開く
     state[i] = actual;
     paintCell(i);
+    solvedCount++;
+    advanceLesson();
     updateStats();
   }
 
   // ---------- 次の一手 ----------
   // 詰まった時に「どのヒントを見ればよいか」だけを示す。
   // 答えのマスは出さない。推測なしで解ける設計なので、必ず見落としがある。
+  // ---------- チュートリアルの解説 ----------
+  // 規則が多く、いきなり盤面を出しても何を見ればよいか分からない。
+  // 面ごとに規則を1つずつ足し、解いた数に応じて次の説明へ進める。
+  const lessonBox = $('lesson'), lessonBody = lessonBox.querySelector('.body'),
+        lessonStep = lessonBox.querySelector('.step');
+  let lessons = [], lessonIdx = -1, solvedCount = 0;
+
+  function initLessons(){
+    lessons = (current.type === 'tutorial' && LESSONS[current.stage.key]) || [];
+    lessonIdx = -1; solvedCount = 0;
+    lessonBox.classList.add('hidden');
+    advanceLesson();
+  }
+  function advanceLesson(){
+    // 条件を満たしたものの中で最後を出す。まとめて進んだ時に説明を飛ばさないため。
+    let next = lessonIdx;
+    for(let i=0;i<lessons.length;i++) if(solvedCount >= lessons[i].after) next = i;
+    if(next === lessonIdx) return;
+    lessonIdx = next;
+    lessonStep.textContent = 'RULE ' + (lessonIdx+1) + ' / ' + lessons.length;
+    lessonBody.innerHTML = lessons[lessonIdx].text;
+    lessonBox.classList.remove('hidden');   // 閉じていても新しい説明は出し直す
+  }
+  $('lessonClose').addEventListener('click', ()=> lessonBox.classList.add('hidden'));
+
   let hintNodes = { cells:[], lines:[] };   // 描画時に作った参照
   let hintBusy = false;
   let hintFlash = null;   // 実行中の点滅。重なると前の後始末が新しい表示を消してしまう
@@ -1322,8 +1415,9 @@ if(typeof importScripts === 'function'){
         '<div class="cSub">' + st.formula + '　' + SHAPES[st.key].length + 'マス</div>' +
         '<div class="cRec' + (rec ? '' : ' none') + '">' + recordLine('stage-'+st.key) + '</div>';
       b.addEventListener('click', ()=> startMode({
-        type:'tutorial', id:'stage-'+st.key, stage:st,
-        shape:SHAPES[st.key], keepRatio:st.keepRatio, density:st.density
+        type:'tutorial', id:'stage-'+st.key, stage:st, seed:st.seed,
+        shape:SHAPES[st.key], keepRatio:st.keepRatio, density:st.density,
+        notation:st.notation, omitBlue:st.omitBlue, silentRatio:st.silentRatio
       }));
       grid.appendChild(b);
     });
@@ -1362,7 +1456,7 @@ if(typeof importScripts === 'function'){
     });
   });
   document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
-  $('toTitle').addEventListener('click', ()=>{ stopTimer(); showScreen('title'); });
+  $('toTitle').addEventListener('click', ()=>{ stopTimer(); lessonBox.classList.add('hidden'); showScreen('title'); });
   $('hintBtn').addEventListener('click', ()=> requestHint());
   $('dailyBtn').addEventListener('click', ()=> startMode({
     type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
@@ -1408,11 +1502,13 @@ if(typeof importScripts === 'function'){
         busy = false;
         loading.classList.add('hidden');
         render();
+        initLessons();
         startTimer();
       }
     };
 
-    const req = { shape:shape, seed:seed, density:current.density, keepRatio:current.keepRatio };
+    const req = { shape:shape, seed:seed, density:current.density, keepRatio:current.keepRatio,
+                  notation:current.notation, omitBlue:current.omitBlue, silentRatio:current.silentRatio };
     if(w){ w.onmessage = e => handle(e.data); w.postMessage(req); }
     else  { generateLocally(req, handle); }
   }

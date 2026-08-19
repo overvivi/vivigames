@@ -166,5 +166,53 @@ ok(isConsecutive([0,1,2], new Set([1]), true) === true, '1個以下は常に連�
   ok(bad === 0, `読めないヒントを根拠にしていない (違反 ${bad}件)`);
 }
 
+// ---- チュートリアルの進行 ----
+// 規則を1つずつ教える設計なので、教える面より前にその記法が盤面へ出てはいけない。
+// 種や生成の設定を触った時に、説明と盤面がずれたことをここで検出する。
+{
+  const { SHAPES } = await import('./shapes.mjs');
+  // 正本(HTML)から定義を取り出す。テスト側に写しを持つと必ず食い違うため。
+  const cut = (head, tail)=>{ const a = html.indexOf(head) + head.length;
+    return html.slice(a, html.indexOf(tail, a)); };
+  const STAGES = vm.runInNewContext("([" + cut("const STAGES = [", "  ];") + "])");
+  const LESSONS = vm.runInNewContext("({" + cut("const LESSONS = {", "  };") + "})");
+
+  // 面ごとに「出てよいもの」。順に解禁していく。
+  const allowFrom = { blue:2, consec:3, split:4, silent:5 };
+  const seen = { blue:0, consec:0, split:0, silent:0 };
+
+  ok(STAGES.length === 6, 'チュートリアルは6面');
+  STAGES.forEach((st, idx)=>{
+    const no = idx + 1;
+    ok(Array.isArray(LESSONS[st.key]) && LESSONS[st.key].length > 0,
+       `${st.key}: 解説がある`);
+    ok(st.seed !== undefined, `${st.key}: 盤面が固定されている`);
+
+    let p = null, seed = st.seed;
+    for(let a=0; a<40 && !p; a++, seed++){
+      p = generate(makeBoard(SHAPES[st.key]), { seed, density:st.density,
+            keepRatio:st.keepRatio, notation:st.notation,
+            omitBlue:st.omitBlue, silentRatio:st.silentRatio });
+    }
+    ok(!!p, `${st.key}: 生成できる`);
+    if(!p) return;
+
+    const has = { blue:false, consec:false, split:false, silent:false };
+    for(const h of p.hints){
+      if(h.kind === 'blue') has.blue = true;
+      if(h.mode === 'consec') has.consec = true;
+      if(h.mode === 'split')  has.split = true;
+      if(h.count === null)    has.silent = true;
+    }
+    for(const k of Object.keys(allowFrom)){
+      if(has[k]) seen[k]++;
+      ok(!has[k] || no >= allowFrom[k],
+         `${no}. ${st.key}: 未習の ${k} が出ていない`);
+    }
+  });
+  // 教えたものが一度も出ないのも困る(説明だけあって現物が無い状態)
+  for(const k of Object.keys(allowFrom)) ok(seen[k] > 0, `${k} を実際に出す面がある`);
+}
+
 console.log(`\n${pass} 件成功 / ${fail} 件失敗`);
 process.exit(fail ? 1 : 0);
