@@ -50,20 +50,50 @@ ok(isConsecutive([0,1,2], new Set([1]), true) === true, '1個以下は常に連�
   ok(mismatch === 0, 'ソルバーの答えが真の配置と完全に一致する');
 }
 
-// ---- 3. ヒントを削り切れているか(最小性) ----
+// ---- 3. これ以上削れないか ----
+// 黒マスのヒントは丸ごと消さず「最初から見せる→隠す→?」と降格させる仕様なので、
+// 削れるかどうかは種類ごとに見る。
 {
   const board = makeBoard(hexagon(3));
   const g = generate(board, { seed: 12345 });
   ok(!!g, '盤面を生成できた');
   if(g){
-    let removable = 0;
+    let removable = 0, downgradable = 0;
     for(const h of g.hints){
-      const trial = g.hints.filter(x => x !== h);
-      if(solve(board, trial, revealedFrom(trial), {}).solved) removable++;
+      if(h.kind === 'black'){
+        // ? への降格は意図的に一部だけ試すため、ここでは判定しない。
+        // 「最初から見せる」ものは必ず隠せるか試しているので、そこだけ検証する。
+        if(!h.shown) continue;
+        const trial = g.hints.map(x => x === h ? Object.assign({}, h, { shown:false }) : x);
+        if(solve(board, trial, revealedFrom(trial), {}).solved) downgradable++;
+      } else if(h.kind === 'line' || h.kind === 'blue'){
+        const trial = g.hints.filter(x => x !== h);
+        if(solve(board, trial, revealedFrom(trial), {}).solved) removable++;
+      }
     }
-    ok(removable === 0, `余分なヒントが残っていない (削れるもの ${removable}件)`);
-    ok(g.hints.length < g.totalHints, `ヒントを削減できている (${g.totalHints} → ${g.hints.length})`);
+    ok(removable === 0, `直線・青のヒントに余分が無い (削れるもの ${removable}件)`);
+    ok(downgradable === 0, `最初から見せている黒マスは全て必要 (隠せるもの ${downgradable}件)`);
   }
+}
+
+// ---- 3b. 段階的な開示が効いているか ----
+// 黒と確定した時点で数字が読めるので、最初から見えているマスは少なくて済むはず。
+{
+  const board = makeBoard(hexagon(4));
+  let shownTotal = 0, hiddenNumbered = 0, silent = 0, made = 0;
+  for(let seed=1; seed<=8; seed++){
+    const g = generate(board, { seed });
+    if(!g) continue;
+    made++;
+    shownTotal += g.hints.filter(h=>h.shown).length;
+    hiddenNumbered += g.hints.filter(h=>h.kind==='black' && !h.shown && h.count!==null).length;
+    silent += g.hints.filter(h=>h.kind==='black' && h.count===null).length;
+  }
+  const avgShown = shownTotal/made;
+  ok(avgShown < board.size * 0.5,
+     `最初から見えるマスが盤面の半分未満 (平均 ${avgShown.toFixed(1)} / ${board.size}マス)`);
+  ok(hiddenNumbered > 0,
+     `黒と確定してから読める数字が存在する (平均 ${(hiddenNumbered/made).toFixed(1)}件)`);
 }
 
 // ---- 4. 矛盾を「解けた」と誤答しないか ----

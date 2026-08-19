@@ -248,8 +248,21 @@ function isConsecutive(order, blueSet, ring){
 }
 
 // ---------- ヒント ----------
-function makeHint(kind, scope, order, ring, count, mode, reveal){
-  return { kind:kind, cells:scope, order:order, ring:ring, count:count, mode:mode, reveal:reveal };
+// 黒マスの数字は「盤面に置かれた手がかり」ではなく、そのマスが黒だと分かった
+// 時点で読めるようになる情報として扱う。マインスイーパで開けた場所に数字が
+// 出るのと同じ考え方。これにより初期表示を減らしても解けるようになる。
+//
+// 黒マスのヒントは3段階を取る。後ろほど難しい。
+//   shown + 数字 … 最初から見えている
+//   hidden + 数字 … 隠れているが、黒と確定した時点で数字が読める
+//   hidden + ?    … 黒と確定しても数字が出ない(情報を持たない)
+//
+// 青マスの数字は最初から見えているものだけ。プレイヤーが青と確定させても
+// 数字は出ない。
+
+function makeHint(kind, scope, order, ring, count, mode, owner, shown){
+  return { kind:kind, cells:scope, order:order, ring:ring,
+           count:count, mode:mode, owner:owner, shown:shown };
 }
 
 function buildAllHints(board, truth){
@@ -263,13 +276,12 @@ function buildAllHints(board, truth){
       const scope = order.filter(x=>x!==null);
       const count = scope.filter(j=>truth[j]===BLUE).length;
       const consec = isConsecutive(order, blueSet, true);
-      // 0個や多すぎる場合に並び情報を付けても推理の足しにならないため素の数字にする
       const mode = (count>=2 && count<=4) ? (consec?'consec':'split') : 'plain';
-      hints.push(makeHint('black', scope, order, true, count, mode, [i, BLACK]));
+      hints.push(makeHint('black', scope, order, true, count, mode, i, true));
     } else {
       const scope = board.halo[i];
       const count = scope.filter(j=>truth[j]===BLUE).length;
-      hints.push(makeHint('blue', scope, scope, false, count, 'plain', [i, BLUE]));
+      hints.push(makeHint('blue', scope, scope, false, count, 'plain', i, true));
     }
   });
 
@@ -278,12 +290,25 @@ function buildAllHints(board, truth){
     // 並びの判定には穴を含めた order を使う。数える対象は cells のまま。
     const consec = isConsecutive(line.order, blueSet, false);
     const mode = (count>=2) ? (consec?'consec':'split') : 'plain';
-    hints.push(makeHint('line', line.cells, line.order, false, count, mode, null));
+    hints.push(makeHint('line', line.cells, line.order, false, count, mode, null, false));
   }
 
-  // 残り原子数のカウンター。実際のプレイでも推理に使える情報なので制約として持つ
-  hints.push(makeHint('total', board.cells.map((_,i)=>i), null, false, blueSet.size, 'plain', null));
+  // 残り原子数のカウンター
+  hints.push(makeHint('total', board.cells.map((_,i)=>i), null, false, blueSet.size, 'plain', null, false));
   return hints;
+}
+
+// 最初から見えているマス。隠れている黒マスはここに含めない。
+const revealedFrom = hints =>
+  hints.filter(h => h.shown && h.owner !== null)
+       .map(h => [h.owner, h.kind === 'blue' ? BLUE : BLACK]);
+
+// そのヒントが今の盤面で読める状態か。
+// 黒マスの数字は、最初から見えているか、黒だと確定した後でなければ読めない。
+function hintActive(h, state){
+  if(h.count === null) return false;              // ? は情報を持たない
+  if(h.kind !== 'black') return true;
+  return h.shown || state[h.owner] === BLACK;
 }
 
 // ---------- 列挙 ----------
@@ -345,12 +370,18 @@ function solve(board, hints, revealed, opts){
   hints.forEach((h,hi)=>{ for(const c of h.cells) byCell[c].push(hi); });
 
   // 見直すべきヒントだけを順に処理する。確定したマスを含むヒントだけを積み直す。
+  // マスが黒だと分かった時点で、そのマスの数字が読めるようになる。
+  // どのヒントがどのマスに属するかを引けるようにしておく。
+  const ownerHint = new Array(board.size).fill(-1);
+  hints.forEach((h,hi)=>{ if(h.owner !== null && h.kind === 'black') ownerHint[h.owner] = hi; });
+
   const queued = new Uint8Array(hints.length);
   let queue = [], qh = 0;
-  const push = hi =>{ if(!queued[hi]){ queued[hi] = 1; queue.push(hi); } };
+  const push = hi =>{ if(hi >= 0 && !queued[hi]){ queued[hi] = 1; queue.push(hi); } };
   const resolve = (i, v)=>{
     state[i] = v; steps++;
     for(const hi of byCell[i]) push(hi);
+    if(v === BLACK) push(ownerHint[i]);   // 開いたことで読めるようになる数字
   };
   for(let hi=0; hi<hints.length; hi++) push(hi);
 
@@ -358,6 +389,7 @@ function solve(board, hints, revealed, opts){
     while(qh < queue.length){
       const hi = queue[qh++];
       queued[hi] = 0;
+      if(!hintActive(hints[hi], state)) continue;
       const res = enumerateHint(hints[hi], state);
       if(res.contradiction) return false;
       if(res.skip) continue;
@@ -403,6 +435,7 @@ function solve(board, hints, revealed, opts){
           seen.add(pairKey);
 
           const A = hints[ia], B = hints[ib];
+          if(!hintActive(A, state) || !hintActive(B, state)) continue;
           const union = [...new Set(A.cells.concat(B.cells))];
           const unknown = union.filter(i => state[i] === UNKNOWN);
           const n = unknown.length;
@@ -546,7 +579,6 @@ function nextStep(board, hints, state){
   return null;
 }
 
-const revealedFrom = hints => hints.filter(h => h.reveal).map(h => h.reveal);
 
 // ---------- 生成 ----------
 // 全ヒントから始めて、解ける限り削る。削るほど難しくなるので、
@@ -569,6 +601,9 @@ function generate(board, opts, onProgress){
   // ここで頭打ちにする。上限に当たった場合はヒントが多めに残る＝少し易しくなるだけで、
   // 「推測なしで解ける」という保証は変わらない。
   const maxTries = o.maxTries || Infinity;
+  // ? へ落とす割合。全部落とすと盤面が ? だらけになり、
+  // 「開けたら数字が読める」という手応えが失われる。本家も ? は少数。
+  const silentRatio = o.silentRatio === undefined ? 0.22 : o.silentRatio;
   const rnd = mulberry32(seed);
   const truth = board.cells.map(()=> rnd() < density ? BLUE : BLACK);
   const blues = truth.filter(v=>v===BLUE).length;
@@ -584,29 +619,45 @@ function generate(board, opts, onProgress){
   }
   // keepRatio の抽選は先に済ませる。手順を種だけで決まる形にしておく。
   const skipFlag = order.map(()=> keepRatio > 0 && rnd() < keepRatio);
+  const silentFlag = order.map(()=> rnd() < silentRatio);
 
-  // まとめて削る方式も試したが、削れるヒントの割合が低く、
-  // 大半のまとめ削除が失敗して解き直しが増えるため、1つずつのほうが速い。
+  // 黒マスのヒントは丸ごと消さず、段階的に落とす。
+  //   最初から見せる → 隠す(黒と分かれば読める) → ? にする(読めない)
+  // 隠しても情報が消えるわけではなく「後から手に入る」だけなので、
+  // 初期表示を大きく減らしても解ける盤面が作れる。
   let kept = all.slice();
   let tries = 0;
+  const canSolve = list => solve(board, list, revealedFrom(list), {maxDepth:maxDepth}).solved;
+
   for(let n=0; n<order.length; n++){
     if(tries >= maxTries) break;
     if(skipFlag[n]) continue;
     const target = all[order[n]];
+
+    if(target.kind === 'black'){
+      if(!target.shown) continue;
+      // 1段目: 最初の表示から外す
+      const hidden = Object.assign({}, target, { shown:false });
+      let trial = kept.map(h => h === target ? hidden : h);
+      tries++;
+      if(!canSolve(trial)) continue;      // 隠せないなら ? はもっと無理
+      kept = trial;
+      // 2段目: 黒と分かっても数字を出さない。ここは一部だけに留める
+      if(silentFlag[n]){
+        const silent = Object.assign({}, hidden, { count:null, mode:'plain' });
+        trial = kept.map(h => h === hidden ? silent : h);
+        tries++;
+        if(canSolve(trial)) kept = trial;
+      }
+      if(onProgress && (n & 3) === 0) onProgress(n, order.length);
+      continue;
+    }
+
+    // 直線と青マスのヒントは丸ごと削る
     const trial = kept.filter(h => h !== target);
     if(!trial.length) continue;
     tries++;
-    if(solve(board, trial, revealedFrom(trial), {maxDepth:maxDepth}).solved){
-      kept = trial;
-    } else if(target.kind === 'black' && target.count !== null && target.cells.length){
-      // 丸ごと消せないなら「?」へ落とす。マスは黒だと見せるが、数字は伏せる。
-      // 「消す」と「残す」の間に一段挟むことで、難易度の刻みが細かくなる。
-      // cells を空にしてあるので制約としては何も課さず、開示だけが残る。
-      const q = { kind:'black', cells:[], order:[], ring:false,
-                  count:null, mode:'plain', reveal:target.reveal };
-      const trial2 = kept.map(h => h === target ? q : h);
-      if(solve(board, trial2, revealedFrom(trial2), {maxDepth:maxDepth}).solved) kept = trial2;
-    }
+    if(canSolve(trial)) kept = trial;
     if(onProgress && (n & 3) === 0) onProgress(n, order.length);
   }
 
@@ -1100,14 +1151,14 @@ if(typeof importScripts === 'function'){
     for(const hi of indices){
       const h = puzzle.hints[hi];
       if(!h) continue;
-      if(h.reveal){
-        const n = cellNodes[h.reveal[0]];
+      if(h.owner !== null && h.owner !== undefined){
+        const n = cellNodes[h.owner];
         if(n) targets.push({ el:n.hex, attr:'stroke', from:n.hex.getAttribute('stroke') });
       } else {
         const t = hintNodes.lines.get(h);
         if(t) targets.push({ el:t, attr:'fill', from:t.getAttribute('fill') });
       }
-      if(h.cells && h.cells.length) showScope(h.cells, h.reveal ? h.reveal[0] : null);
+      if(h.cells && h.cells.length) showScope(h.cells, (h.owner === null || h.owner === undefined) ? null : h.owner);
     }
     // 押した瞬間から光らせる。初回を間隔待ちにすると反応が無いように見える
     let on = false, count = 0;
@@ -1345,7 +1396,10 @@ if(typeof importScripts === 'function'){
         state = new Array(board.size).fill(UNKNOWN);
         cellHint = new Array(board.size).fill(null);
         for(const h of puzzle.hints){
-          if(h.reveal){ cellHint[h.reveal[0]] = h; state[h.reveal[0]] = h.reveal[1]; }
+          if(h.owner === null || h.owner === undefined) continue;
+          // 隠れている黒マスの数字も覚えておく。黒と確定した時点で表示する。
+          cellHint[h.owner] = h;
+          if(h.shown) state[h.owner] = (h.kind === 'blue') ? BLUE : BLACK;
         }
         mistakes = 0;
         busy = false;
