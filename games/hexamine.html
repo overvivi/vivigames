@@ -838,12 +838,16 @@ if(typeof importScripts === 'function'){
         fill:'#b9d6f2', 'font-size':(size*HINT_FONT).toFixed(1),
         transform:'rotate(' + f.angle + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
+      // 外側ヒントは隣同士が近くなることがあり、どの数字が今光っている列のものか
+      // 見分けられないと誤読につながる。触れている数字自身も光らせる。
       const scope = line.cells.slice();
-      t.addEventListener('mouseenter', ()=> showScope(scope, null));
-      t.addEventListener('mouseleave', clearScope);
-      t.addEventListener('pointerdown', e=>{ e.preventDefault(); showScope(scope, null); });
-      t.addEventListener('pointerup', clearScope);
-      t.addEventListener('pointercancel', clearScope);
+      const on  = ()=>{ showScope(scope, null); t.setAttribute('fill', 'var(--magenta)'); t.setAttribute('font-weight','900'); };
+      const off = ()=>{ clearScope(); t.setAttribute('fill', '#b9d6f2'); t.setAttribute('font-weight','700'); };
+      t.addEventListener('mouseenter', on);
+      t.addEventListener('mouseleave', off);
+      t.addEventListener('pointerdown', e=>{ e.preventDefault(); on(); });
+      t.addEventListener('pointerup', off);
+      t.addEventListener('pointercancel', off);
       viewGroup.appendChild(t);
     }
 
