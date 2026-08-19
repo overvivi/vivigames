@@ -104,7 +104,7 @@
     </div>
   </div>
 
-  <div id="hintbar">タップ＝原子あり　／　長押し＝空孔　（PCは左クリック／右クリック）</div>
+  <div id="hintbar">タップ＝原子あり　／　長押し＝空孔　／　ドラッグで移動・ピンチで拡大（PCは左右クリックとホイール、0キーで表示リセット）</div>
 </div>
 
 <!--
@@ -510,6 +510,34 @@ if(typeof importScripts === 'function'){
   let worker = null, puzzle = null, board = null, state = null;
   let cellNodes = [], mistakes = 0, cellHint = [], busy = false;
   let layout = null, hlLayer = null;   // ハイライト描画に位置情報が要る
+  // 盤面が画面に収まらない大きさになるため、拡大縮小と移動を持つ。
+  // 端末で盤面を小さくするとデイリーランキングの公平性が崩れるので、
+  // 盤面はそのままにして見る側を動かす。
+  let viewGroup = null;
+  let view = { x:0, y:0, k:1 };
+  const MIN_K = 0.4, MAX_K = 3.0;
+  const DRAG_THRESHOLD = 10;           // これ以上動いたらタップではなく移動とみなす
+  let activePress = null;              // 進行中のタップ/長押し
+  const pointers = new Map();          // ピンチ判定用
+  let panning = false, pinchStart = null;
+
+  function applyView(){
+    if(viewGroup) viewGroup.setAttribute('transform',
+      'translate(' + view.x.toFixed(2) + ',' + view.y.toFixed(2) + ') scale(' + view.k.toFixed(4) + ')');
+  }
+  function zoomAt(cx, cy, factor){
+    const k = Math.max(MIN_K, Math.min(MAX_K, view.k * factor));
+    const real = k / view.k;
+    // つまんだ点が動かないように、拡大の中心を合わせる
+    view.x = cx - (cx - view.x) * real;
+    view.y = cy - (cy - view.y) * real;
+    view.k = k;
+    applyView();
+  }
+  function svgPoint(e){
+    const r = svg.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
 
   // ---------- Worker を単一HTMLのまま作る ----------
   let workerBroken = false;
@@ -609,6 +637,8 @@ if(typeof importScripts === 'function'){
 
   function render(){
     svg.innerHTML = '';
+    viewGroup = el('g', { id:'view' });
+    svg.appendChild(viewGroup);
     const wrap = svg.getBoundingClientRect();
     const W = wrap.width || 360, H = wrap.height || 480;
 
@@ -638,7 +668,7 @@ if(typeof importScripts === 'function'){
         bonds.appendChild(el('line', { class:'bond', x1:a.x, y1:a.y, x2:b.x, y2:b.y }));
       }
     });
-    svg.appendChild(bonds);
+    viewGroup.appendChild(bonds);
 
     // 直線ヒント(盤面の外側へ置く)
     // 数字を軸の向きへ回転させる。六角格子は3軸あるので、回転が無いと
@@ -665,7 +695,7 @@ if(typeof importScripts === 'function'){
       t.addEventListener('pointerdown', e=>{ e.preventDefault(); showScope(scope, null); });
       t.addEventListener('pointerup', clearScope);
       t.addEventListener('pointercancel', clearScope);
-      svg.appendChild(t);
+      viewGroup.appendChild(t);
     }
 
     // セル
@@ -676,14 +706,16 @@ if(typeof importScripts === 'function'){
       const hex = el('polygon', { class:'hexFill', points:hexPoints(p.x, p.y, size*0.92) });
       const label = el('text', { class:'label', x:p.x, y:p.y, 'font-size':(size*0.52).toFixed(1) });
       g.appendChild(hex); g.appendChild(label);
-      svg.appendChild(g);
+      viewGroup.appendChild(g);
       cellNodes.push({ g:g, hex:hex, label:label });
       bindInput(g, i);
     });
 
     // 最前面へ。pointer-events:none なので下のセルの操作を妨げない
     hlLayer = el('g', { id:'hl' });
-    svg.appendChild(hlLayer);
+    viewGroup.appendChild(hlLayer);
+    view = { x:0, y:0, k:1 };
+    applyView();
     paintAll();
   }
 
@@ -743,6 +775,13 @@ if(typeof importScripts === 'function'){
   // 長押し中は枠色を変えて、判定に入ったことを見せる。
   function bindInput(node, i){
     let timer = null, longFired = false;
+    // 指が動いた時に外から打ち切れるよう、進行中の操作を共有しておく
+    const abort = ()=>{
+      if(timer){ clearTimeout(timer); timer = null; }
+      longFired = true;          // 以降のpointerupでマークさせない
+      clearScope();
+      paintCell(i);
+    };
 
     const startPress = ()=>{
       // 数字を持つ確定済みのマスは、押している間だけ対象範囲を見せる
@@ -755,13 +794,16 @@ if(typeof importScripts === 'function'){
       cellNodes[i].hex.setAttribute('stroke', 'var(--magenta)');
       cellNodes[i].hex.setAttribute('stroke-width', '3');
       timer = setTimeout(()=>{ longFired = true; timer = null; commit(i, BLACK); }, LONG_MS);
+      activePress = { abort:abort };
     };
     const endPress = ()=>{
+      activePress = null;
       clearScope();
       if(timer){ clearTimeout(timer); timer = null; if(!longFired) commit(i, BLUE); }
       else if(!longFired) paintCell(i);
     };
     const cancelPress = ()=>{
+      activePress = null;
       clearScope();
       if(timer){ clearTimeout(timer); timer = null; }
       if(!longFired) paintCell(i);
@@ -788,6 +830,79 @@ if(typeof importScripts === 'function'){
     paintCell(i);
     updateStats();
   }
+
+  // ---------- 盤面の移動と拡大縮小 ----------
+  // 盤面は端末によらず同じ大きさで作る(デイリーの公平性のため)。
+  // 画面に収まらない分は、見る側を動かして対応する。
+  svg.addEventListener('pointerdown', e=>{
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY, sx:e.clientX, sy:e.clientY });
+    if(pointers.size === 2){
+      // 2本目が触れた時点で、進行中のタップ/長押しは取り消す
+      if(activePress){ activePress.abort(); activePress = null; }
+      const [a,b] = [...pointers.values()];
+      pinchStart = {
+        dist: Math.hypot(a.x-b.x, a.y-b.y),
+        k: view.k,
+        cx: (a.x+b.x)/2, cy: (a.y+b.y)/2
+      };
+      panning = false;
+    }
+  });
+
+  svg.addEventListener('pointermove', e=>{
+    const p = pointers.get(e.pointerId);
+    if(!p) return;
+    const prevX = p.x, prevY = p.y;
+    p.x = e.clientX; p.y = e.clientY;
+
+    if(pointers.size >= 2 && pinchStart){
+      const [a,b] = [...pointers.values()];
+      const dist = Math.hypot(a.x-b.x, a.y-b.y);
+      if(pinchStart.dist > 0){
+        const target = Math.max(MIN_K, Math.min(MAX_K, pinchStart.k * (dist / pinchStart.dist)));
+        const r = svg.getBoundingClientRect();
+        const cx = pinchStart.cx - r.left, cy = pinchStart.cy - r.top;
+        const real = target / view.k;
+        view.x = cx - (cx - view.x) * real;
+        view.y = cy - (cy - view.y) * real;
+        view.k = target;
+        applyView();
+      }
+      return;
+    }
+
+    // 指1本。閾値を超えたらタップではなく移動に切り替える
+    if(!panning){
+      const moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy);
+      if(moved < DRAG_THRESHOLD) return;
+      panning = true;
+      if(activePress){ activePress.abort(); activePress = null; }
+    }
+    view.x += e.clientX - prevX;
+    view.y += e.clientY - prevY;
+    applyView();
+  });
+
+  const endPointer = e=>{
+    pointers.delete(e.pointerId);
+    if(pointers.size < 2) pinchStart = null;
+    if(pointers.size === 0) panning = false;
+  };
+  svg.addEventListener('pointerup', endPointer);
+  svg.addEventListener('pointercancel', endPointer);
+  svg.addEventListener('pointerleave', endPointer);
+
+  // PCはホイールで拡大縮小
+  svg.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const p = svgPoint(e);
+    zoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1/1.12);
+  }, { passive:false });
+
+  // 表示を初期状態へ戻す
+  function resetView(){ view = { x:0, y:0, k:1 }; applyView(); }
+  window.addEventListener('keydown', e=>{ if(e.key === '0') resetView(); });
+
 
   // ---------- 生成 ----------
   function newPuzzle(){
