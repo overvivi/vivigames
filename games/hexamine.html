@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#05070d">
+<title>HEXAMINE</title>
+<style>
+  :root{
+    --bg:#05070d; --panel:#0c1322; --line:rgba(32,230,255,.28);
+    --cyan:#20e6ff; --magenta:#ff2ba6; --text:#dfe9ff; --muted:#7d8bab;
+    --unknown:#243049; --void:#0a0f1c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden;
+    -webkit-user-select:none; user-select:none; touch-action:manipulation;}
+  #app{position:relative; width:100%; height:100%; display:flex; flex-direction:column;}
+
+  /* ---- HUD ---- */
+  #hud{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid var(--line); background:rgba(6,10,18,.9);}
+  .brand{font-size:13px; letter-spacing:.28em; color:var(--cyan); text-shadow:0 0 14px rgba(32,230,255,.5);}
+  .stats{display:flex; gap:16px; font-size:12px; letter-spacing:.08em;}
+  .stat b{display:block; font-size:17px; font-weight:700; letter-spacing:0;}
+  .stat span{color:var(--muted); font-size:10px;}
+  .stat.bad b{color:var(--magenta);}
+
+  /* ---- 盤面 ---- */
+  #boardWrap{flex:1 1 auto; position:relative; overflow:hidden;}
+  #board{position:absolute; inset:0; width:100%; height:100%;}
+  .cell{cursor:pointer;}
+  .cell .hexFill{transition:fill .18s, stroke .18s;}
+  .cell .label{font-weight:700; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .bond{stroke:rgba(32,230,255,.10); stroke-width:2; pointer-events:none;}
+
+  /* ---- 生成中 ---- */
+  #loading{position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px; background:rgba(5,7,13,.96);}
+  #loading.hidden{display:none;}
+  .loadTitle{font-size:13px; letter-spacing:.2em; color:var(--cyan);}
+  .loadBarOuter{width:min(70%,320px); height:6px; background:#111a2c; border:1px solid var(--line); overflow:hidden;}
+  .loadBar{height:100%; width:0%; background:linear-gradient(90deg,var(--cyan),var(--magenta)); transition:width .12s linear;}
+  .loadNote{font-size:10px; color:var(--muted); letter-spacing:.1em;}
+  .spinner{width:74px; height:74px;}
+  .spinner circle{fill:none; stroke:var(--cyan); stroke-width:2; opacity:.85;}
+  .spinner .orbit{stroke:rgba(32,230,255,.22);}
+
+  /* ---- 結果 ---- */
+  #result{position:absolute; inset:0; z-index:6; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; background:rgba(5,7,13,.93);}
+  #result.hidden{display:none;}
+  #result h2{margin:0; font-size:22px; letter-spacing:.2em; color:var(--cyan);}
+  #result .molecule{font-size:13px; color:var(--text);}
+  #result .trivia{max-width:min(90%,420px); font-size:12px; line-height:1.8; color:var(--muted); text-align:center;}
+  .btn{margin-top:8px; padding:11px 26px; background:transparent; color:var(--cyan);
+    border:1px solid var(--cyan); letter-spacing:.16em; font-size:12px; cursor:pointer;}
+  .btn:active{transform:translateY(1px);}
+
+  #hintbar{flex:0 0 auto; padding:8px 14px 12px; text-align:center; font-size:10.5px;
+    color:var(--muted); letter-spacing:.06em; border-top:1px solid rgba(32,230,255,.12);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="brand">HEXAMINE</div>
+    <div class="stats">
+      <div class="stat"><span>REMAINING</span><b id="statRemain">-</b></div>
+      <div class="stat bad"><span>MISTAKES</span><b id="statMiss">0</b></div>
+    </div>
+  </div>
+
+  <div id="boardWrap">
+    <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+
+    <div id="loading">
+      <svg class="spinner" viewBox="0 0 100 100">
+        <circle class="orbit" cx="50" cy="50" r="34"></circle>
+        <circle cx="50" cy="16" r="5">
+          <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="50" cy="84" r="4">
+          <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="-360 50 50" dur="3.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="50" cy="50" r="7" style="fill:var(--cyan); stroke:none; opacity:.9"></circle>
+      </svg>
+      <div class="loadTitle">分子構造を組み立てています</div>
+      <div class="loadBarOuter"><div class="loadBar" id="loadBar"></div></div>
+      <div class="loadNote" id="loadNote">結合を検証中…</div>
+    </div>
+
+    <div id="result" class="hidden">
+      <h2 id="resultTitle">STRUCTURE RESTORED</h2>
+      <div class="molecule" id="resultMolecule"></div>
+      <div class="trivia" id="resultTrivia"></div>
+      <button class="btn" id="againBtn">NEXT</button>
+    </div>
+  </div>
+
+  <div id="hintbar">タップ＝原子あり　／　長押し＝空孔　（PCは左クリック／右クリック）</div>
+</div>
+
+<!--
+  盤面生成はここに書いたコードを Web Worker として動かす。
+  生成には1〜3秒かかるため、同じスレッドで回すとロード画面のアニメーションまで止まる。
+  Blob経由でWorker化しているので、単一HTMLのままで別スレッドにできる。
+
+  ★このブロックがソルバーの唯一の正本。tools/hex/solver.test.mjs はここから
+  　コードを取り出して検証する。二重管理して食い違うのを避けるため。
+-->
+<script type="javascript/worker" id="solverSource">
+// ---------- 六角格子(axial座標) ----------
+// 隣接の順序は時計回りで固定する。{n} の連続判定が順序に依存するため。
+const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+const key = (q,r)=>q+','+r;
+const hexDistance = (a,b)=>
+  (Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[0]+a[1]-b[0]-b[1])) / 2;
+const UNKNOWN = 0, BLUE = 1, BLACK = 2;
+
+function makeBoard(cellList){
+  const cells = cellList.map(c=>[c[0],c[1]]);
+  const index = new Map(cells.map((c,i)=>[key(c[0],c[1]), i]));
+  const at = (q,r)=> index.has(key(q,r)) ? index.get(key(q,r)) : null;
+  const ring = cells.map(c=>DIRS.map(d=>at(c[0]+d[0], c[1]+d[1])));
+  const halo = cells.map((c,i)=>
+    cells.map((o,j)=>[o,j]).filter(p=>{
+      const d = hexDistance(c,p[0]);
+      return p[1]!==i && d>=1 && d<=2;
+    }).map(p=>p[1])
+  );
+  const lines = [];
+  for(const axis of ['q','r','s']){
+    const groups = new Map();
+    cells.forEach((c,i)=>{
+      const g = axis==='q' ? c[0] : axis==='r' ? c[1] : c[0]+c[1];
+      if(!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(i);
+    });
+    for(const entry of groups){
+      const list = entry[1];
+      if(list.length < 2) continue;
+      list.sort((a,b)=> axis==='q' ? cells[a][1]-cells[b][1] : cells[a][0]-cells[b][0]);
+      lines.push({ axis, cells:list });
+    }
+  }
+  return { cells, index, at, ring, halo, lines, size:cells.length };
+}
+
+// 盤外(null)は隙間として扱う。ring=true は輪として見る
+function isConsecutive(order, blueSet, ring){
+  const seq = order.map(i => (i!==null && blueSet.has(i)) ? '1' : '0').join('');
+  const n = (seq.match(/1/g) || []).length;
+  if(n <= 1) return true;
+  const runs = (ring ? seq + seq : seq).match(/1+/g) || [];
+  return runs.some(run => run.length >= n);
+}
+
+// ---------- ヒント ----------
+function makeHint(kind, scope, order, ring, count, mode, reveal){
+  return { kind:kind, cells:scope, order:order, ring:ring, count:count, mode:mode, reveal:reveal };
+}
+
+function buildAllHints(board, truth){
+  const hints = [];
+  const blueSet = new Set();
+  truth.forEach((v,i)=>{ if(v===BLUE) blueSet.add(i); });
+
+  board.cells.forEach((c,i)=>{
+    if(truth[i] === BLACK){
+      const order = board.ring[i];
+      const scope = order.filter(x=>x!==null);
+      const count = scope.filter(j=>truth[j]===BLUE).length;
+      const consec = isConsecutive(order, blueSet, true);
+      // 0個や多すぎる場合に並び情報を付けても推理の足しにならないため素の数字にする
+      const mode = (count>=2 && count<=4) ? (consec?'consec':'split') : 'plain';
+      hints.push(makeHint('black', scope, order, true, count, mode, [i, BLACK]));
+    } else {
+      const scope = board.halo[i];
+      const count = scope.filter(j=>truth[j]===BLUE).length;
+      hints.push(makeHint('blue', scope, scope, false, count, 'plain', [i, BLUE]));
+    }
+  });
+
+  for(const line of board.lines){
+    const count = line.cells.filter(j=>truth[j]===BLUE).length;
+    const consec = isConsecutive(line.cells, blueSet, false);
+    const mode = (count>=2) ? (consec?'consec':'split') : 'plain';
+    hints.push(makeHint('line', line.cells, line.cells, false, count, mode, null));
+  }
+
+  // 残り原子数のカウンター。実際のプレイでも推理に使える情報なので制約として持つ
+  hints.push(makeHint('total', board.cells.map((_,i)=>i), null, false, blueSet.size, 'plain', null));
+  return hints;
+}
+
+// ---------- 列挙 ----------
+const ENUM_LIMIT = 22;
+
+function enumerateHint(hint, state){
+  const unknown = hint.cells.filter(i => state[i] === UNKNOWN);
+  const knownBlue = hint.cells.filter(i => state[i] === BLUE).length;
+  const need = hint.count - knownBlue;
+  if(need < 0 || need > unknown.length) return { contradiction:true };
+  if(unknown.length === 0 || unknown.length > ENUM_LIMIT) return { skip:true };
+
+  const fixedBlue = hint.cells.filter(i => state[i] === BLUE);
+  const valid = [];
+  const combo = [];
+  const check = ()=>{
+    if(hint.mode === 'plain') return true;
+    const set = new Set(fixedBlue);
+    for(const i of combo) set.add(i);
+    const consec = isConsecutive(hint.order, set, hint.ring);
+    return hint.mode === 'consec' ? consec : !consec;
+  };
+  (function pick(pos, left){
+    if(left === 0){ if(check()) valid.push(combo.slice()); return; }
+    if(pos >= unknown.length || unknown.length - pos < left) return;
+    combo.push(unknown[pos]); pick(pos+1, left-1); combo.pop();
+    pick(pos+1, left);
+  })(0, need);
+
+  if(!valid.length) return { contradiction:true };
+  return { unknown:unknown, valid:valid };
+}
+
+// ---------- ソルバー ----------
+// 総当たりは使わない。人間と同じ推論だけで解け切るかを見るため、
+// 解け切ること自体が「推測不要」の保証になる。
+// depth1 = ヒント単独 / depth2 = 重なる2ヒントの突き合わせ
+function solve(board, hints, revealed, opts){
+  const maxDepth = (opts && opts.maxDepth) || 2;
+  const state = new Array(board.size).fill(UNKNOWN);
+  for(const rv of revealed) state[rv[0]] = rv[1];
+  let usedDepth = 0, steps = 0;
+
+  const applySingle = ()=>{
+    let progress = false;
+    for(const hint of hints){
+      const res = enumerateHint(hint, state);
+      if(res.contradiction) return 'contradiction';
+      if(res.skip) continue;
+      for(const i of res.unknown){
+        const inAll  = res.valid.every(v => v.indexOf(i) >= 0);
+        const inNone = res.valid.every(v => v.indexOf(i) < 0);
+        if(inAll){ state[i] = BLUE; progress = true; steps++; }
+        else if(inNone){ state[i] = BLACK; progress = true; steps++; }
+      }
+      if(progress) usedDepth = Math.max(usedDepth, 1);
+    }
+    return progress;
+  };
+
+  const applyPair = ()=>{
+    for(let a=0; a<hints.length; a++){
+      const A = hints[a];
+      if(!A.cells.some(i=>state[i]===UNKNOWN)) continue;
+      const setA = new Set(A.cells);
+      for(let b=a+1; b<hints.length; b++){
+        const B = hints[b];
+        if(!B.cells.some(i => setA.has(i) && state[i]===UNKNOWN)) continue;
+        const union = [...new Set(A.cells.concat(B.cells))];
+        const unknown = union.filter(i => state[i] === UNKNOWN);
+        if(!unknown.length || unknown.length > 16) continue;
+
+        const ok = [];
+        for(let mask=0; mask < (1<<unknown.length); mask++){
+          const trial = state.slice();
+          for(let k=0;k<unknown.length;k++) trial[unknown[k]] = (mask>>k & 1) ? BLUE : BLACK;
+          let fits = true;
+          for(const hint of [A,B]){
+            const blues = hint.cells.filter(i => trial[i] === BLUE);
+            if(blues.length !== hint.count){ fits = false; break; }
+            if(hint.mode !== 'plain'){
+              const consec = isConsecutive(hint.order, new Set(blues), hint.ring);
+              if(hint.mode === 'consec' ? !consec : consec){ fits = false; break; }
+            }
+          }
+          if(fits) ok.push(mask);
+        }
+        if(!ok.length) return 'contradiction';
+
+        let progress = false;
+        for(let k=0;k<unknown.length;k++){
+          const all  = ok.every(m => (m>>k & 1));
+          const none = ok.every(m => !(m>>k & 1));
+          if(all){ state[unknown[k]] = BLUE; progress = true; steps++; }
+          else if(none){ state[unknown[k]] = BLACK; progress = true; steps++; }
+        }
+        if(progress){ usedDepth = Math.max(usedDepth, 2); return true; }
+      }
+    }
+    return false;
+  };
+
+  for(;;){
+    const single = applySingle();
+    if(single === 'contradiction') return { ok:false, solved:false, state:state, depth:usedDepth, steps:steps };
+    if(single) continue;
+    if(maxDepth < 2) break;
+    const pair = applyPair();
+    if(pair === 'contradiction') return { ok:false, solved:false, state:state, depth:usedDepth, steps:steps };
+    if(!pair) break;
+  }
+  return { ok:true, solved: state.every(v => v !== UNKNOWN), state:state, depth:usedDepth, steps:steps };
+}
+
+const revealedFrom = hints => hints.filter(h => h.reveal).map(h => h.reveal);
+
+// ---------- 生成 ----------
+// 全ヒントから始めて、解ける限り削る。削るほど難しくなるので、
+// 「どこまで削るか」がそのまま難易度のつまみになる。
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return ()=>{
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generate(board, opts, onProgress){
+  const o = opts || {};
+  const seed = o.seed || 1, density = o.density || 0.42;
+  const maxDepth = o.maxDepth || 2, keepRatio = o.keepRatio || 0;
+  const rnd = mulberry32(seed);
+  const truth = board.cells.map(()=> rnd() < density ? BLUE : BLACK);
+  const blues = truth.filter(v=>v===BLUE).length;
+  if(blues < 3 || blues > board.size - 3) return null;
+
+  const all = buildAllHints(board, truth);
+  if(!solve(board, all, revealedFrom(all), {maxDepth:maxDepth}).solved) return null;
+
+  const order = all.map((_,i)=>i);
+  for(let i=order.length-1;i>0;i--){
+    const j = Math.floor(rnd()*(i+1));
+    const t = order[i]; order[i] = order[j]; order[j] = t;
+  }
+
+  let kept = all.slice();
+  let done = 0;
+  for(const i of order){
+    done++;
+    if(onProgress && done % 4 === 0) onProgress(done, order.length);
+    const target = all[i];
+    if(kept.indexOf(target) < 0) continue;
+    // keepRatio が高いほどヒントが残り、易しくなる
+    if(keepRatio > 0 && rnd() < keepRatio) continue;
+    const trial = kept.filter(h => h !== target);
+    if(solve(board, trial, revealedFrom(trial), {maxDepth:maxDepth}).solved) kept = trial;
+  }
+  const final = solve(board, kept, revealedFrom(kept), {maxDepth:maxDepth});
+  return { truth:truth, hints:kept, totalHints:all.length, blues:blues,
+           depth:final.depth, steps:final.steps, solved:final.solved };
+}
+
+function hexagon(R){
+  const out=[];
+  for(let q=-R;q<=R;q++) for(let r=-R;r<=R;r++) if(Math.abs(q+r)<=R) out.push([q,r]);
+  return out;
+}
+
+// ---------- Worker側の入口 ----------
+// Worker として動いている時だけ待ち受ける。Node のテストから読んだ時は素通りする
+if(typeof importScripts === 'function'){
+  self.onmessage = function(e){
+    const req = e.data;
+    const board = makeBoard(req.shape);
+    let puzzle = null, seed = req.seed;
+    // 生成に失敗する種(青が偏りすぎ等)は隣の種へずらして再挑戦する
+    for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
+      puzzle = generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio },
+        (done,total)=> postMessage({ type:'progress', done:done, total:total, attempt:attempt }));
+    }
+    postMessage({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
+  };
+}
+</script>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---------- 今日の分子 ----------
+  // ステージごとに実在の分子を割り当てる。クリア時に名前と豆知識を出す。
+  const MOLECULES = [
+    { name:'ベンゼン', formula:'C6H6', trivia:'6つの炭素が正六角形に並ぶ。この形がゲームの盤面そのもの。' },
+    { name:'カフェイン', formula:'C8H10N4O2', trivia:'コーヒー1杯におよそ90mg。眠気の信号を横取りして遮る。' },
+    { name:'ヘキサミン', formula:'(CH2)6N4', trivia:'このゲームの名前。固形燃料にも、爆薬の原料にもなる。' },
+    { name:'グルコース', formula:'C6H12O6', trivia:'血糖のブドウ糖。六角形の環をつくって水に溶ける。' },
+    { name:'アドレナリン', formula:'C9H13NO3', trivia:'分泌されると心拍が上がり、痛みを感じにくくなる。' },
+    { name:'グラフェン', formula:'C', trivia:'炭素が六角格子に並んだ厚さ原子1個のシート。鋼鉄の200倍強い。' }
+  ];
+
+  // ---------- 難易度 ----------
+  // keepRatio が高いほどヒントが残り、易しくなる。削り切ると必ず難問になる。
+  const LEVELS = [
+    { name:'EASY',   R:2, density:0.42, keepRatio:0.55 },
+    { name:'NORMAL', R:3, density:0.44, keepRatio:0.30 },
+    { name:'HARD',   R:3, density:0.44, keepRatio:0.00 }
+  ];
+  let levelIndex = 1;
+
+  const UNKNOWN = 0, BLUE = 1, BLACK = 2;
+  const LONG_MS = 340; // 長押しで空孔。実機で詰める値
+
+  const $ = id => document.getElementById(id);
+  const svg = $('board'), loading = $('loading'), loadBar = $('loadBar'), loadNote = $('loadNote');
+  const result = $('result'), statRemain = $('statRemain'), statMiss = $('statMiss');
+
+  let worker = null, puzzle = null, board = null, state = null;
+  let cellNodes = [], mistakes = 0, cellHint = [], busy = false;
+
+  // ---------- Worker を単一HTMLのまま作る ----------
+  function ensureWorker(){
+    if(worker) return worker;
+    const src = document.getElementById('solverSource').textContent;
+    const blob = new Blob([src], { type:'application/javascript' });
+    worker = new Worker(URL.createObjectURL(blob));
+    return worker;
+  }
+
+  function hexagonShape(R){
+    const out=[];
+    for(let q=-R;q<=R;q++) for(let r=-R;r<=R;r++) if(Math.abs(q+r)<=R) out.push([q,r]);
+    return out;
+  }
+
+  // ---------- 盤面の再構築(表示用。ソルバーと同じ規則) ----------
+  const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+  function rebuildBoard(shape){
+    const cells = shape.map(c=>[c[0],c[1]]);
+    const index = new Map(cells.map((c,i)=>[c[0]+','+c[1], i]));
+    const at = (q,r)=> index.has(q+','+r) ? index.get(q+','+r) : null;
+    const lines = [];
+    for(const axis of ['q','r','s']){
+      const groups = new Map();
+      cells.forEach((c,i)=>{
+        const g = axis==='q' ? c[0] : axis==='r' ? c[1] : c[0]+c[1];
+        if(!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(i);
+      });
+      for(const entry of groups){
+        const list = entry[1];
+        if(list.length < 2) continue;
+        list.sort((a,b)=> axis==='q' ? cells[a][1]-cells[b][1] : cells[a][0]-cells[b][0]);
+        lines.push({ axis:axis, cells:list });
+      }
+    }
+    return { cells:cells, at:at, lines:lines, size:cells.length };
+  }
+
+  // ---------- 描画 ----------
+  const SQRT3 = Math.sqrt(3);
+  function axialToPixel(q, r, size){ // pointy-top
+    return { x: size * SQRT3 * (q + r/2), y: size * 1.5 * r };
+  }
+  function hexPoints(cx, cy, size){
+    const pts = [];
+    for(let i=0;i<6;i++){
+      const a = Math.PI/180 * (60*i - 90);
+      pts.push((cx + size*Math.cos(a)).toFixed(2) + ',' + (cy + size*Math.sin(a)).toFixed(2));
+    }
+    return pts.join(' ');
+  }
+  function decorate(count, mode){
+    if(mode === 'consec') return '{' + count + '}';
+    if(mode === 'split')  return '-' + count + '-';
+    return String(count);
+  }
+  const el = (tag, attrs)=>{
+    const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+
+  function render(){
+    svg.innerHTML = '';
+    const wrap = svg.getBoundingClientRect();
+    const W = wrap.width || 360, H = wrap.height || 480;
+
+    // 盤面が枠へ収まる大きさを求める
+    let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+    for(const c of board.cells){
+      const p = axialToPixel(c[0], c[1], 10);
+      minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x);
+      minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y);
+    }
+    const spanX = (maxX-minX)/10 + SQRT3, spanY = (maxY-minY)/10 + 2;
+    const size = Math.min(W/(spanX+2.2), H/(spanY+2.2)) * 0.94;
+    const ox = W/2 - (minX+maxX)/20*size, oy = H/2 - (minY+maxY)/20*size;
+    const pos = i => {
+      const p = axialToPixel(board.cells[i][0], board.cells[i][1], size);
+      return { x:p.x+ox, y:p.y+oy };
+    };
+
+    // 結合線(格子を分子らしく見せる薄い線)
+    const bonds = el('g', {});
+    board.cells.forEach((c,i)=>{
+      for(const d of [[1,0],[0,1],[-1,1]]){
+        const j = board.at(c[0]+d[0], c[1]+d[1]);
+        if(j === null) continue;
+        const a = pos(i), b = pos(j);
+        bonds.appendChild(el('line', { class:'bond', x1:a.x, y1:a.y, x2:b.x, y2:b.y }));
+      }
+    });
+    svg.appendChild(bonds);
+
+    // 直線ヒント(盤面の外側へ置く)
+    const lineHints = puzzle.hints.filter(h => h.kind === 'line');
+    const stepBack = { q:[0,1], r:[1,0], s:[1,-1] };
+    for(const line of board.lines){
+      const h = lineHints.find(x => x.cells.length === line.cells.length &&
+                                    x.cells.every((v,k)=> v === line.cells[k]));
+      if(!h) continue;
+      const first = board.cells[line.cells[0]];
+      const back = stepBack[line.axis];
+      const p = axialToPixel(first[0]-back[0], first[1]-back[1], size);
+      const t = el('text', { x:p.x+ox, y:p.y+oy, class:'label',
+        fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1) });
+      t.textContent = decorate(h.count, h.mode);
+      svg.appendChild(t);
+    }
+
+    // セル
+    cellNodes = [];
+    board.cells.forEach((c,i)=>{
+      const p = pos(i);
+      const g = el('g', { class:'cell' });
+      const hex = el('polygon', { class:'hexFill', points:hexPoints(p.x, p.y, size*0.92) });
+      const label = el('text', { class:'label', x:p.x, y:p.y, 'font-size':(size*0.52).toFixed(1) });
+      g.appendChild(hex); g.appendChild(label);
+      svg.appendChild(g);
+      cellNodes.push({ g:g, hex:hex, label:label });
+      bindInput(g, i);
+    });
+    paintAll();
+  }
+
+  function paintCell(i){
+    const n = cellNodes[i], v = state[i], h = cellHint[i];
+    if(v === UNKNOWN){
+      n.hex.setAttribute('fill', 'var(--unknown)');
+      n.hex.setAttribute('stroke', 'rgba(32,230,255,.30)');
+      n.hex.setAttribute('stroke-width', '1.5');
+      n.label.textContent = '';
+    } else if(v === BLUE){
+      n.hex.setAttribute('fill', 'var(--cyan)');
+      n.hex.setAttribute('stroke', 'rgba(32,230,255,.9)');
+      n.hex.setAttribute('stroke-width', '2');
+      n.label.setAttribute('fill', '#04202c');
+      n.label.textContent = (h && h.kind === 'blue') ? String(h.count) : '';
+    } else {
+      n.hex.setAttribute('fill', 'var(--void)');
+      n.hex.setAttribute('stroke', 'rgba(125,139,171,.35)');
+      n.hex.setAttribute('stroke-width', '1.5');
+      n.label.setAttribute('fill', '#9fb4d6');
+      n.label.textContent = (h && h.kind === 'black') ? decorate(h.count, h.mode) : '';
+    }
+  }
+  function paintAll(){ for(let i=0;i<board.size;i++) paintCell(i); updateStats(); }
+
+  function updateStats(){
+    let remain = 0;
+    for(let i=0;i<board.size;i++) if(puzzle.truth[i] === BLUE && state[i] !== BLUE) remain++;
+    statRemain.textContent = remain;
+    statMiss.textContent = mistakes;
+    if(remain === 0) finish();
+  }
+
+  // ---------- 入力 ----------
+  // スマホには右クリックが無い。タップ=原子あり、長押し=空孔で分ける。
+  // 長押し中は枠色を変えて、判定に入ったことを見せる。
+  function bindInput(node, i){
+    let timer = null, longFired = false;
+
+    const startPress = ()=>{
+      if(busy || state[i] !== UNKNOWN) return;
+      longFired = false;
+      cellNodes[i].hex.setAttribute('stroke', 'var(--magenta)');
+      cellNodes[i].hex.setAttribute('stroke-width', '3');
+      timer = setTimeout(()=>{ longFired = true; timer = null; commit(i, BLACK); }, LONG_MS);
+    };
+    const endPress = ()=>{
+      if(timer){ clearTimeout(timer); timer = null; if(!longFired) commit(i, BLUE); }
+      else if(!longFired) paintCell(i);
+    };
+    const cancelPress = ()=>{
+      if(timer){ clearTimeout(timer); timer = null; }
+      if(!longFired) paintCell(i);
+    };
+
+    node.addEventListener('pointerdown', e=>{
+      if(e.pointerType === 'mouse' && e.button === 2) return; // PCの右クリックは contextmenu で拾う
+      e.preventDefault(); startPress();
+    });
+    node.addEventListener('pointerup', e=>{ e.preventDefault(); endPress(); });
+    node.addEventListener('pointerleave', cancelPress);
+    node.addEventListener('pointercancel', cancelPress);
+    node.addEventListener('contextmenu', e=>{ e.preventDefault(); if(!busy) commit(i, BLACK); });
+  }
+
+  function commit(i, guess){
+    if(busy || state[i] !== UNKNOWN) return;
+    const actual = puzzle.truth[i];
+    if(guess !== actual) mistakes++;   // 間違えても失敗にはせず、正しい値を開く
+    state[i] = actual;
+    paintCell(i);
+    updateStats();
+  }
+
+  // ---------- 生成 ----------
+  function newPuzzle(){
+    busy = true;
+    result.classList.add('hidden');
+    loading.classList.remove('hidden');
+    loadBar.style.width = '0%';
+    loadNote.textContent = '結合を検証中…';
+
+    const lv = LEVELS[levelIndex];
+    const shape = hexagonShape(lv.R);
+    const seed = (Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0;
+    const w = ensureWorker();
+
+    w.onmessage = e=>{
+      const m = e.data;
+      if(m.type === 'progress'){
+        const pct = Math.round(m.done / m.total * 100);
+        loadBar.style.width = pct + '%';
+        loadNote.textContent = m.attempt > 0
+          ? '構造を組み替えています…（' + (m.attempt+1) + '回目）'
+          : 'ヒントを削っています ' + m.done + ' / ' + m.total;
+        return;
+      }
+      if(m.type === 'done'){
+        if(!m.puzzle){ loadNote.textContent = '生成に失敗しました。再試行します…'; newPuzzle(); return; }
+        puzzle = m.puzzle;
+        board = rebuildBoard(m.shape);
+        state = new Array(board.size).fill(UNKNOWN);
+        cellHint = new Array(board.size).fill(null);
+        for(const h of puzzle.hints){
+          if(h.reveal){ cellHint[h.reveal[0]] = h; state[h.reveal[0]] = h.reveal[1]; }
+        }
+        mistakes = 0;
+        busy = false;
+        loading.classList.add('hidden');
+        render();
+      }
+    };
+    w.postMessage({ shape:shape, seed:seed, density:lv.density, keepRatio:lv.keepRatio });
+  }
+
+  function finish(){
+    if(busy) return;
+    busy = true;
+    const mol = MOLECULES[Math.floor(Math.random()*MOLECULES.length)];
+    $('resultMolecule').textContent = mol.name + '　' + mol.formula;
+    $('resultTrivia').textContent = mol.trivia +
+      '（ミス ' + mistakes + ' / 難易度 ' + LEVELS[levelIndex].name + '）';
+    result.classList.remove('hidden');
+  }
+
+  $('againBtn').addEventListener('click', ()=>{ busy = false; newPuzzle(); });
+  document.addEventListener('contextmenu', e=>{ if(e.target.closest('#board')) e.preventDefault(); });
+  window.addEventListener('resize', ()=>{ if(board && !busy) render(); });
+
+  newPuzzle();
+})();
+</script>
+</body>
+</html>
