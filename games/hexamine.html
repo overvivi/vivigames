@@ -31,7 +31,10 @@
   #board{position:absolute; inset:0; width:100%; height:100%;}
   .cell{cursor:pointer;}
   .cell .hexFill{transition:fill .18s, stroke .18s;}
-  .cell .label{font-weight:700; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  /* 中央揃えは全てのラベルに効かせる。.cell の内側だけに限定していたため、
+     外側ヒントには適用されず、指定座標が文字の左下として扱われて右上へずれていた。 */
+  .label{font-weight:700; text-anchor:middle; dominant-baseline:central;}
+  .cell .label{pointer-events:none;}
   .bond{stroke:rgba(32,230,255,.10); stroke-width:2; pointer-events:none;}
   /* ヒントの対象範囲。どのマスを数えているのかが分からないと推理できないため、
      本家と同じく触れている間だけ範囲を光らせる。 */
@@ -819,7 +822,7 @@ if(typeof importScripts === 'function'){
     // ラベルは、この距離が1.73に近づくほど互いに寄っていく関係にある。
     // 面に接する下限(内接半径0.80 + 文字の高さの半分)まで詰めた方が両者は離れる。
     const FACE_GAP = 1.12;
-    const HINT_FONT = 0.30; // 上の理由で文字を大きくすると隣のラベルと当たる
+    const HINT_FONT = 0.30; // 0.34にすると上面と右上面のラベルが接触する // 上の理由で文字を大きくすると隣のラベルと当たる
     for(const line of board.lines){
       const h = lineHints.find(x => x.cells.length === line.cells.length &&
                                     x.cells.every((v,k)=> v === line.cells[k]));
