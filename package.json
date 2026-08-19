@@ -11,7 +11,8 @@
     "test:backgrounds": "playwright test tests/backgrounds.spec.js",
     "test:update-backgrounds": "playwright test tests/backgrounds.spec.js --update-snapshots",
     "test:ui": "playwright test --ui",
-    "test:hex": "node tools/hex/solver.test.mjs"
+    "test:hex": "node tools/hex/solver.test.mjs",
+    "serve": "node tests/static-server.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2"

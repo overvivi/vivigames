@@ -33,6 +33,12 @@
   .cell .hexFill{transition:fill .18s, stroke .18s;}
   .cell .label{font-weight:700; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
   .bond{stroke:rgba(32,230,255,.10); stroke-width:2; pointer-events:none;}
+  /* ヒントの対象範囲。どのマスを数えているのかが分からないと推理できないため、
+     本家と同じく触れている間だけ範囲を光らせる。 */
+  #hl{pointer-events:none;}
+  #hl polygon{fill:rgba(255,43,166,.13); stroke:var(--magenta); stroke-width:2.4;}
+  #hl .src{fill:rgba(255,43,166,.30);}
+  .lineHint{cursor:pointer;}
 
   /* ---- 生成中 ---- */
   #loading{position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
@@ -412,14 +418,45 @@ if(typeof importScripts === 'function'){
 
   let worker = null, puzzle = null, board = null, state = null;
   let cellNodes = [], mistakes = 0, cellHint = [], busy = false;
+  let layout = null, hlLayer = null;   // ハイライト描画に位置情報が要る
 
   // ---------- Worker を単一HTMLのまま作る ----------
+  let workerBroken = false;
   function ensureWorker(){
-    if(worker) return worker;
-    const src = document.getElementById('solverSource').textContent;
-    const blob = new Blob([src], { type:'application/javascript' });
-    worker = new Worker(URL.createObjectURL(blob));
+    if(worker || workerBroken) return worker;
+    try{
+      const src = document.getElementById('solverSource').textContent;
+      const blob = new Blob([src], { type:'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+      worker.onerror = ()=>{ workerBroken = true; worker = null; };
+    }catch(e){
+      workerBroken = true; // file:// 直接起動などで作れない
+    }
     return worker;
+  }
+
+  // Worker が使えない時の代替。同じソースを本体側で読み込んで直接動かす。
+  // 生成中は画面が固まるため、ロード画面にその旨を出す。
+  let localApi = null;
+  function ensureLocalApi(){
+    if(localApi) return localApi;
+    const src = document.getElementById('solverSource').textContent;
+    localApi = new Function(src + ';return { makeBoard, generate };')();
+    return localApi;
+  }
+  function generateLocally(req, onDone){
+    loadNote.textContent = 'この環境では別スレッドを使えません。少しお待ちください…';
+    loadBar.style.width = '100%';
+    // 一度描画させてから重い処理へ入る
+    setTimeout(()=>{
+      const api = ensureLocalApi();
+      const board = api.makeBoard(req.shape);
+      let puzzle = null, seed = req.seed;
+      for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
+        puzzle = api.generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio });
+      }
+      onDone({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
+    }, 60);
   }
 
   function hexagonShape(R){
@@ -497,6 +534,7 @@ if(typeof importScripts === 'function'){
       const p = axialToPixel(board.cells[i][0], board.cells[i][1], size);
       return { x:p.x+ox, y:p.y+oy };
     };
+    layout = { size:size, at:pos };
 
     // 結合線(格子を分子らしく見せる薄い線)
     const bonds = el('g', {});
@@ -528,6 +566,13 @@ if(typeof importScripts === 'function'){
         fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1),
         transform:'rotate(' + ang + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
+      t.setAttribute('class', 'label lineHint');
+      const scope = line.cells.slice();
+      t.addEventListener('mouseenter', ()=> showScope(scope, null));
+      t.addEventListener('mouseleave', clearScope);
+      t.addEventListener('pointerdown', e=>{ e.preventDefault(); showScope(scope, null); });
+      t.addEventListener('pointerup', clearScope);
+      t.addEventListener('pointercancel', clearScope);
       svg.appendChild(t);
     }
 
@@ -543,8 +588,32 @@ if(typeof importScripts === 'function'){
       cellNodes.push({ g:g, hex:hex, label:label });
       bindInput(g, i);
     });
+
+    // 最前面へ。pointer-events:none なので下のセルの操作を妨げない
+    hlLayer = el('g', { id:'hl' });
+    svg.appendChild(hlLayer);
     paintAll();
   }
+
+  // ヒントが数えている範囲を光らせる。srcIndex はヒント自身のマス
+  function showScope(cells, srcIndex){
+    if(!hlLayer || !layout) return;
+    clearScope();
+    for(const i of cells){
+      const p = layout.at(i);
+      hlLayer.appendChild(el('polygon', {
+        points: hexPoints(p.x, p.y, layout.size*0.92),
+        class: (i === srcIndex) ? 'src' : ''
+      }));
+    }
+    if(srcIndex !== undefined && srcIndex !== null && cells.indexOf(srcIndex) < 0){
+      const p = layout.at(srcIndex);
+      hlLayer.appendChild(el('polygon', {
+        points: hexPoints(p.x, p.y, layout.size*0.92), class:'src'
+      }));
+    }
+  }
+  function clearScope(){ if(hlLayer) hlLayer.innerHTML = ''; }
 
   function paintCell(i){
     const n = cellNodes[i], v = state[i], h = cellHint[i];
@@ -584,20 +653,30 @@ if(typeof importScripts === 'function'){
     let timer = null, longFired = false;
 
     const startPress = ()=>{
-      if(busy || state[i] !== UNKNOWN) return;
+      // 数字を持つ確定済みのマスは、押している間だけ対象範囲を見せる
+      if(state[i] !== UNKNOWN){
+        if(cellHint[i]) showScope(cellHint[i].cells, i);
+        return;
+      }
+      if(busy) return;
       longFired = false;
       cellNodes[i].hex.setAttribute('stroke', 'var(--magenta)');
       cellNodes[i].hex.setAttribute('stroke-width', '3');
       timer = setTimeout(()=>{ longFired = true; timer = null; commit(i, BLACK); }, LONG_MS);
     };
     const endPress = ()=>{
+      clearScope();
       if(timer){ clearTimeout(timer); timer = null; if(!longFired) commit(i, BLUE); }
       else if(!longFired) paintCell(i);
     };
     const cancelPress = ()=>{
+      clearScope();
       if(timer){ clearTimeout(timer); timer = null; }
       if(!longFired) paintCell(i);
     };
+    // PCはホバーだけで範囲が見えたほうが速い
+    node.addEventListener('mouseenter', ()=>{ if(state[i] !== UNKNOWN && cellHint[i]) showScope(cellHint[i].cells, i); });
+    node.addEventListener('mouseleave', clearScope);
 
     node.addEventListener('pointerdown', e=>{
       if(e.pointerType === 'mouse' && e.button === 2) return; // PCの右クリックは contextmenu で拾う
@@ -630,9 +709,7 @@ if(typeof importScripts === 'function'){
     const shape = hexagonShape(lv.R);
     const seed = (Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0;
     const w = ensureWorker();
-
-    w.onmessage = e=>{
-      const m = e.data;
+    const handle = m=>{
       if(m.type === 'progress'){
         const pct = Math.round(m.done / m.total * 100);
         loadBar.style.width = pct + '%';
@@ -656,7 +733,10 @@ if(typeof importScripts === 'function'){
         render();
       }
     };
-    w.postMessage({ shape:shape, seed:seed, density:lv.density, keepRatio:lv.keepRatio });
+
+    const req = { shape:shape, seed:seed, density:lv.density, keepRatio:lv.keepRatio };
+    if(w){ w.onmessage = e => handle(e.data); w.postMessage(req); }
+    else  { generateLocally(req, handle); }
   }
 
   function finish(){
