@@ -219,7 +219,20 @@ function makeBoard(cellList){
       const list = entry[1];
       if(list.length < 2) continue;
       list.sort((a,b)=> axis==='q' ? cells[a][1]-cells[b][1] : cells[a][0]-cells[b][0]);
-      lines.push({ axis, cells:list });
+      // 列の途中に盤面の穴がある場合、その先のマスは「連続」ではない。
+      // 数える対象は実在するマスだけだが、並びの判定には穴を含めた並びが要る。
+      // 穴を詰めた配列で判定すると、離れた2マスが連続扱いになってしまう。
+      const first = cells[list[0]], last = cells[list[list.length-1]];
+      const order = [];
+      if(axis === 'q'){
+        for(let r = first[1]; r <= last[1]; r++) order.push(at(first[0], r));
+      } else if(axis === 'r'){
+        for(let q = first[0]; q <= last[0]; q++) order.push(at(q, first[1]));
+      } else {
+        const sv = first[0] + first[1];
+        for(let q = first[0]; q <= last[0]; q++) order.push(at(q, sv - q));
+      }
+      lines.push({ axis, cells:list, order:order });
     }
   }
   return { cells, index, at, ring, halo, lines, size:cells.length };
@@ -262,9 +275,10 @@ function buildAllHints(board, truth){
 
   for(const line of board.lines){
     const count = line.cells.filter(j=>truth[j]===BLUE).length;
-    const consec = isConsecutive(line.cells, blueSet, false);
+    // 並びの判定には穴を含めた order を使う。数える対象は cells のまま。
+    const consec = isConsecutive(line.order, blueSet, false);
     const mode = (count>=2) ? (consec?'consec':'split') : 'plain';
-    hints.push(makeHint('line', line.cells, line.cells, false, count, mode, null));
+    hints.push(makeHint('line', line.cells, line.order, false, count, mode, null));
   }
 
   // 残り原子数のカウンター。実際のプレイでも推理に使える情報なので制約として持つ
