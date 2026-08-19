@@ -776,7 +776,7 @@ if(typeof importScripts === 'function'){
     }
     const spanX = (maxX-minX)/10 + SQRT3, spanY = (maxY-minY)/10 + 2;
     // 小さい盤面で1マスが巨大になりすぎないよう上限を設ける
-    const size = Math.min(Math.min(W/(spanX+3.4), H/(spanY+3.4)) * 0.96, 46);
+    const size = Math.min(Math.min(W/(spanX+2.6), H/(spanY+2.6)) * 0.96, 46);
     const ox = W/2 - (minX+maxX)/20*size, oy = H/2 - (minY+maxY)/20*size;
     const pos = i => {
       const p = axialToPixel(board.cells[i][0], board.cells[i][1], size);
@@ -796,36 +796,44 @@ if(typeof importScripts === 'function'){
     });
     viewGroup.appendChild(bonds);
 
-    // 直線ヒント(盤面の外側へ置く)
-    // 数字は軸の向きへ回転させる。六角格子は3軸あるので、回転が無いと
-    // その数字がどの列のものか判別できない(本家も同じ理由で回転させている)。
+    // 直線ヒント(盤面の外側、マスの「面」へ置く)
     //
-    // 置く位置は「その列の延長線上」に限る。ずらす時も列に沿って外へ押し出すので、
-    // どの列のヒントかが崩れない。穴のある盤面では別の軸の位置とぶつかりやすく、
-    // 重なると読めなくなるため、既に置いた位置と近い場合は1マスずつ外へ逃がす。
+    // フラットトップの六角形では、3軸の列はいずれも上側の面から外へ出る。
+    //   縦の列    → 上面      (列は真下へ伸びる)
+    //   右下がりの斜め → 左上面 (列は右下へ伸びる)
+    //   右上がりの斜め → 右上面 (列は右上へ伸びる)
+    // 面は列の向きと直交するので、数字は 0° / -60° / +60° で置くと
+    // 「数字の底面が面と平行」になる。本家と同じ見え方。
+    //
+    // 各面を使う列は1本しかないため、位置の衝突は起こらない。
+    // 以前入れていた「重なったら外へ押し出す」処理は、面ではなく1マス外へ
+    // 置いていたことによる自作の問題だったので廃止した。
     const lineHints = puzzle.hints.filter(h => h.kind === 'line');
-    const stepBack = { q:[0,1], r:[1,0], s:[1,-1] };
-    const axisAngle = { q:0, r:30, s:-30 };
-    const placedLabels = [];
+    const FACE = {
+      q: { end:'first', nx:0,                ny:-1,   angle:0   }, // 上面
+      r: { end:'first', nx:-Math.sqrt(3)/2,  ny:-0.5, angle:-60 }, // 左上面
+      s: { end:'last',  nx: Math.sqrt(3)/2,  ny:-0.5, angle: 60 }  // 右上面
+    };
+    // マス中心からの距離(sizeの倍数)。
+    // 面から離すほど良いわけではない。上面のラベルと、左上のマスが持つ右上面の
+    // ラベルは、この距離が1.73に近づくほど互いに寄っていく関係にある。
+    // 面に接する下限(内接半径0.80 + 文字の高さの半分)まで詰めた方が両者は離れる。
+    const FACE_GAP = 1.12;
+    const HINT_FONT = 0.30; // 上の理由で文字を大きくすると隣のラベルと当たる
     for(const line of board.lines){
       const h = lineHints.find(x => x.cells.length === line.cells.length &&
                                     x.cells.every((v,k)=> v === line.cells[k]));
       if(!h) continue;
-      const first = board.cells[line.cells[0]];
-      const back = stepBack[line.axis];
-      let lx = 0, ly = 0;
-      for(let step=1; step<=4; step++){
-        const p = axialToPixel(first[0]-back[0]*step, first[1]-back[1]*step, size);
-        lx = p.x+ox; ly = p.y+oy;
-        const clash = placedLabels.some(q => Math.hypot(q.x-lx, q.y-ly) < size*1.15);
-        if(!clash) break;
-      }
-      placedLabels.push({ x:lx, y:ly });
+      const f = FACE[line.axis];
+      // 列のどちら端の面から出すかは軸ごとに決まる。逆端を使うと下側の面になる。
+      const endIndex = f.end === 'first' ? line.cells[0] : line.cells[line.cells.length-1];
+      const base = pos(endIndex);
+      const lx = base.x + f.nx * size * FACE_GAP;
+      const ly = base.y + f.ny * size * FACE_GAP;
 
-      const ang = axisAngle[line.axis];
       const t = el('text', { x:lx, y:ly, class:'label lineHint',
-        fill:'#8fb6d6', 'font-size':(size*0.46).toFixed(1),
-        transform:'rotate(' + ang + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
+        fill:'#b9d6f2', 'font-size':(size*HINT_FONT).toFixed(1),
+        transform:'rotate(' + f.angle + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
       const scope = line.cells.slice();
       t.addEventListener('mouseenter', ()=> showScope(scope, null));
