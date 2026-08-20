@@ -67,3 +67,28 @@ create policy "Allow public insert (hexamine)" on hexamine_scores
 -- ポリシーだけでは permission denied になる。GRANT も要る(過去にハマった)
 grant select, insert on hexamine_scores to anon, authenticated;
 grant usage on all sequences in schema public to anon, authenticated;
+
+-- HELL RUNNER 2（β）用のスコアテーブル
+-- βの間は無印(runner_scores)と分ける。バランス調整で点数の意味が変わるため、
+-- 混ぜると比較できなくなる。完成時に本番テーブルへ移す想定。
+create table runner_scores_hell_runner_2_draft (
+  id bigint generated always as identity primary key,
+  name text not null check (char_length(name) between 1 and 20),
+  score integer not null check (score >= 0 and score <= 10000000),
+  created_at timestamptz not null default now()
+);
+
+alter table runner_scores_hell_runner_2_draft enable row level security;
+
+create policy "Allow public read (hr2 draft)" on runner_scores_hell_runner_2_draft
+  for select using (true);
+
+create policy "Allow public insert (hr2 draft)" on runner_scores_hell_runner_2_draft
+  for insert with check (
+    char_length(name) between 1 and 20
+    and score >= 0 and score <= 10000000
+  );
+
+-- ポリシーだけでは permission denied になる。GRANT も要る(過去にハマった)
+grant select, insert on runner_scores_hell_runner_2_draft to anon, authenticated;
+grant usage on all sequences in schema public to anon, authenticated;

@@ -23,7 +23,9 @@ const SOURCE_HTML = 'games/temple-run-clone.html';
 const GAMES = [
   { table: 'runner_scores',      label: 'HELL RUNNER', kind: 'score' },
   { table: 'boss_battle_scores', label: '討伐2048',    kind: 'score' },
-  { table: 'hexamine_scores',    label: 'HEXAMINE',    kind: 'daily' }
+  { table: 'hexamine_scores',    label: 'HEXAMINE',    kind: 'daily' },
+  // βの間は無印と別テーブル。バランス調整で点数の意味が変わるため
+  { table: 'runner_scores_hell_runner_2_draft', label: 'HELL RUNNER 2 (β)', kind: 'score' }
 ];
 
 // デイリーの日付は日本時間で決める。ゲーム本体と揃えないと、
