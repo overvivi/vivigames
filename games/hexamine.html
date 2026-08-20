@@ -151,6 +151,24 @@
   #result h2{margin:0; font-size:22px; letter-spacing:.2em; color:var(--cyan);}
   #result .molecule{font-size:13px; color:var(--text);}
   #result .trivia{max-width:min(90%,420px); font-size:12px; line-height:1.8; color:var(--muted); text-align:center;}
+  #rank{display:flex; flex-direction:column; align-items:center; gap:9px;
+    width:min(92%,360px); margin-top:2px;}
+  #rank.hidden{display:none;}
+  #rank .rHead{font-size:10px; letter-spacing:.18em; color:var(--muted);}
+  #rank .rForm{display:flex; gap:7px; width:100%;}
+  #rank input{flex:1 1 auto; min-width:0; padding:9px 11px; background:rgba(10,14,26,.9);
+    border:1px solid var(--line); color:var(--text); font:inherit; font-size:12px;}
+  #rank input:focus{outline:none; border-color:var(--cyan);}
+  #rank .rList{width:100%; display:flex; flex-direction:column; gap:3px;}
+  #rank .rRow{display:flex; gap:9px; align-items:baseline; padding:5px 9px;
+    background:rgba(255,255,255,.03); font-size:12px;}
+  #rank .rRow.me{background:rgba(32,230,255,.13); border-left:2px solid var(--cyan);}
+  #rank .rRow .no{width:2.1em; color:var(--muted); font-size:11px;}
+  #rank .rRow .nm{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #rank .rRow .sc{color:var(--cyan); font-size:11px; letter-spacing:.04em;}
+  #rank .rNote{font-size:11px; color:var(--muted); text-align:center; line-height:1.7;}
+  .btn.small{margin-top:0; padding:9px 16px; font-size:11px;}
+
   .btn{margin-top:8px; padding:11px 26px; background:transparent; color:var(--cyan);
     border:1px solid var(--cyan); letter-spacing:.16em; font-size:12px; cursor:pointer;}
   .btn:active{transform:translateY(1px);}
@@ -284,6 +302,17 @@
       <h2 id="resultTitle">STRUCTURE RESTORED</h2>
       <div class="molecule" id="resultMolecule"></div>
       <div class="trivia" id="resultTrivia"></div>
+
+      <div id="rank" class="hidden">
+        <div class="rHead">DAILY RANKING</div>
+        <div class="rForm" id="rankForm">
+          <input id="rankName" maxlength="20" placeholder="名前(20文字まで)" autocomplete="off">
+          <button class="btn small" id="rankSend">送信</button>
+        </div>
+        <div class="rNote" id="rankNote"></div>
+        <div class="rList" id="rankList"></div>
+      </div>
+
       <button class="btn" id="againBtn">NEXT</button>
     </div>
   </div>
@@ -1396,6 +1425,8 @@ if(typeof importScripts === 'function'){
       // 間違いはマスを開かない。ミスに気づかないまま進むのを防ぐ
       mistakes++;
       statMiss.textContent = mistakes;
+      // 抜けて入り直してもミスが消えないよう、その場で残す
+      if(current.type === 'daily' && dailyRun){ dailyRun.mistakes = mistakes; saveDailyRun(); }
       // マスは開かないので、押している間の枠色を自分で戻す必要がある
       // (開く場合は paintCell が戻していた)
       paintCell(i);
@@ -1799,6 +1830,7 @@ if(typeof importScripts === 'function'){
   // ---------- 画面遷移 ----------
   const SCREENS = ['title','stageSelect','sizeSelect'];
   function showScreen(id){
+    if(id === 'title') refreshDailyLabel();
     for(const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
     const playing = !id;
     $('toTitle').style.visibility = playing ? 'visible' : 'hidden';
@@ -1810,9 +1842,9 @@ if(typeof importScripts === 'function'){
 
   // ---------- 経過時間 ----------
   let startedAt = 0, timerId = null;
-  function startTimer(){
+  function startTimer(continueFrom){
     stopTimer();
-    startedAt = Date.now();
+    startedAt = continueFrom || Date.now();
     $('statTime').textContent = '0:00';
     timerId = setInterval(()=>{ $('statTime').textContent = fmtTime(Date.now()-startedAt); }, 500);
   }
@@ -1863,10 +1895,117 @@ if(typeof importScripts === 'function'){
     }
   }
 
+  // ---------- デイリーランキング(Supabase) ----------
+  // 盤面は日付の種から作るので、同じ day の記録どうしは同じ問題を解いている。
+  // 一発勝負にしたいので、記録を送れるのは1日1回だけ。
+  // ただし途中で抜けて入り直せるようにはしておく(誤操作で1日を失わせないため)。
+  // その代わり経過時間とミスは引き継ぐので、やり直しても有利にならない。
+  //
+  // 公式SDKは使わず REST を直接叩く。1ファイルで完結させたいので外部スクリプトを足さない。
+  // このキーは公開前提のもの(他のゲームでも埋め込んでいる)。
+  const SB_URL = 'https://hqbjlblvijynijvgknih.supabase.co/rest/v1/';
+  const SB_KEY = 'sb_publishable_QSUrJMJKz0tZwBYBiskyWQ_usDk6Wj9';
+  const RANK_TABLE = 'hexamine_scores';
+  const sbHeaders = ()=>({ apikey:SB_KEY, Authorization:'Bearer ' + SB_KEY,
+                           'Content-Type':'application/json' });
+
+  const DAILY_KEY = 'hexamineDaily_v1';
+  let dailyRun = null;
+  function loadDailyRun(){
+    let d = null;
+    try{ d = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); }catch(e){}
+    if(!d || d.day !== dailySeed()){
+      d = { day:dailySeed(), startedAt:0, mistakes:0, submitted:false, name:'' };
+    }
+    return d;
+  }
+  function saveDailyRun(){
+    if(!dailyRun) return;
+    try{ localStorage.setItem(DAILY_KEY, JSON.stringify(dailyRun)); }catch(e){}
+  }
+
+  async function fetchDailyTop(){
+    const q = RANK_TABLE + '?day=eq.' + dailySeed()
+            + '&select=name,mistakes,ms&order=mistakes.asc,ms.asc&limit=10';
+    const res = await fetch(SB_URL + q, { headers:sbHeaders() });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  async function sendDailyScore(name, mistakesN, ms){
+    const res = await fetch(SB_URL + RANK_TABLE, {
+      method:'POST', headers:sbHeaders(),
+      body: JSON.stringify({ day:dailySeed(), name:name, mistakes:mistakesN, ms:ms })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0,120));
+  }
+
+  const rankBox = $('rank'), rankForm = $('rankForm'), rankName = $('rankName'),
+        rankNote = $('rankNote'), rankList = $('rankList');
+
+  function renderRankList(rows, myName){
+    rankList.innerHTML = '';
+    if(!rows.length){ rankNote.textContent = 'まだ今日の記録がありません'; return; }
+    let shown = false;
+    rows.forEach((row, i)=>{
+      const el = document.createElement('div');
+      el.className = 'rRow' + (!shown && myName && row.name === myName ? ' me' : '');
+      if(el.className.indexOf('me') >= 0) shown = true;
+      const no = document.createElement('span'); no.className = 'no'; no.textContent = (i+1);
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = row.name;
+      const sc = document.createElement('span'); sc.className = 'sc';
+      sc.textContent = 'ミス ' + row.mistakes + ' / ' + fmtTime(row.ms);
+      el.appendChild(no); el.appendChild(nm); el.appendChild(sc);
+      rankList.appendChild(el);
+    });
+  }
+  async function showRankList(myName){
+    rankNote.textContent = '読み込み中…';
+    try{
+      renderRankList(await fetchDailyTop(), myName);
+      if(rankList.children.length) rankNote.textContent = 'ミスの少ない順、同じならタイム順';
+    }catch(e){
+      rankNote.textContent = 'ランキングを読み込めませんでした';
+      console.error(e);
+    }
+  }
+
+  // 結果画面のランキング欄。デイリー以外では出さない
+  function setupRank(elapsed){
+    if(!current || current.type !== 'daily'){ rankBox.classList.add('hidden'); return; }
+    rankBox.classList.remove('hidden');
+    rankList.innerHTML = '';
+    if(dailyRun && dailyRun.submitted){
+      rankForm.style.display = 'none';
+      rankNote.textContent = '今日はもう記録済みです';
+      showRankList(dailyRun.name);
+      return;
+    }
+    rankForm.style.display = '';
+    rankName.value = (dailyRun && dailyRun.name) || '';
+    rankNote.textContent = '送れるのは1日1回だけです';
+    rankSendHandler = async ()=>{
+      const name = rankName.value.trim().slice(0, 20);
+      if(!name){ rankNote.textContent = '名前を入れてください'; return; }
+      rankNote.textContent = '送信中…';
+      try{
+        await sendDailyScore(name, mistakes, Math.max(1, elapsed));
+        dailyRun.submitted = true; dailyRun.name = name; saveDailyRun();
+        rankForm.style.display = 'none';
+        await showRankList(name);
+      }catch(e){
+        rankNote.textContent = '送信に失敗しました。時間をおいて試してください';
+        console.error(e);
+      }
+    };
+  }
+  let rankSendHandler = null;
+  $('rankSend').addEventListener('click', ()=>{ if(rankSendHandler) rankSendHandler(); });
+
   // ---------- モード開始 ----------
   let current = null;
   function startMode(cfg){
     current = cfg;
+    if(cfg.onStart) cfg.onStart();
     showScreen(null);
     newPuzzle();
   }
@@ -1882,8 +2021,15 @@ if(typeof importScripts === 'function'){
   document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
   $('toTitle').addEventListener('click', ()=>{ stopTimer(); guideOn = false; guideClear(); lessonBox.classList.add('hidden'); showScreen('title'); });
   $('hintBtn').addEventListener('click', ()=> requestHint());
+  function refreshDailyLabel(){
+    const d = loadDailyRun();
+    $('dailyLabel').textContent = d.submitted
+      ? '今日は記録済み。順位は結果画面で見られます'
+      : (d.startedAt ? '挑戦中。抜けても時間とミスは引き継ぎます'
+                     : '今日の分子。全員が同じ盤面／記録は1回だけ');
+  }
   $('dailyBtn').addEventListener('click', ()=> startMode({
-    type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
+    type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(), onStart:()=>{ dailyRun = loadDailyRun(); },
     shape:organicShape(dailySeed(), DAILY_CELLS), keepRatio:0, density:0.44
   }));
 
@@ -1922,12 +2068,20 @@ if(typeof importScripts === 'function'){
           cellHint[h.owner] = h;
           if(h.shown) state[h.owner] = (h.kind === 'blue') ? BLUE : BLACK;
         }
-        mistakes = 0;
+        mistakes = (current.type === 'daily' && dailyRun) ? dailyRun.mistakes : 0;
+        statMiss.textContent = mistakes;
         busy = false;
         loading.classList.add('hidden');
         render();
         initLessons();
-        startTimer();
+        // デイリーは一発勝負。入り直してもミスと経過時間を引き継ぐ
+        const cont = (current.type === 'daily' && dailyRun && dailyRun.startedAt)
+          ? dailyRun.startedAt : 0;
+        startTimer(cont);
+        if(current.type === 'daily' && dailyRun){
+          dailyRun.startedAt = startedAt;
+          saveDailyRun();
+        }
       }
     };
 
@@ -1963,6 +2117,7 @@ if(typeof importScripts === 'function'){
     $('resultTrivia').textContent = body +
       '　／　' + fmtTime(elapsed) + '　ミス ' + mistakes +
       (isBest ? '　★自己ベスト更新' : '');
+    setupRank(elapsed);
     result.classList.remove('hidden');
   }
 
