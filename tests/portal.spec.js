@@ -139,13 +139,21 @@ test('掴んで動かしただけではゲームが切り替わらない', async
   await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
 });
 
-test('画像ロゴを読めない時もHTMLタイトルを表示する', async ({ page })=>{
-  await page.route('**/vivi-game-base-logo.webp',route=>route.abort());
+// ロゴは画像をやめてCSSで組んだ。画像ロゴは、それを載せる暗いパネルごと
+// 背景を覆っていたため。文字なので読み込み失敗という状態が存在しない。
+test('ロゴは画像ではなく文字で、背景を覆わない', async ({ page })=>{
   await page.goto('/index.html');
 
-  await expect(page.locator('.site-logo')).toBeHidden();
   await expect(page.locator('h1')).toBeVisible();
   await expect(page.locator('h1')).toContainText('VIVI GAME BASE');
+  await expect(page.locator('.site-logo')).toHaveCount(0);
+
+  // 背景が透けること。板で塞ぐと秘密基地の絵が見えなくなる
+  const opaque = await page.locator('.brand-frame').evaluate(el=>{
+    const bg = getComputedStyle(el).backgroundColor;
+    return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+  });
+  expect(opaque).toBe(false);
 });
 
 test('情報モーダルを開閉でき、背景スクロールを戻す', async ({ page })=>{
@@ -162,7 +170,6 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
   const files=[
     '/images/portal/arcade-bg-desktop.webp',
     '/images/portal/arcade-bg-mobile.webp',
-    '/images/portal/vivi-game-base-logo.webp',
     '/images/portal/console-body.webp',
     '/images/portal/cart-label-hell-runner.webp',
     '/images/portal/cart-label-boss-2048.webp',
