@@ -130,6 +130,31 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   width:24%; height:4.5%; border-radius:4px 4px 2px 2px; background:#04050a; z-index:3;
   box-shadow:inset 0 4px 8px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.18);}
 
+/* 候補の絵を敷いたときは、仮の図形を消す */
+.deck.real .machine{background:var(--body) center/contain no-repeat; border:0; box-shadow:none;
+  filter:drop-shadow(0 20px 26px rgba(0,0,0,.6));}
+.deck.real .pcb,.deck.real .dpad,.deck.real .knobs,.deck.real .grill,.deck.real .chip,
+.deck.real .slotLip{display:none;}
+/* 内部の発光。絵のアルファを切り抜きに使い、暗い部分だけが色を拾うよう screen で重ねる。
+   これが「背景の透過」を絶対条件にしている理由。 */
+.bodyGlow{position:absolute; inset:0; z-index:2; pointer-events:none; opacity:0;
+  -webkit-mask-image:var(--body); mask-image:var(--body);
+  -webkit-mask-size:contain; mask-size:contain;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  background:radial-gradient(ellipse at 50% 55%,var(--game-dim),transparent 68%);
+  mix-blend-mode:screen; transition:opacity .5s;}
+.deck.on .bodyGlow{opacity:1;}
+.deck:not(.real) .bodyGlow{display:none;}
+
+/* 候補の切り替え */
+.picker{display:flex; justify-content:center; gap:8px; margin:0 0 18px;}
+.picker button{padding:7px 14px; font:inherit; font-size:11px; letter-spacing:.08em;
+  background:rgba(12,16,26,.9); color:var(--muted); border:1px solid var(--line);
+  border-radius:4px; cursor:pointer;}
+.picker button[aria-pressed="true"]{color:var(--cyan); border-color:var(--cyan);
+  box-shadow:0 0 12px rgba(32,230,255,.25);}
+
 /* 吸い込まれた瞬間、差込口が一度だけ強く光る。
    「カセットを挿した」より「データを流し込んだ」に見せたいため */
 .flash{position:absolute; left:var(--slot-x); top:0; transform:translate(-50%,-50%);
@@ -215,6 +240,8 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 <h1>GAME CONSOLE</h1>
 <p class="lead">カセットを選ぶと本体に吸い込まれます</p>
 
+<div class="picker" id="picker"></div>
+
 <div class="stage">
   <div class="rack" id="rack"></div>
   <div class="toast" id="toast"></div>
@@ -222,6 +249,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   <div class="deck" id="deck">
     <div class="cartFlight" id="flight"><span class="shell"><span class="label" id="flightLabel"></span></span></div>
 
+    <div class="bodyGlow"></div>
     <div class="machine">
       <div class="pcb"></div>
       <span class="chip" style="left:22%; top:70%; width:11%; height:14%"></span>
@@ -266,6 +294,32 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
       color:'#20e6ff', art:"url('images/portal/cart-label-hexamine.png')" },
     { id:'next', name:'COMING SOON', desc:'次のゲームは準備中',      href:null, blank:true }
   ];
+
+  // 届いた本体の候補。座標は絵から目視で拾った概算。選んだあと詰める。
+  const SRC = 'images/portal/source/console-body-pattern-';
+  const BODIES = [
+    { n:0, name:'仮図形' },
+    { n:1, name:'案1 標準',   screen:[31.6,18.4,36.9,49.3], play:[34.5,73.5,31,10.5], slot:50, cart:20 },
+    { n:2, name:'案2 マンタ', screen:[36.2,20.3,27.5,42.2], play:[39.5,67.5,21,12],   slot:50, cart:15 },
+    { n:3, name:'案3 六角',   screen:[34.1,22.0,31.6,43.4], play:[36.0,68.0,28,12.5], slot:50, cart:17 },
+    { n:4, name:'案4 装置',   screen:[34.1,26.0,31.9,33.6], play:[36.0,62.5,28.8,11], slot:50, cart:16 }
+  ];
+  function useBody(b){
+    const deck = document.getElementById('deck');
+    if(!b.n){ deck.classList.remove('real'); deck.style.removeProperty('--body'); return; }
+    deck.classList.add('real');
+    deck.style.setProperty('--body', "url('" + SRC + b.n + ".png')");
+    deck.style.setProperty('--screen-x', b.screen[0]+'%');
+    deck.style.setProperty('--screen-y', b.screen[1]+'%');
+    deck.style.setProperty('--screen-w', b.screen[2]+'%');
+    deck.style.setProperty('--screen-h', b.screen[3]+'%');
+    deck.style.setProperty('--play-x', b.play[0]+'%');
+    deck.style.setProperty('--play-y', b.play[1]+'%');
+    deck.style.setProperty('--play-w', b.play[2]+'%');
+    deck.style.setProperty('--play-h', b.play[3]+'%');
+    deck.style.setProperty('--slot-x', b.slot+'%');
+    document.querySelector('.cartFlight').style.width = b.cart+'%';
+  }
 
   const rack = document.getElementById('rack');
   const deck = document.getElementById('deck');
@@ -341,7 +395,22 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     return 'rgba(' + (n>>16 & 255) + ',' + (n>>8 & 255) + ',' + (n & 255) + ',' + a + ')';
   }
 
+  // 切り替えボタン
+  const picker = document.getElementById('picker');
+  const pbtns = [];
+  BODIES.forEach(b=>{
+    const el = document.createElement('button');
+    el.type='button'; el.textContent = b.name; el.setAttribute('aria-pressed','false');
+    el.addEventListener('click', ()=>{
+      useBody(b);
+      pbtns.forEach(x=> x.setAttribute('aria-pressed','false'));
+      el.setAttribute('aria-pressed','true');
+    });
+    picker.appendChild(el); pbtns.push(el);
+  });
+
   insert(GAMES[2], buttons[2]);
+  pbtns[1].click();   // 既定は案1
 })();
 </script>
 </body>
