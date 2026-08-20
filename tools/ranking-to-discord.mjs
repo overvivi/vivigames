@@ -17,10 +17,25 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 const STATE_FILE = 'tools/ranking-state.json';
 const SOURCE_HTML = 'games/temple-run-clone.html';
 
+// kind は記録の並べ方。
+//   score … スコアが高いほど上位（通しの記録）
+//   daily … その日の中で、ミスが少ない順・同じならタイムが短い順
 const GAMES = [
-  { table: 'runner_scores',      label: 'HELL RUNNER' },
-  { table: 'boss_battle_scores', label: '討伐2048' }
+  { table: 'runner_scores',      label: 'HELL RUNNER', kind: 'score' },
+  { table: 'boss_battle_scores', label: '討伐2048',    kind: 'score' },
+  { table: 'hexamine_scores',    label: 'HEXAMINE',    kind: 'daily' }
 ];
+
+// デイリーの日付は日本時間で決める。ゲーム本体と揃えないと、
+// GitHub Actions（UTC）が別の日の順位を見てしまう。
+function jstDay(){
+  const d = new Date(Date.now() + 9 * 3600 * 1000);
+  return d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate();
+}
+const fmtTime = ms =>{
+  const sec = Math.max(0, Math.floor(Number(ms)/1000));
+  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
+};
 
 const dryRun = process.argv.includes('--dry-run');
 
@@ -65,8 +80,12 @@ const fmt = n => Number(n).toLocaleString('ja-JP');
 
 // ---- 現在の1位を取得 ----
 const { url, key } = resolveSupabase();
-async function fetchTop(table){
-  const endpoint = `${url}/rest/v1/${table}?select=name,score&order=score.desc&limit=1`;
+async function fetchTop(game){
+  const table = game.table;
+  const query = game.kind === 'daily'
+    ? `day=eq.${jstDay()}&select=name,mistakes,ms&order=mistakes.asc,ms.asc&limit=1`
+    : 'select=name,score&order=score.desc&limit=1';
+  const endpoint = `${url}/rest/v1/${table}?${query}`;
   const res = await fetch(endpoint, {
     headers: { apikey: key, Authorization: `Bearer ${key}` }
   });
@@ -86,7 +105,7 @@ let stateChanged = false;
 for(const game of GAMES){
   let top;
   try {
-    top = await fetchTop(game.table);
+    top = await fetchTop(game);
   } catch (e) {
     console.error(`${game.label}: ${e.message}`);
     continue;
@@ -97,6 +116,50 @@ for(const game of GAMES){
   }
 
   const prev = state[game.table];
+  const name = sanitizeName(top.name);
+
+  if(game.kind === 'daily'){
+    const day = jstDay();
+    const cur = { day, name: top.name, mistakes: Number(top.mistakes), ms: Number(top.ms) };
+    const label = `ミス ${cur.mistakes} / ${fmtTime(cur.ms)}`;
+
+    // 初回だけは記録して黙る。過去の記録を今の更新として流さないため。
+    if(!prev){
+      console.log(`${game.label}: 初回のため記録だけ保存する（${label}）`);
+      state[game.table] = cur;
+      stateChanged = true;
+      continue;
+    }
+    // 日が変わったら、その日の最初の1位を知らせる。前日との比較には意味が無い
+    if(prev.day !== day){
+      messages.push(
+        `🧬 **${game.label} 今日の1位**
+` +
+        `${name} — ${label}`
+      );
+      state[game.table] = cur;
+      stateChanged = true;
+      continue;
+    }
+    // ミスが減ったか、同じミス数で速くなった時だけ流す
+    const better = cur.mistakes < prev.mistakes
+      || (cur.mistakes === prev.mistakes && cur.ms < prev.ms);
+    if(!better){
+      console.log(`${game.label}: 更新なし（現在 ${label}）`);
+      continue;
+    }
+    messages.push(
+      `👑 **${game.label} 今日の1位が入れ替わり！**
+` +
+      `1位: ${name} — ${label}
+` +
+      `（前回: ${sanitizeName(prev.name)} — ミス ${prev.mistakes} / ${fmtTime(prev.ms)}）`
+    );
+    state[game.table] = cur;
+    stateChanged = true;
+    continue;
+  }
+
   const score = Math.floor(Number(top.score) || 0);
 
   // 初回はスコアを覚えるだけで通知しない。過去の記録を「新記録」として流さないため。
@@ -113,12 +176,12 @@ for(const game of GAMES){
     continue;
   }
 
-  const name = sanitizeName(top.name);
-  const prevName = sanitizeName(prev.name);
   messages.push(
-    `👑 **${game.label} 新記録！**\n` +
-    `1位: ${name} — ${fmt(score)}\n` +
-    `（前回: ${prevName} — ${fmt(prev.score)}）`
+    `👑 **${game.label} 新記録！**
+` +
+    `1位: ${name} — ${fmt(score)}
+` +
+    `（前回: ${sanitizeName(prev.name)} — ${fmt(prev.score)}）`
   );
   state[game.table] = { name: top.name, score };
   stateChanged = true;

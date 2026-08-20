@@ -965,9 +965,17 @@ if(typeof importScripts === 'function'){
     }
     return better;
   }
+  // 日付は日本時間で決める。端末のローカル時刻で決めると、時差のある人だけ
+  // 別の盤面になり「全員が同じ盤面」が崩れる(ランキングの日付も食い違う)。
+  const JST_OFFSET = 9 * 3600 * 1000;
+  const dailyDate = ()=> new Date(Date.now() + JST_OFFSET);
   const dailySeed = ()=>{
-    const d = new Date();
-    return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+    const d = dailyDate();
+    return d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate();
+  };
+  const dailyLabelText = ()=>{
+    const d = dailyDate();
+    return d.getUTCFullYear() + '/' + (d.getUTCMonth()+1) + '/' + d.getUTCDate();
   };
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
@@ -2106,7 +2114,7 @@ if(typeof importScripts === 'function'){
       head = current.stage.name + '　' + current.stage.formula;
       body = current.stage.trivia;
     } else if(current.type === 'daily'){
-      head = 'DAILY　' + new Date().toLocaleDateString('ja-JP');
+      head = 'DAILY　' + dailyLabelText();
       body = '全員が同じ盤面に挑んでいます。';
     } else {
       head = 'INFINITE　' + current.size.name;
