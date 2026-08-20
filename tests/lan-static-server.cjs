@@ -24,5 +24,7 @@ const server = http.createServer((req,res)=>{
   });
 });
 
-const PORT = 4174;
-server.listen(PORT, '0.0.0.0', ()=>console.log('LAN preview on port ' + PORT));
+// 携帯実機確認ではLAN公開、PCだけの確認では127.0.0.1へ限定できるようにする。
+const PORT = Number(process.env.VIVI_PREVIEW_PORT || 4174);
+const HOST = process.env.VIVI_PREVIEW_HOST || '0.0.0.0';
+server.listen(PORT, HOST, ()=>console.log('Preview on http://' + HOST + ':' + PORT));

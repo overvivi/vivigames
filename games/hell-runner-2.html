@@ -2942,6 +2942,12 @@ ORB XP 0 / LUCKY 0</div>
     gameHud.classList.add('hidden');
     rogueHud.classList.add('hidden');
     levelUpOverlay.classList.add('hidden');
+    // HOMEは状態をidleへ戻すだけではDOMの表示が更新されない。
+    // 直前のコンボをタイトルへ持ち越さないよう、値と専用HUDをここで必ず閉じる。
+    comboCount = 0;
+    comboTimer = 0;
+    renderComboHud();
+    renderSoulBankHud();
   }
 
   startBtn.addEventListener('click', startGame);

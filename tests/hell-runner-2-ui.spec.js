@@ -269,7 +269,7 @@ test('HELL RUNNER 2の大きいコンボ表示は開発者ツールで位置と�
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/games/hell-runner-2.html?debug=1');
   await page.locator('#startBtn').click();
-  await page.locator('#debugComboPreview').click();
+  await page.locator('#debugComboPreview').evaluate(button=>button.click());
   await expect(page.locator('#comboHud')).toBeVisible();
   await expect(page.locator('#comboLabel')).toHaveText('08');
   await expect(page.locator('#comboHud')).toHaveClass(/tier-3/);
@@ -329,6 +329,18 @@ test('HELL RUNNER 2は携帯通知を能力スロットの下へ出し、ゲー�
   await expect(page.locator('#comboHud')).toBeHidden();
   await expect(page.locator('#soulBankHud')).toBeHidden();
   await expect(page.locator('#unlockBanner')).toBeHidden();
+});
+
+test('HELL RUNNER 2はポーズのHOMEでコンボHUDをタイトルへ残さない', async ({ page })=>{
+  await page.goto('/games/hell-runner-2.html?debug=1');
+  await page.locator('#startBtn').click();
+  await page.locator('#debugComboPreview').evaluate(button=>button.click());
+  await expect(page.locator('#comboHud')).toBeVisible();
+  await page.locator('#pauseBtn').click();
+  await expect(page.locator('#pauseOverlay')).toBeVisible();
+  await page.locator('#pauseHomeBtn').click();
+  await expect(page.locator('#startScreen')).toBeVisible();
+  await expect(page.locator('#comboHud')).toBeHidden();
 });
 
 test('HELL RUNNER 2のPC取得通知は能力スロットより下に表示する', async ({ page })=>{
