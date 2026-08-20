@@ -19,11 +19,15 @@
 
   /* ---- HUD ---- */
   #hud{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
-    padding:10px 14px; border-bottom:1px solid var(--line); background:rgba(6,10,18,.9);}
+    min-height:62px; padding:11px clamp(12px,2.4vw,24px); border-bottom:1px solid var(--line); background:rgba(6,10,18,.9);}
+  /* タイトル／選択画面に前回の記録が残ると、まだ始めていないのに失敗した印象になる。
+     HUD帯ごと隠して、メニューは画面全体を使わせる。 */
+  #hud.hidden{display:none;}
   .brand{font-size:13px; letter-spacing:.28em; color:var(--cyan); text-shadow:0 0 14px rgba(32,230,255,.5);}
-  .stats{display:flex; gap:16px; font-size:12px; letter-spacing:.08em;}
-  .stat b{display:block; font-size:17px; font-weight:700; letter-spacing:0;}
-  .stat span{color:var(--muted); font-size:10px;}
+  .stats{display:flex; gap:clamp(12px,2.4vw,27px); font-size:12px; letter-spacing:.08em;}
+  .stat{min-width:48px; text-align:center;}
+  .stat b{display:block; margin-top:2px; font-size:clamp(18px,2.1vw,23px); font-weight:700; line-height:1; letter-spacing:0;}
+  .stat span{color:var(--muted); font-size:clamp(9px,1.1vw,11px);}
   .stat.bad b{color:var(--magenta);}
 
   /* ---- 盤面 ---- */
@@ -1841,6 +1845,7 @@ if(typeof importScripts === 'function'){
     if(id === 'title') refreshDailyLabel();
     for(const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
     const playing = !id;
+    $('hud').classList.toggle('hidden', !playing);
     $('toTitle').style.visibility = playing ? 'visible' : 'hidden';
     $('hintBtn').style.visibility = playing ? 'visible' : 'hidden';
     if(playing) $('hintbar').textContent = HINT_TEXT;

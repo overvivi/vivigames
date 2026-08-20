@@ -17,3 +17,10 @@ playwright-report/
 # ポータル素材の生成原本。世代違いの中間生成物が大半で42MBあるため履歴には残さない。
 # 公開に使う images/portal/*.webp は追跡している。原本はディスク上に保持する。
 images/portal/source/
+
+# HELL RUNNER 2 素材の生成原本。36MBあり、公開には使わない。
+# 公開で使う images/hell-runner-2/{icons,frames,ui,collectibles} は追跡している。
+images/hell-runner-2/source/
+
+# ブラウザが吐くGPUのエラーログ
+debug.log
