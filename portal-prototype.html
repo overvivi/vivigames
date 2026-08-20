@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ゲーム置き場 試作（実機＋カセット）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/*
+  実機＋カセット方式の試作。
+  本体もカセットもCSSの図形で仮組みしてある。画像が届いたら差し替える。
+  位置合わせに使う値は --slot-* / --panel-* に寄せてあるので、
+  絵の差込口やパネルの位置がずれていてもここだけ直せば合う。
+*/
+:root{
+  --black:#05040a; --panel:#111425; --cyan:#20e6ff; --magenta:#ff2ba6;
+  --text:#f2f5ff; --muted:#98a2bd; --line:rgba(32,230,255,.32);
+  /* いま挿さっているゲームの色。カセットを挿すと差し替わる */
+  --game:#20e6ff; --game-dim:rgba(32,230,255,.22);
+}
+*{box-sizing:border-box;}
+body{margin:0; background:
+    radial-gradient(ellipse at 50% 0%,rgba(32,230,255,.07),transparent 55%),
+    var(--black);
+  color:var(--text); font-family:'Noto Sans JP',system-ui,sans-serif;
+  min-height:100vh; padding:26px 16px 60px;}
+h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
+  letter-spacing:.1em; text-align:center; color:var(--cyan); margin:0 0 6px;}
+.lead{text-align:center; font-size:11px; color:var(--muted); margin:0 0 26px; letter-spacing:.08em;}
+
+.stage{width:min(880px,100%); margin:0 auto;}
+
+/* ---------- カセット置き場 ---------- */
+.rack{display:flex; flex-wrap:wrap; justify-content:center; gap:14px;}
+.cart{position:relative; width:104px; padding:0; border:0; background:none;
+  cursor:pointer; transition:transform .18s ease; font:inherit;}
+.cart:hover:not(:disabled),.cart:focus-visible{transform:translateY(-6px);}
+.cart:focus-visible{outline:2px solid var(--cyan); outline-offset:6px;}
+.cart:disabled{cursor:not-allowed;}
+/* 仮のカセット本体。画像が来たら shell の背景画像に置き換える */
+.shell{position:relative; aspect-ratio:600/800; border-radius:8px 8px 4px 4px;
+  background:linear-gradient(160deg,#2a2f3d,#12151f 62%,#0a0c13);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 10px 20px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
+  display:flex; align-items:flex-start; justify-content:center; padding:11% 10% 0;}
+.shell::before{content:''; position:absolute; left:14%; right:14%; top:3.5%; height:4%;
+  border-radius:3px; background:rgba(0,0,0,.5); box-shadow:inset 0 1px 0 rgba(255,255,255,.07);}
+.shell::after{content:''; position:absolute; left:18%; right:18%; bottom:3%; height:5%;
+  border-radius:2px; background:repeating-linear-gradient(90deg,#3b4152 0 3px,#11141d 3px 6px);}
+/* ラベル。ここへ 800x800 の絵が入る */
+.label{width:100%; aspect-ratio:1; border-radius:3px; overflow:hidden;
+  background:var(--art,#1b2030); box-shadow:inset 0 0 0 1px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.06);}
+.cart .name{display:block; margin-top:7px; font-size:9.5px; letter-spacing:.09em;
+  color:var(--muted); text-align:center;}
+.cart[aria-pressed="true"] .name{color:var(--text);}
+.cart.blank .shell{background:linear-gradient(160deg,#1b1e28,#0c0e15); opacity:.55;}
+.cart.blank .label{background:repeating-linear-gradient(45deg,#171b26 0 6px,#12151e 6px 12px);}
+
+/* 取り出した跡は空のくぼみとして残す。まるごと消すと列に穴が空いて見える */
+.cart.inserted .shell{opacity:.3; box-shadow:none;}
+.cart.inserted .label{background:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}
+.cart.inserted .name{color:var(--game);}
+
+/* ---------- 実機本体 ---------- */
+/* 挿さったカセットは差込口から上へ伸びる。その高さぶん本体を下げないと
+   カセット置き場と重なる。%は親(.stage)の幅を基準にするので端末幅に追従する */
+.console{position:relative; margin:13% auto 0; width:min(620px,100%); aspect-ratio:1600/900;
+  --slot-x:50%; --slot-y:15%;          /* 差込口の中心 */
+  --panel-x:14%; --panel-y:52%;        /* 前面パネルの左上 */
+  --panel-w:72%; --panel-h:30%;}
+/* 仮の本体。画像が来たら背景画像に置き換える */
+.body{position:absolute; inset:14% 4% 6%; border-radius:16px 16px 10px 10px;
+  background:linear-gradient(178deg,#3a4152 0 12%,#1a1e2a 13%,#0e1119 70%,#080a10);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 26px 46px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.12);}
+.vent{position:absolute; top:26%; width:9%; height:34%; border-radius:3px;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.62) 0 3px,transparent 3px 7px);}
+.vent.l{left:7%;} .vent.r{right:7%;}
+.feet{position:absolute; left:12%; right:12%; bottom:1%; height:4%;
+  background:linear-gradient(180deg,#20242f,#0a0c11); border-radius:0 0 6px 6px;}
+/* 差込口 */
+.slot{position:absolute; left:var(--slot-x); top:var(--slot-y); transform:translate(-50%,-50%);
+  width:23%; height:3.4%; border-radius:3px; background:#04050a;
+  box-shadow:inset 0 3px 7px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.10);}
+.slot::after{content:''; position:absolute; inset:-5px -8px; border-radius:6px;
+  box-shadow:0 0 18px var(--game-dim); opacity:0; transition:opacity .3s;}
+.console.on .slot::after{opacity:1;}
+/* 前面パネル */
+.front{position:absolute; left:var(--panel-x); top:var(--panel-y);
+  width:var(--panel-w); height:var(--panel-h);
+  border-radius:7px; background:#03040a; border:1px solid rgba(255,255,255,.07);
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.9);
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:0 clamp(10px,2.4vw,20px); overflow:hidden;}
+.front::before{content:''; position:absolute; inset:0;
+  background:linear-gradient(100deg,transparent 30%,var(--game-dim));
+  opacity:0; transition:opacity .35s;}
+.console.on .front{border-color:var(--game-dim); box-shadow:inset 0 2px 12px rgba(0,0,0,.9), 0 0 22px var(--game-dim);}
+.console.on .front::before{opacity:1;}
+.info{position:relative; min-width:0;}
+.info .t{font-family:'Press Start 2P',monospace; font-size:clamp(9px,1.8vw,13px);
+  letter-spacing:.06em; color:var(--game); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.info .d{margin-top:6px; font-size:clamp(8.5px,1.5vw,10.5px); color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.play{position:relative; flex:0 0 auto; text-decoration:none;
+  font-family:'Press Start 2P',monospace; font-size:clamp(9px,1.7vw,12px);
+  color:var(--game); border:1px solid var(--game); border-radius:5px;
+  padding:10px 16px; letter-spacing:.08em; background:rgba(0,0,0,.5);
+  box-shadow:0 0 14px var(--game-dim);}
+.play:hover,.play:focus-visible{background:var(--game); color:#04060d; outline:none;}
+.console:not(.on) .play{display:none;}
+.console:not(.on) .info .t{color:var(--muted);}
+
+/* 挿さったカセット。差込口から頭だけ出す */
+.stuck{position:absolute; left:var(--slot-x); top:var(--slot-y);
+  width:16%; transform:translate(-50%,-100%); transform-origin:50% 100%;
+  pointer-events:none; opacity:0;}
+.stuck.show{opacity:1; animation:drop .4s cubic-bezier(.3,.9,.4,1);}
+@keyframes drop{
+  from{transform:translate(-50%,-168%);}
+  70%{transform:translate(-50%,-96%);}
+  to{transform:translate(-50%,-100%);}
+}
+.stuck .shell{border-radius:6px 6px 0 0; box-shadow:0 -6px 16px rgba(0,0,0,.6);}
+.stuck .shell::after{display:none;}
+
+@media (prefers-reduced-motion: reduce){
+  .stuck.show{animation:none;}
+  .cart{transition:none;}
+}
+@media (max-width:520px){
+  .rack{gap:9px;} .cart{width:74px;}
+  /* 縦積みにすると横並びのままの高さでは収まらない。パネル自体を広げる */
+  .console{--panel-x:11%; --panel-y:40%; --panel-w:78%; --panel-h:46%;}
+  .front{flex-direction:column; align-items:flex-start; justify-content:center; gap:7px;
+    padding:10px 12px;}
+  .info .d{white-space:normal; line-height:1.5;}
+  .play{padding:7px 13px;}
+}
+.toast{height:16px; margin-top:9px; text-align:center; font-size:10.5px; letter-spacing:.08em;
+  color:var(--muted); opacity:0; transition:opacity .2s;}
+.toast.show{opacity:1;}
+@keyframes nudge{0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);}}
+.cart.nudge{animation:nudge .26s;}
+
+.note{width:min(880px,100%); margin:30px auto 0; padding:14px 16px;
+  border:1px solid var(--line); background:rgba(17,20,37,.6);
+  font-size:11px; line-height:1.9; color:var(--muted);}
+.note b{color:var(--text);}
+</style>
+</head>
+<body>
+
+<h1>GAME CONSOLE</h1>
+<p class="lead">カセットを選ぶと実機に挿さります</p>
+
+<div class="stage">
+  <div class="rack" id="rack"></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="console" id="console">
+    <div class="body">
+      <div class="vent l"></div>
+      <div class="vent r"></div>
+      <div class="feet"></div>
+    </div>
+    <div class="slot"></div>
+    <div class="stuck" id="stuck"><div class="shell"><div class="label" id="stuckLabel"></div></div></div>
+    <div class="front">
+      <div class="info">
+        <div class="t" id="frontTitle">カセットを挿してください</div>
+        <div class="d" id="frontDesc">上のカセットから選ぶ</div>
+      </div>
+      <a class="play" id="playLink" href="#">PLAY</a>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>これは試作です。</b>本体もカセットもCSSの図形で仮に置いてあります。
+  発注した画像が届いたら差し替えて、差込口と前面パネルの位置を詰めます。
+  操作の流れ（選ぶ→挿さる→点灯→PLAY）と、携帯での収まりを見てください。
+</div>
+
+<script>
+(function(){
+  // ラベルは本番では画像1枚に置き換わる。試作では色で代用する。
+  const GAMES = [
+    { id:'hell',  name:'HELL RUNNER', desc:'崩れる足場を駆け抜ける', href:'games/temple-run-clone.html',
+      color:'#ff4b2b', art:'radial-gradient(circle at 50% 78%,#ff7a3d,#8c1d0d 55%,#1a0605)' },
+    { id:'boss',  name:'討伐2048',     desc:'合体させてボスを討伐',   href:'games/boss-battle-demo.html',
+      color:'#a855f7', art:'radial-gradient(circle at 50% 70%,#8b5cf6,#3b1d6e 55%,#0d0718)' },
+    { id:'hexa',  name:'HEXAMINE',    desc:'分子構造を論理だけで復元', href:'games/hexamine.html',
+      color:'#20e6ff', art:'radial-gradient(circle at 50% 62%,#20e6ff,#0b4a63 52%,#04121a)' },
+    { id:'next',  name:'COMING SOON', desc:'次のゲームは準備中',      href:null, blank:true }
+  ];
+
+  const rack = document.getElementById('rack');
+  const box  = document.getElementById('console');
+  const stuck = document.getElementById('stuck');
+  const stuckLabel = document.getElementById('stuckLabel');
+  const fTitle = document.getElementById('frontTitle');
+  const fDesc  = document.getElementById('frontDesc');
+  const play   = document.getElementById('playLink');
+  const toast = document.getElementById('toast');
+  const buttons = [];
+  let inserted = null, toastTimer = null;
+
+  // 「動きを減らす」設定では演出を飛ばす
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  GAMES.forEach(g=>{
+    const b = document.createElement('button');
+    b.className = 'cart' + (g.blank ? ' blank' : '');
+    b.type = 'button';
+    b.setAttribute('aria-pressed','false');
+    b.innerHTML = '<span class="shell"><span class="label"></span></span><span class="name"></span>';
+    b.querySelector('.name').textContent = g.name;
+    if(g.art) b.querySelector('.label').style.setProperty('--art', g.art);
+    b.addEventListener('click', ()=> insert(g, b));
+    rack.appendChild(b);
+    buttons.push(b);
+  });
+
+  function insert(g, btn){
+    buttons.forEach(x=>{ x.setAttribute('aria-pressed','false'); x.classList.remove('inserted'); });
+
+    if(g.blank){
+      // 空のカセットは挿さらない。いま挿さっているものを外す理由も無いので触らない
+      buttons.forEach((x,i)=>{ if(GAMES[i].id === inserted) x.setAttribute('aria-pressed','true'); });
+      btn.classList.remove('nudge'); void btn.offsetWidth; btn.classList.add('nudge');
+      toast.textContent = '次のゲームは準備中です';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> toast.classList.remove('show'), 2400);
+      return;
+    }
+    toast.classList.remove('show');
+    inserted = g.id;
+
+    btn.setAttribute('aria-pressed','true');
+    btn.classList.add('inserted');
+    box.style.setProperty('--game', g.color);
+    box.style.setProperty('--game-dim', hexA(g.color, .28));
+    stuckLabel.style.setProperty('--art', g.art);
+
+    // 同じ演出を出し直すため、一度クラスを外して再描画させる
+    stuck.classList.remove('show');
+    void stuck.offsetWidth;
+    stuck.classList.add('show');
+
+    fTitle.textContent = g.name;
+    fDesc.textContent = g.desc;
+    play.href = g.href;
+    play.setAttribute('aria-label', g.name + 'をプレイ');
+    // 演出中でも押せるようにする。待たせる理由が無い
+    box.classList.add('on');
+  }
+
+  function hexA(hex, a){
+    const n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n>>16 & 255) + ',' + (n>>8 & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  // 最初は一番新しいゲームを挿しておく
+  insert(GAMES[2], buttons[2]);
+})();
+</script>
+</body>
+</html>
