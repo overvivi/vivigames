@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{--black:#05040a;--panel:#111425;--cyan:#20e6ff;--magenta:#ff2ba6;--text:#f2f5ff;--muted:#98a2bd;--line:rgba(32,230,255,.32);--portal-logo-x:0px;--portal-logo-y:0px;--portal-logo-scale:1;--portal-status-x:0px;--portal-status-y:0px;--portal-status-scale:1;--portal-cart-head-x:0px;--portal-cart-head-y:0px;--portal-cart-head-scale:1;--portal-rack-x:0px;--portal-rack-y:0px;--portal-rack-scale:1;--portal-cart-label-x:0px;--portal-cart-label-y:0px;--portal-cart-label-scale:1;--portal-deck-x:0px;--portal-deck-y:0px;--portal-deck-scale:1;--portal-tags-x:0px;--portal-tags-y:0px;--portal-tags-scale:1;--portal-info-x:0px;--portal-info-y:0px;--portal-info-scale:1}
+  :root{--black:#05040a;--panel:#111425;--cyan:#20e6ff;--magenta:#ff2ba6;--text:#f2f5ff;--muted:#98a2bd;--line:rgba(32,230,255,.32);--portal-logo-x:0px;--portal-logo-y:0px;--portal-logo-scale:1;--portal-status-x:0px;--portal-status-y:0px;--portal-status-scale:1;--portal-cart-head-x:0px;--portal-cart-head-y:0px;--portal-cart-head-scale:1;--portal-rack-x:0px;--portal-rack-y:0px;--portal-rack-scale:1;--portal-cart-label-x:0px;--portal-cart-label-y:0px;--portal-cart-label-scale:1;--portal-deck-x:0px;--portal-deck-y:0px;--portal-deck-scale:1;--portal-inserted-cart-x:0px;--portal-inserted-cart-y:0px;--portal-inserted-cart-scale:1;--portal-tags-x:0px;--portal-tags-y:0px;--portal-tags-scale:1;--portal-info-x:0px;--portal-info-y:0px;--portal-info-scale:1}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;min-width:320px;min-height:100vh;overflow-x:hidden;color:var(--text);background:linear-gradient(180deg,rgba(5,4,10,.2),var(--black) 88%),radial-gradient(circle at 18% 22%,rgba(255,43,166,.15),transparent 25%),radial-gradient(circle at 82% 25%,rgba(32,230,255,.13),transparent 27%),var(--black);font-family:'Noto Sans JP',system-ui,sans-serif}
@@ -129,13 +129,13 @@
   /* 挿したカセットは本体の裏へ潜り込ませて消す。奥まで入って見えるうえ、
      差込口と1ピクセル単位で位置を合わせる必要が無くなる */
   .cart-fly{position:absolute;left:var(--slot-x);top:0;width:20%;z-index:1;pointer-events:none;opacity:0;
-    transform:translate(-50%,-105%)}
+    transform:translate(calc(-50% + var(--portal-inserted-cart-x)),calc(-105% + var(--portal-inserted-cart-y))) scale(var(--portal-inserted-cart-scale))}
   .cart-fly.go{animation:cart-sink .55s cubic-bezier(.35,.05,.25,1) forwards}
   @keyframes cart-sink{
-    0%{transform:translate(-50%,-118%);opacity:0}
-    28%{transform:translate(-50%,-88%);opacity:1}
-    58%{transform:translate(-50%,-66%);opacity:1}
-    100%{transform:translate(-50%,22%);opacity:1}}
+    0%{transform:translate(calc(-50% + var(--portal-inserted-cart-x)),calc(-118% + var(--portal-inserted-cart-y))) scale(var(--portal-inserted-cart-scale));opacity:0}
+    28%{transform:translate(calc(-50% + var(--portal-inserted-cart-x)),calc(-88% + var(--portal-inserted-cart-y))) scale(var(--portal-inserted-cart-scale));opacity:1}
+    58%{transform:translate(calc(-50% + var(--portal-inserted-cart-x)),calc(-66% + var(--portal-inserted-cart-y))) scale(var(--portal-inserted-cart-scale));opacity:1}
+    100%{transform:translate(calc(-50% + var(--portal-inserted-cart-x)),calc(22% + var(--portal-inserted-cart-y))) scale(var(--portal-inserted-cart-scale));opacity:1}}
   .machine{position:absolute;inset:0;z-index:2;
     background:url('images/portal/console-body.webp') center/contain no-repeat;
     filter:drop-shadow(0 20px 30px rgba(0,0,0,.65))}
@@ -206,7 +206,7 @@
     .topbar-inner{min-height:60px}.hero{min-height:600px}.hero-copy{padding-top:88px}.arcade-status{margin-top:8px;font-size:10px}
     main{margin-top:-155px}.section-title{margin-bottom:10px}
     .info-section{padding-bottom:18px}.info-section .section-title{margin-bottom:8px}.info-grid{padding:8px;gap:7px}.info-button{min-height:76px;padding:9px 32px 8px 9px}.info-icon{float:left;width:28px;height:28px;margin:0 8px 0 0;font-size:16px}.info-name{padding-top:1px}.info-copy{margin-top:5px;font-size:9px}footer{padding:15px 0 18px}}
-  @media(max-width:599px){:root{--portal-cart-head-y:-78px;--portal-cart-head-scale:1.09;--portal-rack-y:-82px;--portal-cart-label-x:-15px;--portal-deck-y:-127px;--portal-info-y:37px}.cs-shell{width:calc(100% - 32px)}.hero{min-height:560px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 60%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:16px 8px}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-185px}.section-title{margin-bottom:20px}.rack{gap:10px}.cart{width:88px}.cart .cname{width:100%;margin-top:7px;font-size:8px;line-height:1.35;letter-spacing:.03em;text-align:center;white-space:nowrap}.cart-fly{width:25%}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
+  @media(max-width:599px){:root{--portal-logo-x:0px;--portal-logo-y:0px;--portal-logo-scale:1;--portal-status-x:0px;--portal-status-y:0px;--portal-status-scale:1;--portal-cart-head-x:0px;--portal-cart-head-y:-78px;--portal-cart-head-scale:1.09;--portal-rack-x:0px;--portal-rack-y:-82px;--portal-rack-scale:1;--portal-cart-label-x:-15px;--portal-cart-label-y:0px;--portal-cart-label-scale:1;--portal-deck-x:0px;--portal-deck-y:-127px;--portal-deck-scale:1;--portal-inserted-cart-x:28px;--portal-inserted-cart-y:15px;--portal-inserted-cart-scale:1.8;--portal-tags-x:0px;--portal-tags-y:-141px;--portal-tags-scale:1;--portal-info-x:0px;--portal-info-y:-138px;--portal-info-scale:1}.cs-shell{width:calc(100% - 32px)}.hero{min-height:560px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 60%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:16px 8px}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-185px}.section-title{margin-bottom:20px}.rack{gap:10px}.cart{width:88px}.cart .cname{width:100%;margin-top:7px;font-size:8px;line-height:1.35;letter-spacing:.03em;text-align:center;white-space:nowrap}.cart-fly{width:25%}.info-section{padding-bottom:18px;margin-bottom:-120px}.info-grid{grid-template-columns:1fr 1fr;gap:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}footer{padding:20px 0 24px}}
   /* 開発用。通常URLではDOM自体を作らないため、プレイヤーには一切表示されない。 */
   #portalTuner{position:fixed;right:16px;bottom:16px;z-index:20;width:min(360px,calc(100vw - 32px));font-family:'Press Start 2P',monospace;color:var(--text)}
   #portalTuner button{font:inherit;cursor:pointer}.tuner-open{margin-left:auto;display:block;padding:12px 14px;border:1px solid var(--cyan);border-radius:6px;color:var(--cyan);background:rgba(4,10,18,.94);box-shadow:0 0 18px rgba(32,230,255,.18)}
@@ -269,6 +269,7 @@
   <div class="patch-entry"><strong>v0.1</strong><ul><li>六角形の盤面から原子の配置を論理だけで復元するパズル</li><li>規則を1つずつ覚えるチュートリアル6面。最初の一手を盤面上で示します</li><li>好きな大きさで遊べるINFINITEモード。盤面の形は毎回変わります</li><li>全員が同じ盤面に挑むDAILYモードとデイリーランキング</li><li>あてずっぽうは要りません。必ず論理だけで解けます</li></ul></div>
 
   <h3>ゲーム置き場</h3>
+  <div class="patch-entry"><strong>2026.08.21</strong><ul><li>携帯版のカセット、本体、タグ、情報カウンターの配置を実機に合わせて調整</li><li>情報カウンター下からフッターまでの余白を詰め、画面下部を見やすく整理</li></ul></div>
   <div class="patch-entry"><strong>2026.08.20</strong><ul><li>筐体を並べる形から、1台のゲーム機にカセットを挿す形へ変更</li><li>カセットを選ぶと本体へ吸い込まれ、画面にそのゲームが映ります</li></ul></div>
 
   <h3>HELL RUNNER（旧：奈落回避ランナー）</h3>
@@ -483,6 +484,7 @@
     ]},
     { name:'ゲーム機・情報', rows:[
       ['本体 X','--portal-deck-x',-120,120,0,1,'px'], ['本体 Y','--portal-deck-y',-160,160,0,1,'px'], ['本体倍率','--portal-deck-scale',.6,1.3,1,.01,'x'],
+      ['挿入カセット X','--portal-inserted-cart-x',-120,120,0,1,'px'], ['挿入カセット Y','--portal-inserted-cart-y',-160,160,0,1,'px'], ['挿入カセット倍率','--portal-inserted-cart-scale',.5,1.8,1,.01,'x'],
       ['タグ X','--portal-tags-x',-120,120,0,1,'px'], ['タグ Y','--portal-tags-y',-160,160,0,1,'px'], ['タグ倍率','--portal-tags-scale',.6,1.3,1,.01,'x'],
       ['情報 X','--portal-info-x',-120,120,0,1,'px'], ['情報 Y','--portal-info-y',-160,160,0,1,'px'], ['情報倍率','--portal-info-scale',.6,1.3,1,.01,'x']
     ]}
