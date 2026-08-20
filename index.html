@@ -43,42 +43,8 @@
   .section-title{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 0 28px;color:var(--cyan);font-size:clamp(12px,1.4vw,17px);letter-spacing:.11em}
   .section-title::before,.section-title::after{content:'';width:min(130px,18vw);height:1px;background:linear-gradient(90deg,transparent,var(--cyan))}
   .section-title::after{transform:scaleX(-1)}
-  .cabinet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px}
-  .cabinet{--accent:var(--cyan);--accent-rgb:32,230,255;position:relative;padding:12px 12px 22px;border:1px solid color-mix(in srgb,var(--accent) 55%,#1b1d2b);clip-path:polygon(20px 0,calc(100% - 20px) 0,100% 20px,100% calc(100% - 20px),calc(100% - 20px) 100%,20px 100%,0 calc(100% - 20px),0 20px);background:linear-gradient(155deg,rgba(23,26,43,.98),rgba(6,6,12,.99));box-shadow:0 22px 60px rgba(0,0,0,.5),0 0 26px rgba(var(--accent-rgb),.09)}
-  .cabinet.hell{--accent:#ff4d2e;--accent-rgb:255,77,46}.cabinet.boss{--accent:#8d66ff;--accent-rgb:141,102,255}
-  .cabinet::before{content:'';position:absolute;inset:5px;border:1px solid rgba(var(--accent-rgb),.25);clip-path:inherit;pointer-events:none}
-  .cabinet-top{min-height:77px;display:flex;align-items:center;justify-content:center;padding:14px;border:1px solid rgba(var(--accent-rgb),.42);background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(0,0,0,.5))}
-  .cabinet h2{margin:0;color:#fff;font-size:clamp(20px,3vw,38px);text-align:center;letter-spacing:.03em;text-shadow:0 0 16px rgba(var(--accent-rgb),.9)}
-  .screen{position:relative;aspect-ratio:16/9;margin:12px 0 0;overflow:hidden;border:3px solid #080914;border-radius:3px;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.38)),radial-gradient(circle at 50% 43%,rgba(var(--accent-rgb),.32),transparent 48%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px),#080a13;box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35),inset 0 0 38px rgba(0,0,0,.9),0 2px 0 rgba(255,255,255,.06)}
-  .screen::before{content:'';position:absolute;inset:0;z-index:1;background:var(--keyart) center/cover no-repeat}
-  .screen::after{content:'';position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse at 45% -18%,rgba(255,255,255,.22),transparent 38%),linear-gradient(125deg,rgba(255,255,255,.13),transparent 19% 72%,rgba(var(--accent-rgb),.1)),linear-gradient(180deg,transparent 74%,rgba(0,0,0,.22));mix-blend-mode:screen;pointer-events:none}
-  .hell .screen{--keyart:url('images/portal/keyart-hell-runner.webp')}.boss .screen{--keyart:url('images/portal/keyart-boss-2048.webp')}
-  .screen-fallback{position:absolute;z-index:0;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.72);font-size:clamp(38px,7vw,76px);text-shadow:0 0 26px rgba(var(--accent-rgb),.72)}
-  .cabinet-body{position:relative;z-index:2;padding:18px 14px 0}
-  .cabinet-body::before{content:'';display:block;height:13px;margin:-18px -14px 16px;border-top:1px solid rgba(var(--accent-rgb),.3);border-bottom:1px solid rgba(255,255,255,.05);background:linear-gradient(180deg,rgba(var(--accent-rgb),.12),rgba(0,0,0,.7)),repeating-linear-gradient(90deg,transparent 0 28px,rgba(var(--accent-rgb),.18) 29px 30px);box-shadow:0 5px 18px rgba(0,0,0,.55)}
-  .status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .status{flex:0 0 100%;color:var(--accent);font-size:8px;letter-spacing:.08em}.status::before{content:'●';margin-right:7px}
   .mini-tag{padding:4px 8px;border:1px solid rgba(255,255,255,.15);border-radius:999px;color:var(--muted);font-size:10px}
-  .description{min-height:52px;margin:14px 0 18px;color:#c9d0e2;font-size:13px;line-height:1.75}
-  .play{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;min-height:60px;padding:0 58px;border:1px solid var(--accent);clip-path:polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px);overflow:hidden;color:#fff;background:radial-gradient(circle at 23px 50%,var(--accent) 0 3px,transparent 4px),radial-gradient(circle at calc(100% - 23px) 50%,var(--accent) 0 3px,transparent 4px),linear-gradient(180deg,rgba(var(--accent-rgb),.5),rgba(var(--accent-rgb),.14) 55%,rgba(0,0,0,.45));box-shadow:inset 0 0 24px rgba(var(--accent-rgb),.24),0 0 18px rgba(var(--accent-rgb),.16);text-decoration:none;text-shadow:0 0 12px rgba(var(--accent-rgb),.9);font-size:15px;letter-spacing:.12em;transition:transform .2s,filter .2s,box-shadow .2s}
-  .play::before{content:'';position:absolute;z-index:-1;inset:5px;border:1px solid rgba(255,255,255,.18);clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)}
-  .play::after{content:'';position:absolute;z-index:-1;top:0;left:-35%;width:28%;height:100%;transform:skewX(-24deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transition:left .4s}
-  .play:hover{transform:translateY(-2px);filter:brightness(1.18);box-shadow:inset 0 0 30px rgba(var(--accent-rgb),.38),0 0 28px rgba(var(--accent-rgb),.3)}.play:hover::after{left:110%}.play:active{transform:translateY(2px)}
-  .cabinet-base{height:30px;margin:18px 9% -22px;clip-path:polygon(6% 0,94% 0,100% 100%,0 100%);border-top:1px solid rgba(var(--accent-rgb),.24);background:linear-gradient(180deg,#11131e,#05050a);box-shadow:inset 0 1px rgba(255,255,255,.05)}
-  .coming{position:relative;max-width:520px;margin:28px auto 58px;padding:9px 10px 0;border:1px solid rgba(106,112,135,.55);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:linear-gradient(155deg,#171923,#05050a);color:#737b92;text-align:center;box-shadow:0 16px 38px rgba(0,0,0,.55)}
-  .coming strong{position:relative;z-index:1;display:block;color:#777e91;font-size:clamp(14px,2vw,22px);letter-spacing:.12em;text-shadow:0 0 13px rgba(135,146,170,.28)}
   .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-  .cabinet.has-artwork{padding:0;border:0;clip-path:none;background:transparent;box-shadow:none}
-  .cabinet.has-artwork::before{display:none}
-  .cabinet.has-artwork,.coming.has-artwork{--cabinet-x:0px;--cabinet-y:0px;--cabinet-scale:1;transform:translate(var(--cabinet-x),var(--cabinet-y)) scale(var(--cabinet-scale));transform-origin:center top}
-  .cabinet-artwork-wrap{position:relative;width:100%;--title-x:18%;--title-y:2.4%;--title-scale:1;--play-x:30%;--play-y:62%;--play-scale:1}
-  .cabinet-artwork{display:block;width:100%;height:auto;filter:drop-shadow(0 22px 24px rgba(0,0,0,.7))}
-  .cabinet-title{position:absolute;z-index:2;left:var(--title-x);top:var(--title-y);display:block;width:64%;height:auto;pointer-events:none;transform:scale(var(--title-scale));transform-origin:center top;filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.35))}
-  .cabinet-play{position:absolute;z-index:3;left:var(--play-x);top:var(--play-y);display:block;width:40%;min-height:0;aspect-ratio:4/1;padding:0;border:0;clip-path:none;overflow:visible;background:none;box-shadow:none;text-decoration:none}
-  .cabinet-play::before,.cabinet-play::after{display:none}.cabinet-play img{position:absolute;left:0;top:50%;display:block;width:100%;height:auto;transform:translateY(-50%) scale(var(--play-scale));transition:filter .2s,transform .2s}.cabinet-play:hover,.cabinet-play:active{transform:none;filter:none;box-shadow:none}.cabinet-play:active img{transform:translateY(-50%) scale(calc(var(--play-scale) - .03));filter:brightness(1.22)}
-  @media(hover:hover){.cabinet-play:hover img{filter:brightness(1.17) drop-shadow(0 0 14px rgba(var(--accent-rgb),.48));transform:translateY(-50%) scale(calc(var(--play-scale) + .025))}}
-  .cabinet.has-artwork .cabinet-body{margin-top:-3%;padding:8px 5% 0;background:linear-gradient(180deg,rgba(6,7,13,.92),rgba(6,7,13,0))}.cabinet.has-artwork .cabinet-body::before{display:none}
-  .coming.has-artwork{width:100%;max-width:461px;margin:8px auto 24px;padding:0;border:0;clip-path:none;background:transparent;box-shadow:none}.coming-artwork{display:block;width:100%;height:auto;filter:drop-shadow(0 18px 22px rgba(0,0,0,.72))}
   .portal-debug{position:fixed;z-index:20;right:12px;top:72px;width:300px;max-height:calc(100vh - 84px);overflow:auto;padding:12px;border:1px solid #20e6ff;color:#eafcff;background:rgba(4,7,15,.96);box-shadow:0 0 30px rgba(32,230,255,.2);font:12px/1.35 system-ui,sans-serif}.portal-debug h2{margin:0;color:#20e6ff;font-size:14px}.portal-debug-summary{display:flex;align-items:center;justify-content:space-between;gap:8px}.portal-debug-toggle{min-width:36px;height:32px;border:1px solid #20e6ff;color:#20e6ff;background:#08111c;cursor:pointer}.portal-debug-group{margin-top:12px;padding-top:10px;border-top:1px solid rgba(32,230,255,.2)}.portal-debug-group strong{display:block;margin-bottom:7px}.portal-debug-control{display:grid;grid-template-columns:42px 1fr 58px;align-items:center;gap:6px;margin:5px 0}.portal-debug-control input{width:100%;box-sizing:border-box}.portal-debug-control input[type=number]{height:28px;padding:2px 4px;border:1px solid rgba(32,230,255,.4);color:#eafcff;background:#08111c;text-align:right;font:inherit;font-variant-numeric:tabular-nums}.portal-debug-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.portal-debug-actions button,.portal-debug-output button{min-height:38px;border:1px solid rgba(32,230,255,.5);color:#dffaff;background:#0b1422;cursor:pointer}.portal-debug-output{margin-top:10px}.portal-debug-output textarea{display:block;width:100%;height:180px;box-sizing:border-box;padding:8px;border:1px solid rgba(32,230,255,.45);color:#fff;background:#030711;font:11px/1.4 ui-monospace,monospace}.portal-debug-output button{width:100%;margin-top:6px}.portal-debug-note{margin:9px 0 0;color:#9caabd;font-size:10px}.portal-debug.is-collapsed .portal-debug-body{display:none}
   .info-section{padding:2px 0 80px}.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px;border:1px solid rgba(32,230,255,.2);clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:linear-gradient(180deg,rgba(16,20,35,.85),rgba(5,6,12,.92));box-shadow:inset 0 0 0 5px rgba(32,230,255,.025),0 20px 50px rgba(0,0,0,.35)}
   .info-button{position:relative;min-height:124px;padding:17px 42px 17px 17px;overflow:hidden;border:1px solid var(--line);clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);color:var(--text);background:linear-gradient(145deg,rgba(17,25,42,.98),rgba(6,8,16,.98));text-align:left;cursor:pointer;transition:border-color .25s,transform .25s,background .25s,box-shadow .25s}
@@ -94,21 +60,127 @@
   .dialog-body{padding:24px;overflow:auto}.dialog-body h3{margin:26px 0 10px;color:#fff;font-size:16px}.dialog-body h3:first-child{margin-top:0}
   .patch-entry{margin-bottom:12px;padding:15px 17px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.025)}.patch-entry strong{color:var(--cyan);font-size:12px}.patch-entry ul{margin:9px 0 0;padding-left:20px;color:#bdc5d9;font-size:12px;line-height:1.8}
   .dialog-body p,.dialog-body li{color:#bdc5d9;font-size:13px;line-height:1.8}.dialog-body a{color:var(--cyan)}
-  @media(max-width:899px){.shell{width:min(100% - 40px,820px)}.hero{min-height:560px}.nav a:nth-child(2){display:none}main{margin-top:-78px}.cabinet-grid{gap:18px}.info-grid{grid-template-columns:repeat(2,1fr)}}
+  /* ---------- ゲーム機とカセット ---------- */
+  /* 筐体を1台ずつ用意する形はやめた。立体物の絵は生成AIに同じ型を再現させられず、
+     新作のたびに違うデザインの筐体が並んでいたため。
+     いまは実機1台にカセットを挿す形で、新作で増えるのは平らな絵1枚だけ。 */
+  .floor{--game:#20e6ff;--game-dim:rgba(32,230,255,.28)}
+  .rack{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-bottom:6px}
+  .cart{position:relative;width:112px;padding:0;border:0;background:none;cursor:pointer;
+    font:inherit;transition:transform .18s ease}
+  .cart:hover,.cart:focus-visible{transform:translateY(-6px)}
+  .cart:focus-visible{outline:2px solid var(--cyan);outline-offset:6px}
+  /* カセットは画像ではなくCSSで描く。形も色も後から変えられるようにするため */
+  .shell{display:block;position:relative;aspect-ratio:35/32;border-radius:7px 7px 4px 4px;
+    background:linear-gradient(158deg,rgba(255,255,255,.13),rgba(255,255,255,.04) 42%,rgba(0,0,0,.30));
+    border:1px solid rgba(255,255,255,.20);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -8px 14px rgba(0,0,0,.35),
+      0 0 18px var(--glow,transparent),0 8px 15px rgba(0,0,0,.55)}
+  .shell::before{content:'';position:absolute;left:31%;right:31%;top:2.5%;height:7%;border-radius:3px;
+    background:rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.26)}
+  .shell::after{content:'';position:absolute;left:20%;right:20%;bottom:2.5%;height:5%;border-radius:2px;
+    background:repeating-linear-gradient(90deg,var(--glow,rgba(255,255,255,.25)) 0 3px,transparent 3px 7px);opacity:.9}
+  .cart-art{position:absolute;left:7%;top:15%;width:86%;height:70%;border-radius:5px;overflow:hidden;
+    background:var(--art,#1b2030) center/cover no-repeat;opacity:.92;filter:saturate(1.25) brightness(1.06);
+    box-shadow:0 0 14px var(--glow,transparent),inset 0 0 0 1px rgba(255,255,255,.14)}
+  .cart-art::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(122deg,rgba(255,255,255,.22) 0 18%,transparent 34%)}
+  .cart .cname{display:block;margin-top:8px;font-size:10px;letter-spacing:.09em;color:var(--dim);text-align:center}
+  .cart.blank .shell{opacity:.45}
+  .cart.blank .shell::after{opacity:.3}
+  .cart.blank .cart-art{background:repeating-linear-gradient(45deg,#171b26 0 6px,#12151e 6px 12px)}
+  /* 挿さっているものは、置き場に空のくぼみとして残す。消すと列に穴が空いて見える */
+  .cart.inserted .shell{opacity:.28;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+  .cart.inserted .cart-art{background:none;opacity:1;filter:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+  .cart.inserted .cname{color:var(--game)}
+  .rack-note{height:18px;margin-bottom:6px;text-align:center;font-size:11px;letter-spacing:.08em;
+    color:var(--dim);opacity:0;transition:opacity .2s}
+  .rack-note.show{opacity:1}
+  @keyframes cart-nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .cart.nudge{animation:cart-nudge .26s}
+
+  .deck{position:relative;width:min(760px,100%);margin:22px auto 0;aspect-ratio:1600/760;
+    --screen-x:31.5%;--screen-y:19.5%;--screen-w:37.5%;--screen-h:46%;
+    --slot-x:50%;--play-x:34.5%;--play-y:73.5%;--play-w:31%;--play-h:10.5%}
+  /* 挿したカセットは本体の裏へ潜り込ませて消す。奥まで入って見えるうえ、
+     差込口と1ピクセル単位で位置を合わせる必要が無くなる */
+  .cart-fly{position:absolute;left:var(--slot-x);top:0;width:20%;z-index:1;pointer-events:none;opacity:0;
+    transform:translate(-50%,-105%)}
+  .cart-fly.go{animation:cart-sink .55s cubic-bezier(.35,.05,.25,1) forwards}
+  @keyframes cart-sink{
+    0%{transform:translate(-50%,-118%);opacity:0}
+    28%{transform:translate(-50%,-88%);opacity:1}
+    58%{transform:translate(-50%,-66%);opacity:1}
+    100%{transform:translate(-50%,22%);opacity:1}}
+  .machine{position:absolute;inset:0;z-index:2;
+    background:url('images/portal/console-body.webp') center/contain no-repeat;
+    filter:drop-shadow(0 20px 30px rgba(0,0,0,.65))}
+  /* 発光は本体の絵より後に描く。同じz-indexなのでDOM順が描画順になり、
+     前に置くと不透明な絵に隠れる */
+  .body-glow,.body-surge{position:absolute;inset:0;z-index:2;pointer-events:none;
+    -webkit-mask-image:url('images/portal/console-body.webp');mask-image:url('images/portal/console-body.webp');
+    -webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+    -webkit-mask-position:center;mask-position:center;mix-blend-mode:screen}
+  .body-glow{opacity:0;background:radial-gradient(ellipse at 50% 55%,var(--game-dim),transparent 68%);
+    transition:opacity .6s;transition-delay:.55s}
+  .deck.on .body-glow{opacity:1}
+  /* 流れ込んだデータが本体の中を走る。線を描くと物体に見えるので、描くのは光だけ */
+  .body-surge{opacity:0;background:linear-gradient(96deg,transparent 36%,var(--game-dim) 44%,
+    var(--game) 50%,var(--game-dim) 56%,transparent 64%);background-size:300% 100%;background-position:150% 0}
+  .deck.flow .body-surge{animation:body-surge 1.15s cubic-bezier(.3,.5,.35,1)}
+  @keyframes body-surge{
+    0%{opacity:0;background-position:150% 0}12%{opacity:.85}78%{opacity:.72}
+    100%{opacity:0;background-position:-55% 0}}
+  .slot-flash{position:absolute;left:var(--slot-x);top:0;transform:translate(-50%,-50%);
+    width:26%;height:8%;border-radius:50%;z-index:3;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse,var(--game) 0%,var(--game-dim) 42%,transparent 70%)}
+  .slot-flash.go{animation:slot-absorb .55s ease-out}
+  @keyframes slot-absorb{0%,52%{opacity:0;transform:translate(-50%,-50%) scaleX(.5)}
+    66%{opacity:1;transform:translate(-50%,-50%) scaleX(1.15)}
+    100%{opacity:0;transform:translate(-50%,-50%) scaleX(1.4)}}
+  .screen{position:absolute;left:var(--screen-x);top:var(--screen-y);width:var(--screen-w);height:var(--screen-h);
+    z-index:3;border-radius:6px;overflow:hidden;background:#03050b}
+  .screen-art{position:absolute;inset:0;background:var(--art,#0a0d16) center/cover no-repeat;
+    opacity:0;transform:scale(1.06);transition:opacity .45s,transform .6s}
+  .deck.on .screen-art{opacity:1;transform:scale(1)}
+  .screen::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,transparent 2px 4px)}
+  .caption{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:9% 7% 6%;
+    background:linear-gradient(transparent,rgba(0,0,0,.88) 45%);opacity:0;transition:opacity .45s}
+  .deck.on .caption{opacity:1}
+  .caption b{display:block;font-family:'Press Start 2P',monospace;font-size:clamp(7px,1.3vw,11px);
+    color:#fff;letter-spacing:.04em;line-height:1.5;font-weight:400}
+  .caption span{display:block;margin-top:5px;font-size:clamp(7.5px,1.1vw,9.5px);color:#b9c6e2}
+  .screen-idle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:clamp(8px,1.3vw,11px);color:#3d4761;letter-spacing:.1em}
+  .deck.on .screen-idle{display:none}
+  .deck .play{position:absolute;left:var(--play-x);top:var(--play-y);width:var(--play-w);height:var(--play-h);
+    z-index:4;display:flex;align-items:center;justify-content:center;text-decoration:none;
+    font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.5vw,12px);letter-spacing:.08em;
+    color:var(--game);border:1px solid var(--game);border-radius:40px;background:rgba(4,7,14,.82);
+    box-shadow:0 0 16px var(--game-dim),inset 0 1px 0 rgba(255,255,255,.12);
+    transition:transform .1s,background .18s,color .18s;min-height:0;padding:0}
+  .deck .play:hover,.deck .play:focus-visible{background:var(--game);color:#04060d;outline:none}
+  .deck .play:active{transform:translateY(2px)}
+  .deck:not(.on) .play{display:none}
+  .deck-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0}
+  @media(prefers-reduced-motion:reduce){
+    .cart-fly.go,.deck.flow .body-surge,.slot-flash.go{animation:none}
+    .cart,.screen-art,.caption,.body-glow{transition:none}}
+  @media(max-width:599px){
+    .rack{gap:10px}.cart{width:80px}
+    .deck{margin-bottom:96px}
+    /* 本体が小さいとPLAYが押しにくいので、下へ出して全幅にする */
+    .deck .play{left:0;top:100%;width:100%;height:auto;margin-top:16px;padding:15px 0}}
+  @media(max-width:899px){.shell{width:min(100% - 40px,820px)}.hero{min-height:560px}.nav a:nth-child(2){display:none}main{margin-top:-78px}.info-grid{grid-template-columns:repeat(2,1fr)}}
   @media(min-width:900px){
     .topbar-inner{min-height:60px}.hero{min-height:500px;height:500px}.hero-copy{padding-top:88px}.brand-frame{display:flex;align-items:center;justify-content:center;max-width:760px;height:180px;padding:0 48px}.tagline{position:absolute;z-index:3;left:0;right:0;bottom:10px;margin:0}.arcade-status{margin-top:8px;font-size:10px}
-    main{margin-top:-200px}.section-title{margin-bottom:10px}.cabinet-grid{width:min(940px,100%);margin:0 auto;gap:18px}.cabinet{padding:8px 8px 18px}.cabinet-top{min-height:51px;padding:7px}.cabinet h2{font-size:clamp(21px,2.3vw,29px)}
-    .screen{margin-top:7px}.cabinet-body{padding:10px 10px 0}.cabinet-body::before{height:7px;margin:-10px -10px 9px}.cabinet-body .status-row,.cabinet-body .description{display:none}.play{min-height:46px;font-size:12px}.cabinet-base{height:20px;margin-top:9px}
-    .cabinet.has-artwork .cabinet-body{display:none}.coming.has-artwork{width:calc(50% - 9px);max-width:461px;margin:0 auto 2px}
-    .info-section{padding-bottom:18px}.info-section .section-title{margin-bottom:8px}.info-grid{padding:8px;gap:7px}.info-button{min-height:76px;padding:9px 32px 8px 9px}.info-icon{float:left;width:28px;height:28px;margin:0 8px 0 0;font-size:16px}.info-name{padding-top:1px}.info-copy{margin-top:5px;font-size:9px}footer{padding:15px 0 18px}
-  }
-  @media(min-width:600px){[data-tune="hell"]{--title-x:18.4%;--title-y:2.6%;--title-scale:1.22;--play-x:30%;--play-y:61.9%;--play-scale:1.21}[data-tune="boss"]{--title-x:18.7%;--title-y:2.6%;--title-scale:1.28;--play-x:28.7%;--play-y:61.3%;--play-scale:1.17}[data-tune="coming"]{--title-x:18%;--title-y:2.4%;--title-scale:1.25}}
-  @media(max-width:599px){[data-tune="hell"]{--title-x:18.3%;--title-y:2.4%;--title-scale:1.3;--play-x:17.3%;--play-y:59.7%;--play-scale:.74}[data-tune="boss"]{--title-x:18%;--title-y:2.1%;--title-scale:1.3;--play-x:16.5%;--play-y:59.2%;--play-scale:.77}[data-tune="coming"]{--title-x:18%;--title-y:2.1%;--title-scale:1.3}}
-  @media(max-width:599px){.shell{width:calc(100% - 32px)}.hero{min-height:500px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 53%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:30px 12px}h1{font-size:clamp(29px,10.5vw,43px);line-height:1.3}h1 span{display:block}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-50px}.section-title{margin-bottom:20px}.cabinet-grid{grid-template-columns:1fr;gap:22px}.cabinet{padding:10px 10px 18px}.cabinet-top{min-height:64px}.cabinet h2{font-size:clamp(22px,8vw,32px)}.cabinet-body{padding:15px 8px 0}.cabinet-body::before{margin:-15px -8px 15px}.description{min-height:0}.play{padding:0 48px}.cabinet-play{min-height:56px;padding:0}.coming{margin:22px auto 58px}.coming.has-artwork{width:100%;max-width:none}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px;padding:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
+    main{margin-top:-200px}.section-title{margin-bottom:10px}
+    .info-section{padding-bottom:18px}.info-section .section-title{margin-bottom:8px}.info-grid{padding:8px;gap:7px}.info-button{min-height:76px;padding:9px 32px 8px 9px}.info-icon{float:left;width:28px;height:28px;margin:0 8px 0 0;font-size:16px}.info-name{padding-top:1px}.info-copy{margin-top:5px;font-size:9px}footer{padding:15px 0 18px}}
+  @media(max-width:599px){.shell{width:calc(100% - 32px)}.hero{min-height:500px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 53%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:30px 12px}h1{font-size:clamp(29px,10.5vw,43px);line-height:1.3}h1 span{display:block}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-50px}.section-title{margin-bottom:20px}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px;padding:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
   @media(max-width:599px){.portal-debug{right:8px;top:66px;width:min(300px,calc(100vw - 16px));max-height:calc(100vh - 74px)}.portal-debug.is-collapsed{width:170px}.portal-debug-control{grid-template-columns:38px 1fr 54px}}
   @media(max-width:360px){.info-grid{grid-template-columns:1fr}.info-button{min-height:98px}}
-  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-</style>
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}</style>
 </head>
 <body>
 <header class="hero" id="entrance">
@@ -118,17 +190,26 @@
 <main>
   <section class="shell" id="game-floor" aria-labelledby="game-floor-title">
     <h2 class="section-title pixel" id="game-floor-title">GAME FLOOR</h2>
-    <div class="cabinet-grid">
-      <article class="cabinet hell has-artwork">
-        <h2 class="sr-only">HELL RUNNER</h2><div class="cabinet-artwork-wrap" data-tune="hell"><img class="cabinet-artwork" src="images/portal/cabinet-hell-runner.webp" alt="HELL RUNNER アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-hell-runner.webp" alt="" width="1024" height="192"><a class="play cabinet-play" href="games/temple-run-clone.html" aria-label="HELL RUNNERをプレイ"><img src="images/portal/play-button-hell-runner.webp" alt="" width="1024" height="256"></a></div>
-        <div class="cabinet-body"><div class="status-row"><span class="status pixel">NOW PLAYING</span><span class="mini-tag">ランキング</span><span class="mini-tag">スマホ対応</span><span class="mini-tag">音あり</span></div><p class="description">崩れる足場を飛び越え、地獄の果てを目指す横スクロールランナー。走るほど世界と音楽が変化する。</p></div>
-      </article>
-      <article class="cabinet boss has-artwork">
-        <h2 class="sr-only">討伐2048</h2><div class="cabinet-artwork-wrap" data-tune="boss"><img class="cabinet-artwork" src="images/portal/cabinet-boss-2048.webp" alt="討伐2048 アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-boss-2048.webp" alt="" width="1024" height="192"><a class="play cabinet-play" href="games/boss-battle-demo.html" aria-label="討伐2048をプレイ"><img src="images/portal/play-button-boss-2048.webp" alt="" width="1024" height="256"></a></div>
-        <div class="cabinet-body"><div class="status-row"><span class="status pixel">NOW PLAYING</span><span class="mini-tag">ランキング</span><span class="mini-tag">スマホ対応</span><span class="mini-tag">音あり</span></div><p class="description">数字タイルを合体させて巨大ボスを討伐。勇者と戦略を選んで挑む、2048＋ボスバトルRPG。</p></div>
-      </article>
+    <div class="floor" id="floor">
+      <div class="rack" id="rack"></div>
+      <p class="rack-note" id="rackNote"></p>
+
+      <div class="deck" id="deck">
+        <div class="cart-fly" id="cartFly"><span class="shell"><span class="cart-art" id="flyArt"></span></span></div>
+        <div class="machine"></div>
+        <!-- 発光は本体の絵より後に置く。前に置くと不透明な絵に隠れる -->
+        <div class="body-glow"></div>
+        <div class="body-surge"></div>
+        <div class="slot-flash" id="slotFlash"></div>
+        <div class="screen">
+          <div class="screen-art" id="screenArt"></div>
+          <div class="caption"><b id="capTitle"></b><span id="capDesc"></span></div>
+          <div class="screen-idle">NO CARTRIDGE</div>
+        </div>
+        <a class="play" id="playLink" href="#">PLAY</a>
+      </div>
+      <div class="deck-tags" id="deckTags"></div>
     </div>
-    <article class="coming has-artwork" aria-label="次のゲームは準備中です"><div class="cabinet-artwork-wrap" data-tune="coming"><img class="coming-artwork" src="images/portal/cabinet-coming-soon.webp" alt="砂嵐画面のCOMING SOON アーケード筐体" width="1200" height="1680"><img class="cabinet-title" src="images/portal/title-coming-soon.webp" alt="" width="1024" height="192"></div></article>
   </section>
   <section class="shell info-section" id="information" aria-labelledby="information-title">
     <h2 class="section-title pixel" id="information-title">INFORMATION COUNTER</h2>
@@ -141,8 +222,14 @@
   </section>
 </main>
 <footer><div class="shell footer-inner"><span>© 2026 VIVI</span><span><a href="https://github.com/overvivi/vivigames" target="_blank" rel="noopener">GITHUB</a> · <a href="#credits">CREDITS</a> · SITE VERSION 0.1</span></div></footer>
-<dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>VIVI GAME ARCADE リニューアル</h3><p>ゲーム置き場を、深夜のゲームセンターで筐体を選ぶ新しいデザインへ刷新しました。PCとスマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.08.16</strong><ul><li>HELL RUNNER v0.4 稼働中</li><li>討伐2048 v0.4 稼働中</li></ul></div></div></dialog>
+<dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>HEXAMINE 稼働開始</h3><p>3本目のゲーム「HEXAMINE」を追加しました。あわせてゲーム置き場を、1台のゲーム機にカセットを挿して遊ぶデザインへ作り替えています。PCとスマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.08.20</strong><ul><li>HEXAMINE 稼働開始（デイリーランキングあり）</li><li>ゲーム置き場をゲーム機＋カセット方式へ刷新</li><li>読み込みを軽くしました（HELL RUNNER 6.2MB→1.8MB、討伐2048 7.2MB→3.2MB）</li></ul></div></div></dialog>
 <dialog id="patch-dialog" aria-labelledby="patch-title"><div class="dialog-head"><h2 class="pixel" id="patch-title">PATCH NOTES</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body">
+  <h3>HEXAMINE</h3>
+  <div class="patch-entry"><strong>v0.1</strong><ul><li>六角形の盤面から原子の配置を論理だけで復元するパズル</li><li>規則を1つずつ覚えるチュートリアル6面。最初の一手を盤面上で示します</li><li>好きな大きさで遊べるINFINITEモード。盤面の形は毎回変わります</li><li>全員が同じ盤面に挑むDAILYモードとデイリーランキング</li><li>あてずっぽうは要りません。必ず論理だけで解けます</li></ul></div>
+
+  <h3>ゲーム置き場</h3>
+  <div class="patch-entry"><strong>2026.08.20</strong><ul><li>筐体を並べる形から、1台のゲーム機にカセットを挿す形へ変更</li><li>カセットを選ぶと本体へ吸い込まれ、画面にそのゲームが映ります</li></ul></div>
+
   <h3>HELL RUNNER（旧：奈落回避ランナー）</h3>
   <div class="patch-entry"><strong>v0.4</strong><ul><li>短押しの小ジャンプと長押しの大ジャンプを追加し、着地点を細かく調整できるように</li><li>ポーズボタン、3秒カウント付きの再開、P／Escapeキー操作、自動一時停止を追加</li><li>一時停止メニューへBGM・効果音の個別音量調整、サウンドON／OFF、HELL RUNNER TOPを追加</li><li>転生発動時に、転生する／RETRY／HELL RUNNER TOPを選べる確認画面を追加</li><li>PCタイトル画面へSpaceキー、大小ジャンプ、滑空、一時停止の操作案内を追加</li><li>死亡直後のSpace連打や携帯タップで即リトライされ、ランキング登録できない問題を修正</li><li>転生後にプレイヤーが地面へ埋まる、または浮いて見える問題を修正</li></ul></div>
   <div class="patch-entry"><strong>v0.3</strong><ul><li>距離に応じて変化する6つの背景ステージと、新しい地面グラフィックを追加</li><li>各ステージ専用BGMを追加し、場面転換に合わせて滑らかに切り替わるように</li><li>プレイヤーとライバルをドット絵キャラクターへ刷新</li><li>20000mで「デスイーター」が降臨し、死神の追従とコイン吸引が発動</li><li>画像キャラクターの足先に合わせ、足場の端での着地判定を調整</li><li>30000m以降の加速を緩やかにし、100000mで最高速度に到達するよう調整</li><li>PCとスマホの画面比率・見える範囲を統一し、カメラを少し引いて視認性を改善</li></ul></div>
@@ -156,7 +243,7 @@
   <div class="patch-entry"><strong>v0.1</strong><ul><li>2048方式の合体パズル＋ボス撃破RPGとして完成</li><li>勇者選択、3ステージ＋チャレンジモード、ランキング機能を実装</li><li>ボスのヒールと、目標タイル到達時の必殺技を実装</li></ul></div>
 </div></dialog>
 <dialog id="credits-dialog" aria-labelledby="credits-title"><div class="dialog-head"><h2 class="pixel" id="credits-title">CREDITS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>HELL RUNNER</h3><ul><li>音楽：<a href="https://youfulca.com/2022/08/13/stage_labyrinth-of-time/" target="_blank" rel="noopener">ユーフルカ</a></li><li>スケルトンCV：たくぞう</li></ul></div></dialog>
-<dialog id="about-dialog" aria-labelledby="about-title"><div class="dialog-head"><h2 class="pixel" id="about-title">ABOUT</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><p>VIVIが制作したブラウザゲームを集めた、深夜のオンラインゲームセンターです。インストール不要で、PCとスマホのブラウザから遊べます。</p><p>ゲームは完成したものから順次追加します。COMING SOONの筐体は、次のゲームが遊べる状態になるまで秘密です。</p></div></dialog>
+<dialog id="about-dialog" aria-labelledby="about-title"><div class="dialog-head"><h2 class="pixel" id="about-title">ABOUT</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><p>VIVIが制作したブラウザゲームを集めた、深夜のオンラインゲームセンターです。インストール不要で、PCとスマホのブラウザから遊べます。</p><p>ゲームは完成したものから順次追加します。COMING SOONのカセットは、次のゲームが遊べる状態になるまで秘密です。</p></div></dialog>
 <script>
   const dialogTriggers=document.querySelectorAll('[data-dialog]');
   const dialogs=document.querySelectorAll('dialog');
@@ -164,58 +251,121 @@
   function closeDialog(dialog){dialog.close();document.body.classList.remove('modal-open')}
   dialogTriggers.forEach(trigger=>{trigger.addEventListener('click',event=>{event.preventDefault();openDialog(document.getElementById(trigger.dataset.dialog))})});
   dialogs.forEach(dialog=>{dialog.querySelector('.dialog-close').addEventListener('click',()=>closeDialog(dialog));dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog(dialog)});dialog.addEventListener('close',()=>document.body.classList.remove('modal-open'))});
-  if(new URLSearchParams(location.search).get('portalDebug')==='1'){
-    const desktopDefaults={
-      hell:{titleX:18.4,titleY:2.6,titleScale:1.22,playX:30,playY:61.9,playScale:1.21,cabinetX:0,cabinetY:0,cabinetScale:1},
-      boss:{titleX:18.7,titleY:2.6,titleScale:1.28,playX:28.7,playY:61.3,playScale:1.17,cabinetX:0,cabinetY:0,cabinetScale:1},
-      coming:{titleX:18,titleY:2.4,titleScale:1.25,cabinetX:0,cabinetY:0,cabinetScale:1}
-    };
-    const mobileDefaults={
-      hell:{titleX:18.3,titleY:2.4,titleScale:1.3,playX:17.3,playY:59.7,playScale:.74,cabinetX:0,cabinetY:0,cabinetScale:1},
-      boss:{titleX:18,titleY:2.1,titleScale:1.3,playX:16.5,playY:59.2,playScale:.77,cabinetX:0,cabinetY:0,cabinetScale:1},
-      coming:{titleX:18,titleY:2.1,titleScale:1.3,cabinetX:0,cabinetY:0,cabinetScale:1}
-    };
-    const defaults=matchMedia('(min-width:600px)').matches?desktopDefaults:mobileDefaults;
-    const state=structuredClone(defaults);
-    const panel=document.createElement('aside');
-    panel.className='portal-debug';
-    panel.setAttribute('aria-label','筐体位置調整');
-    panel.innerHTML='<div class="portal-debug-summary"><h2>PORTAL TUNER</h2><button class="portal-debug-toggle" type="button" aria-label="調整パネルを縮小">−</button></div><div class="portal-debug-body"><div class="portal-debug-groups"></div><div class="portal-debug-actions"><button type="button" data-action="copy">COPY VALUES</button><button type="button" data-action="reset">RESET</button></div><div class="portal-debug-output" hidden><textarea readonly aria-label="調整値"></textarea><button type="button" data-action="select">SELECT ALL</button></div><p class="portal-debug-note">自動コピーできない携帯では、表示された調整値を長押ししてコピーしてください。</p></div>';
-    document.body.append(panel);
-    const groups=panel.querySelector('.portal-debug-groups');
-    const definitions=[
-      ['hell','HELL CABINET','cabinet'],['boss','2048 CABINET','cabinet'],['coming','SOON CABINET','cabinet'],
-      ['hell','HELL TITLE','title'],['boss','2048 TITLE','title'],['coming','SOON TITLE','title'],
-      ['hell','HELL PLAY','play'],['boss','2048 PLAY','play']
-    ];
-    const apply=()=>{
-      Object.entries(state).forEach(([key,value])=>{
-        const target=document.querySelector(`[data-tune="${key}"]`);
-        target.style.setProperty('--title-x',`${value.titleX}%`);target.style.setProperty('--title-y',`${value.titleY}%`);target.style.setProperty('--title-scale',value.titleScale);
-        if(value.playX!==undefined){target.style.setProperty('--play-x',`${value.playX}%`);target.style.setProperty('--play-y',`${value.playY}%`);target.style.setProperty('--play-scale',value.playScale)}
-        const cabinet=target.closest('.cabinet,.coming');cabinet.style.setProperty('--cabinet-x',`${value.cabinetX}px`);cabinet.style.setProperty('--cabinet-y',`${value.cabinetY}px`);cabinet.style.setProperty('--cabinet-scale',value.cabinetScale);
-      });
-    };
-    const makeControl=(key,kind,axis,label,min,max,step)=>{
-      const property=kind+axis;
-      const row=document.createElement('label');row.className='portal-debug-control';
-      row.innerHTML=`<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${state[key][property]}" data-key="${key}" data-property="${property}"><input type="number" min="${min}" max="${max}" step="${step}" value="${state[key][property]}" data-key="${key}" data-property="${property}" aria-label="${label}を数値入力">`;
-      return row;
-    };
-    definitions.forEach(([key,label,kind])=>{
-      const group=document.createElement('div');group.className='portal-debug-group';group.innerHTML=`<strong>${label}</strong>`;
-      const isCabinet=kind==='cabinet';
-      group.append(makeControl(key,kind,'X','X',isCabinet?-150:10,isCabinet?150:50,.1),makeControl(key,kind,'Y','Y',isCabinet?-150:0,isCabinet?250:80,.1),makeControl(key,kind,'Scale','SIZE',isCabinet?0.55:0.7,isCabinet?1.25:1.3,.01));groups.append(group);
-    });
-    panel.addEventListener('input',event=>{const input=event.target;if(!input.matches('input[data-key]')||input.value==='')return;const value=Number(input.value);state[input.dataset.key][input.dataset.property]=value;panel.querySelectorAll(`[data-key="${input.dataset.key}"][data-property="${input.dataset.property}"]`).forEach(peer=>{if(peer!==input)peer.value=value});apply()});
-    panel.querySelector('.portal-debug-toggle').addEventListener('click',event=>{panel.classList.toggle('is-collapsed');event.currentTarget.textContent=panel.classList.contains('is-collapsed')?'+':'−'});
-    panel.querySelector('[data-action="reset"]').addEventListener('click',()=>{Object.keys(defaults).forEach(key=>Object.assign(state[key],defaults[key]));panel.querySelectorAll('input').forEach(input=>{input.value=state[input.dataset.key][input.dataset.property]});apply()});
-    const showOutput=()=>{const output=panel.querySelector('.portal-debug-output');const textarea=output.querySelector('textarea');textarea.value=JSON.stringify(state,null,2);output.hidden=false;textarea.focus();textarea.select();textarea.setSelectionRange(0,textarea.value.length);return textarea};
-    panel.querySelector('[data-action="select"]').addEventListener('click',()=>showOutput());
-    panel.querySelector('[data-action="copy"]').addEventListener('click',async event=>{const button=event.currentTarget;const textarea=showOutput();let copied=false;try{if(navigator.clipboard&&isSecureContext){await navigator.clipboard.writeText(textarea.value);copied=true}}catch(error){}if(!copied){try{copied=document.execCommand('copy')}catch(error){}}button.textContent=copied?'COPIED':'COPY MANUALLY';setTimeout(()=>button.textContent='COPY VALUES',1600)});
-    window.__portalDebug={state,apply};
-    apply();
+</script>
+<script>
+// ---------- ゲーム機とカセット ----------
+// カセットを選ぶと本体へ吸い込まれ、画面にその絵が出る。
+// 新作を足すときは GAMES へ1行と、カセットの絵を1枚だけ用意すればよい。
+(function(){
+  var GAMES = [
+    { id:'hell', name:'HELL RUNNER', desc:'崩れる足場を駆け抜ける', href:'games/temple-run-clone.html',
+      color:'#ff4b2b', art:'images/portal/cart-label-hell-runner.webp',
+      tags:['ランキング','スマホ対応','音あり'] },
+    { id:'boss', name:'討伐2048', desc:'合体させて巨大ボスを討伐', href:'games/boss-battle-demo.html',
+      color:'#a855f7', art:'images/portal/cart-label-boss-2048.webp',
+      tags:['ランキング','スマホ対応','音あり'] },
+    { id:'hexa', name:'HEXAMINE', desc:'分子構造を論理だけで復元', href:'games/hexamine.html',
+      color:'#20e6ff', art:'images/portal/cart-label-hexamine.webp',
+      tags:['デイリーランキング','スマホ対応'] },
+    { id:'next', name:'COMING SOON', desc:'次のゲームは準備中', href:null, blank:true }
+  ];
+
+  var floor = document.getElementById('floor');
+  if(!floor) return;
+  var rack = document.getElementById('rack'),
+      deck = document.getElementById('deck'),
+      fly = document.getElementById('cartFly'),
+      flyArt = document.getElementById('flyArt'),
+      slotFlash = document.getElementById('slotFlash'),
+      screenArt = document.getElementById('screenArt'),
+      capTitle = document.getElementById('capTitle'),
+      capDesc = document.getElementById('capDesc'),
+      play = document.getElementById('playLink'),
+      note = document.getElementById('rackNote'),
+      tagBox = document.getElementById('deckTags');
+  var buttons = [], inserted = null, noteTimer = null, onTimer = null;
+
+  function rgba(hex, a){
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
   }
+  function calm(){
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  GAMES.forEach(function(g){
+    var b = document.createElement('button');
+    b.className = 'cart' + (g.blank ? ' blank' : '');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="shell"><span class="cart-art"></span></span><span class="cname"></span>';
+    b.querySelector('.cname').textContent = g.name;
+    if(g.art){
+      var art = b.querySelector('.cart-art');
+      art.style.setProperty('--art', "url('" + g.art + "')");
+      // 中で光っている状態にする。挿すとこの光がそのまま本体へ移る
+      b.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .45));
+    }
+    b.addEventListener('click', function(){ insert(g, b); });
+    rack.appendChild(b);
+    buttons.push(b);
+  });
+
+  function insert(g, btn){
+    if(g.blank){
+      // 空のカセットは挿さらない。挿さっているものを外す理由も無いので触らない
+      btn.classList.remove('nudge');
+      void btn.offsetWidth;
+      btn.classList.add('nudge');
+      note.textContent = '次のゲームは準備中です';
+      note.classList.add('show');
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(function(){ note.classList.remove('show'); }, 2400);
+      return;
+    }
+    if(inserted === g.id) return;
+
+    note.classList.remove('show');
+    inserted = g.id;
+    buttons.forEach(function(x, i){
+      var me = GAMES[i].id === g.id;
+      x.setAttribute('aria-pressed', me ? 'true' : 'false');
+      x.classList.toggle('inserted', me);
+    });
+
+    floor.style.setProperty('--game', g.color);
+    floor.style.setProperty('--game-dim', rgba(g.color, .28));
+    flyArt.style.setProperty('--art', "url('" + g.art + "')");
+    fly.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .6));
+    screenArt.style.setProperty('--art', "url('" + g.art + "')");
+    capTitle.textContent = g.name;
+    capDesc.textContent = g.desc;
+    play.href = g.href;
+    play.setAttribute('aria-label', g.name + 'をプレイ');
+
+    tagBox.innerHTML = '';
+    (g.tags || []).forEach(function(t){
+      var s = document.createElement('span');
+      s.className = 'mini-tag';
+      s.textContent = t;
+      tagBox.appendChild(s);
+    });
+
+    deck.classList.remove('on', 'flow');
+    fly.classList.remove('go');
+    slotFlash.classList.remove('go');
+    void fly.offsetWidth;
+    fly.classList.add('go');
+    slotFlash.classList.add('go');
+    clearTimeout(onTimer);
+    var quiet = calm();
+    onTimer = setTimeout(function(){ deck.classList.add('on'); }, quiet ? 0 : 430);
+    setTimeout(function(){ deck.classList.add('flow'); }, quiet ? 0 : 400);
+  }
+
+  // 最初は一番新しいゲームを挿しておく
+  insert(GAMES[2], buttons[2]);
+})();
 </script>
 </body>
 </html>

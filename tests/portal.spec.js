@@ -1,96 +1,87 @@
 const { test, expect } = require('@playwright/test');
 
-test('PCでは2台の筐体を比較でき、ロゴを二重表示しない', async ({ page })=>{
+// ゲーム置き場は、筐体を並べる形から「1台のゲーム機にカセットを挿す」形へ変えた。
+// 筐体は3D・陰影・パースを持つ絵で、新作のたびに生成AIへ同じ型を再現させられず、
+// デザインが揃わなかったため。いまは新作で増えるのは平らな絵1枚だけ。
+
+test('カセットが並び、選んだものが本体に挿さる', async ({ page })=>{
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  await expect(page.locator('.cabinet')).toHaveCount(2);
-  await expect(page.locator('.cabinet-artwork')).toHaveCount(2);
-  await expect(page.locator('.cabinet-title')).toHaveCount(3);
-  await expect(page.locator('.coming-artwork')).toBeVisible();
-  await expect(page.locator('.site-logo')).toBeVisible();
-  await expect(page.locator('.brand-frame')).toHaveClass(/logo-ready/);
-  await expect(page.locator('h1')).toBeHidden();
+  // 3本 + COMING SOON
+  await expect(page.locator('.cart')).toHaveCount(4);
+  await expect(page.locator('.cart .cname')).toHaveText([
+    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'COMING SOON'
+  ]);
 
-  const layout = await page.evaluate(()=>{
-    const cabinets=[...document.querySelectorAll('.cabinet')].map(el=>el.getBoundingClientRect());
-    const artworks=[...document.querySelectorAll('.cabinet-artwork,.coming-artwork')].map(el=>el.getBoundingClientRect());
-    const playButtons=[...document.querySelectorAll('.cabinet-play')].map(el=>el.getBoundingClientRect());
-    return {
-      sameRow:Math.abs(cabinets[0].top-cabinets[1].top)<2,
-      sameCabinetSize:artworks.every(rect=>Math.abs(rect.width-artworks[0].width)<1&&Math.abs(rect.height-artworks[0].height)<1),
-      playInsideCabinet:playButtons.every((rect,index)=>rect.left>=artworks[index].left&&rect.right<=artworks[index].right&&rect.top>=artworks[index].top&&rect.bottom<=artworks[index].bottom),
-      noLegacyPlayShine:getComputedStyle(document.querySelector('.cabinet-play'),'::after').display==='none',
-      noOverflow:document.documentElement.scrollWidth<=window.innerWidth,
-      desktopBackground:getComputedStyle(document.querySelector('.hero')).backgroundImage.includes('arcade-bg-desktop.webp')
-    };
-  });
-  expect(layout).toEqual({ sameRow:true, sameCabinetSize:true, playInsideCabinet:true, noLegacyPlayShine:true, noOverflow:true, desktopBackground:true });
-  await expect(page.locator('a.play')).toHaveCount(2);
-  await expect(page.locator('a.play').nth(0)).toHaveAttribute('href','games/temple-run-clone.html');
-  await expect(page.locator('a.play').nth(1)).toHaveAttribute('href','games/boss-battle-demo.html');
+  // 最初から一番新しいものが挿さっていて、すぐ遊べる
+  await expect(page.locator('#deck')).toHaveClass(/on/);
+  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/hexamine.html');
+
+  // 別のカセットを選ぶと、本体の中身が入れ替わる
+  await page.locator('.cart').first().click();
+  await expect(page.locator('#capTitle')).toHaveText('HELL RUNNER');
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/temple-run-clone.html');
+  // 挿さっているものは置き場に空のくぼみとして残す。消すと列に穴が空いて見える
+  await expect(page.locator('.cart').first()).toHaveClass(/inserted/);
+  await expect(page.locator('.cart').first()).toHaveAttribute('aria-pressed','true');
 });
 
-test('通常URLでは位置調整機能を公開しない', async ({ page })=>{
+test('ゲームごとに本体の色が変わる', async ({ page })=>{
   await page.goto('/index.html');
-  await expect(page.locator('.portal-debug')).toHaveCount(0);
-  expect(await page.evaluate(()=>('__portalDebug' in window))).toBe(false);
+  const colorOf = ()=> page.locator('#floor').evaluate(el =>
+    getComputedStyle(el).getPropertyValue('--game').trim());
+
+  await page.locator('.cart').first().click();
+  const hell = await colorOf();
+  await page.locator('.cart').nth(1).click();
+  const boss = await colorOf();
+
+  expect(hell).not.toBe('');
+  expect(hell).not.toBe(boss);
 });
 
-test('デバッグURLでタイトルとPLAYの位置を直接調整できる', async ({ page })=>{
-  await page.setViewportSize({ width:1280, height:900 });
-  await page.goto('/index.html?portalDebug=1');
-  const panel=page.locator('.portal-debug');
-  await expect(panel).toBeVisible();
-  const slider=panel.locator('input[type="range"][data-key="boss"][data-property="playX"]');
-  await slider.fill('32.5');
-  await expect(page.locator('[data-tune="boss"]')).toHaveCSS('--play-x','32.5%');
-  expect(await page.evaluate(()=>window.__portalDebug.state.boss.playX)).toBe(32.5);
-  const cabinetNumber=panel.locator('input[type="number"][data-key="coming"][data-property="cabinetY"]');
-  await cabinetNumber.fill('64');
-  await expect(page.locator('.coming')).toHaveCSS('--cabinet-y','64px');
-  await expect(panel.locator('input[type="range"][data-key="coming"][data-property="cabinetY"]')).toHaveValue('64');
+test('COMING SOONは挿さらず、遊べるゲームを外さない', async ({ page })=>{
+  await page.goto('/index.html');
+  await page.locator('.cart').nth(1).click();
+  await expect(page.locator('#capTitle')).toHaveText('討伐2048');
+
+  await page.locator('.cart').last().click();
+  await expect(page.locator('#rackNote')).toHaveText('次のゲームは準備中です');
+  // 挿さっているものを外す理由が無いので、本体はそのまま
+  await expect(page.locator('#capTitle')).toHaveText('討伐2048');
+  await expect(page.locator('#deck')).toHaveClass(/on/);
 });
 
-test('安全でない携帯接続でも調整値を手動コピーできる', async ({ page })=>{
-  await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{value:undefined,configurable:true}));
-  await page.goto('/index.html?portalDebug=1');
-  await page.locator('[data-action="copy"]').click();
-  const output=page.locator('.portal-debug-output');
-  await expect(output).toBeVisible();
-  await expect(output.locator('textarea')).toHaveValue(/"hell"/);
+test('キーボードだけでカセットを選んで遊びに行ける', async ({ page })=>{
+  await page.goto('/index.html');
+  const cart = page.locator('.cart').first();
+  await cart.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#capTitle')).toHaveText('HELL RUNNER');
+
+  // PLAY は本物のリンク。押さずに、辿れることと行き先だけ確かめる
+  const play = page.locator('#playLink');
+  await expect(play).toBeVisible();
+  expect(await play.evaluate(el => el.tagName)).toBe('A');
 });
 
-test('スマホでは1列で横にはみ出さず、PLAYを押しやすい', async ({ page })=>{
+test('スマホでは横にはみ出さず、PLAYを押しやすい', async ({ page })=>{
   await page.setViewportSize({ width:390, height:844 });
   await page.goto('/index.html');
 
-  const layout = await page.evaluate(()=>{
-    const cabinets=[...document.querySelectorAll('.cabinet')].map(el=>el.getBoundingClientRect());
-    const play=document.querySelector('.play').getBoundingClientRect();
-    const hellStyle=getComputedStyle(document.querySelector('[data-tune="hell"]'));
-    const bossStyle=getComputedStyle(document.querySelector('[data-tune="boss"]'));
-    const status=document.querySelector('.status').getBoundingClientRect();
-    const tags=[...document.querySelectorAll('.status-row .mini-tag')].slice(0,3).map(el=>el.getBoundingClientRect());
-    return {
-      stacked:cabinets[1].top>cabinets[0].bottom,
-      playHeight:play.height,
-      hellPlay:[hellStyle.getPropertyValue('--play-x').trim(),hellStyle.getPropertyValue('--play-y').trim(),hellStyle.getPropertyValue('--play-scale').trim()],
-      bossPlay:[bossStyle.getPropertyValue('--play-x').trim(),bossStyle.getPropertyValue('--play-y').trim(),bossStyle.getPropertyValue('--play-scale').trim()],
-      statusAboveTags:tags.every(tag=>tag.top>=status.bottom),
-      tagsSameRow:tags.every(tag=>Math.abs(tag.top-tags[0].top)<1),
-      noOverflow:document.documentElement.scrollWidth<=window.innerWidth,
-      mobileBackground:getComputedStyle(document.querySelector('.hero')).backgroundImage.includes('arcade-bg-mobile.webp')
-    };
-  });
-  expect(layout.stacked).toBe(true);
-  expect(layout.playHeight).toBeGreaterThanOrEqual(56);
-  expect(layout.hellPlay).toEqual(['17.3%','59.7%','.74']);
-  expect(layout.bossPlay).toEqual(['16.5%','59.2%','.77']);
-  expect(layout.statusAboveTags).toBe(true);
-  expect(layout.tagsSameRow).toBe(true);
-  expect(layout.noOverflow).toBe(true);
-  expect(layout.mobileBackground).toBe(true);
+  const overflow = await page.evaluate(()=>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  // 本体が小さいと画面上のボタンは押しにくいので、下へ出して全幅にしている。
+  // PLAY は挿さり切ってから出るので、点灯を待ってから測る
+  await expect(page.locator('#deck')).toHaveClass(/on/);
+  await expect(page.locator('#playLink')).toBeVisible();
+  const box = await page.locator('#playLink').boundingBox();
+  expect(box.height).toBeGreaterThanOrEqual(40);
+  expect(box.width).toBeGreaterThan(200);
 });
 
 test('画像ロゴを読めない時もHTMLタイトルを表示する', async ({ page })=>{
@@ -117,16 +108,10 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     '/images/portal/arcade-bg-desktop.webp',
     '/images/portal/arcade-bg-mobile.webp',
     '/images/portal/vivi-game-arcade-logo.png',
-    '/images/portal/keyart-hell-runner.webp',
-    '/images/portal/keyart-boss-2048.webp',
-    '/images/portal/cabinet-hell-runner.webp',
-    '/images/portal/cabinet-boss-2048.webp',
-    '/images/portal/cabinet-coming-soon.webp',
-    '/images/portal/play-button-hell-runner.webp',
-    '/images/portal/play-button-boss-2048.webp',
-    '/images/portal/title-hell-runner.webp',
-    '/images/portal/title-boss-2048.webp',
-    '/images/portal/title-coming-soon.webp'
+    '/images/portal/console-body.webp',
+    '/images/portal/cart-label-hell-runner.webp',
+    '/images/portal/cart-label-boss-2048.webp',
+    '/images/portal/cart-label-hexamine.webp'
   ];
   for(const file of files){
     const response=await request.get(file);
