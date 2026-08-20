@@ -71,14 +71,14 @@
   .cart:hover,.cart:focus-visible{transform:translateY(-6px)}
   .cart:focus-visible{outline:2px solid var(--cyan);outline-offset:6px}
   /* カセットは画像ではなくCSSで描く。形も色も後から変えられるようにするため */
-  .shell{display:block;position:relative;aspect-ratio:35/32;border-radius:7px 7px 4px 4px;
+  .cs-shell{display:block;position:relative;aspect-ratio:35/32;border-radius:7px 7px 4px 4px;
     background:linear-gradient(158deg,rgba(255,255,255,.13),rgba(255,255,255,.04) 42%,rgba(0,0,0,.30));
     border:1px solid rgba(255,255,255,.20);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -8px 14px rgba(0,0,0,.35),
       0 0 18px var(--glow,transparent),0 8px 15px rgba(0,0,0,.55)}
-  .shell::before{content:'';position:absolute;left:31%;right:31%;top:2.5%;height:7%;border-radius:3px;
+  .cs-shell::before{content:'';position:absolute;left:31%;right:31%;top:2.5%;height:7%;border-radius:3px;
     background:rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.26)}
-  .shell::after{content:'';position:absolute;left:20%;right:20%;bottom:2.5%;height:5%;border-radius:2px;
+  .cs-shell::after{content:'';position:absolute;left:20%;right:20%;bottom:2.5%;height:5%;border-radius:2px;
     background:repeating-linear-gradient(90deg,var(--glow,rgba(255,255,255,.25)) 0 3px,transparent 3px 7px);opacity:.9}
   .cart-art{position:absolute;left:7%;top:15%;width:86%;height:70%;border-radius:5px;overflow:hidden;
     background:var(--art,#1b2030) center/cover no-repeat;opacity:.92;filter:saturate(1.25) brightness(1.06);
@@ -86,11 +86,11 @@
   .cart-art::after{content:'';position:absolute;inset:0;
     background:linear-gradient(122deg,rgba(255,255,255,.22) 0 18%,transparent 34%)}
   .cart .cname{display:block;margin-top:8px;font-size:10px;letter-spacing:.09em;color:var(--dim);text-align:center}
-  .cart.blank .shell{opacity:.45}
-  .cart.blank .shell::after{opacity:.3}
+  .cart.blank .cs-shell{opacity:.45}
+  .cart.blank .cs-shell::after{opacity:.3}
   .cart.blank .cart-art{background:repeating-linear-gradient(45deg,#171b26 0 6px,#12151e 6px 12px)}
   /* 挿さっているものは、置き場に空のくぼみとして残す。消すと列に穴が空いて見える */
-  .cart.inserted .shell{opacity:.28;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+  .cart.inserted .cs-shell{opacity:.28;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
   .cart.inserted .cart-art{background:none;opacity:1;filter:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
   .cart.inserted .cname{color:var(--game)}
   .rack-note{height:18px;margin-bottom:6px;text-align:center;font-size:11px;letter-spacing:.08em;
@@ -138,12 +138,12 @@
   @keyframes slot-absorb{0%,52%{opacity:0;transform:translate(-50%,-50%) scaleX(.5)}
     66%{opacity:1;transform:translate(-50%,-50%) scaleX(1.15)}
     100%{opacity:0;transform:translate(-50%,-50%) scaleX(1.4)}}
-  .screen{position:absolute;left:var(--screen-x);top:var(--screen-y);width:var(--screen-w);height:var(--screen-h);
+  .cs-screen{position:absolute;left:var(--screen-x);top:var(--screen-y);width:var(--screen-w);height:var(--screen-h);
     z-index:3;border-radius:6px;overflow:hidden;background:#03050b}
-  .screen-art{position:absolute;inset:0;background:var(--art,#0a0d16) center/cover no-repeat;
+  .cs-screen-art{position:absolute;inset:0;background:var(--art,#0a0d16) center/cover no-repeat;
     opacity:0;transform:scale(1.06);transition:opacity .45s,transform .6s}
-  .deck.on .screen-art{opacity:1;transform:scale(1)}
-  .screen::after{content:'';position:absolute;inset:0;pointer-events:none;
+  .deck.on .cs-screen-art{opacity:1;transform:scale(1)}
+  .cs-screen::after{content:'';position:absolute;inset:0;pointer-events:none;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,transparent 2px 4px)}
   .caption{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:9% 7% 6%;
     background:linear-gradient(transparent,rgba(0,0,0,.88) 45%);opacity:0;transition:opacity .45s}
@@ -151,33 +151,33 @@
   .caption b{display:block;font-family:'Press Start 2P',monospace;font-size:clamp(7px,1.3vw,11px);
     color:#fff;letter-spacing:.04em;line-height:1.5;font-weight:400}
   .caption span{display:block;margin-top:5px;font-size:clamp(7.5px,1.1vw,9.5px);color:#b9c6e2}
-  .screen-idle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  .cs-screen-idle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:clamp(8px,1.3vw,11px);color:#3d4761;letter-spacing:.1em}
-  .deck.on .screen-idle{display:none}
-  .deck .play{position:absolute;left:var(--play-x);top:var(--play-y);width:var(--play-w);height:var(--play-h);
+  .deck.on .cs-screen-idle{display:none}
+  .deck .cs-play{position:absolute;left:var(--play-x);top:var(--play-y);width:var(--play-w);height:var(--play-h);
     z-index:4;display:flex;align-items:center;justify-content:center;text-decoration:none;
     font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.5vw,12px);letter-spacing:.08em;
     color:var(--game);border:1px solid var(--game);border-radius:40px;background:rgba(4,7,14,.82);
     box-shadow:0 0 16px var(--game-dim),inset 0 1px 0 rgba(255,255,255,.12);
     transition:transform .1s,background .18s,color .18s;min-height:0;padding:0}
-  .deck .play:hover,.deck .play:focus-visible{background:var(--game);color:#04060d;outline:none}
-  .deck .play:active{transform:translateY(2px)}
-  .deck:not(.on) .play{display:none}
+  .deck .cs-play:hover,.deck .cs-play:focus-visible{background:var(--game);color:#04060d;outline:none}
+  .deck .cs-play:active{transform:translateY(2px)}
+  .deck:not(.on) .cs-play{display:none}
   .deck-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 0}
   @media(prefers-reduced-motion:reduce){
     .cart-fly.go,.deck.flow .body-surge,.slot-flash.go{animation:none}
-    .cart,.screen-art,.caption,.body-glow{transition:none}}
+    .cart,.cs-screen-art,.caption,.body-glow{transition:none}}
   @media(max-width:599px){
     .rack{gap:10px}.cart{width:80px}
     .deck{margin-bottom:96px}
     /* 本体が小さいとPLAYが押しにくいので、下へ出して全幅にする */
-    .deck .play{left:0;top:100%;width:100%;height:auto;margin-top:16px;padding:15px 0}}
-  @media(max-width:899px){.shell{width:min(100% - 40px,820px)}.hero{min-height:560px}.nav a:nth-child(2){display:none}main{margin-top:-78px}.info-grid{grid-template-columns:repeat(2,1fr)}}
+    .deck .cs-play{left:0;top:100%;width:100%;height:auto;margin-top:16px;padding:15px 0}}
+  @media(max-width:899px){.cs-shell{width:min(100% - 40px,820px)}.hero{min-height:560px}.nav a:nth-child(2){display:none}main{margin-top:-78px}.info-grid{grid-template-columns:repeat(2,1fr)}}
   @media(min-width:900px){
     .topbar-inner{min-height:60px}.hero{min-height:500px;height:500px}.hero-copy{padding-top:88px}.brand-frame{display:flex;align-items:center;justify-content:center;max-width:760px;height:180px;padding:0 48px}.tagline{position:absolute;z-index:3;left:0;right:0;bottom:10px;margin:0}.arcade-status{margin-top:8px;font-size:10px}
     main{margin-top:-200px}.section-title{margin-bottom:10px}
     .info-section{padding-bottom:18px}.info-section .section-title{margin-bottom:8px}.info-grid{padding:8px;gap:7px}.info-button{min-height:76px;padding:9px 32px 8px 9px}.info-icon{float:left;width:28px;height:28px;margin:0 8px 0 0;font-size:16px}.info-name{padding-top:1px}.info-copy{margin-top:5px;font-size:9px}footer{padding:15px 0 18px}}
-  @media(max-width:599px){.shell{width:calc(100% - 32px)}.hero{min-height:500px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 53%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:30px 12px}h1{font-size:clamp(29px,10.5vw,43px);line-height:1.3}h1 span{display:block}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-50px}.section-title{margin-bottom:20px}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px;padding:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
+  @media(max-width:599px){.cs-shell{width:calc(100% - 32px)}.hero{min-height:500px;background:linear-gradient(180deg,rgba(5,4,10,.25),rgba(5,4,10,.25) 53%,var(--black) 100%),url('images/portal/arcade-bg-mobile.webp') center/cover no-repeat}.topbar-inner{min-height:58px}.mini-brand{font-size:8px}.nav{gap:15px}.nav a{font-size:8px}.nav a:nth-child(2),.nav a:nth-child(3){display:none}.hero-copy{padding-top:120px}.brand-frame{padding:30px 12px}h1{font-size:clamp(29px,10.5vw,43px);line-height:1.3}h1 span{display:block}.tagline{margin-top:18px;font-size:7px}.arcade-status{gap:14px;font-size:9px}main{margin-top:-50px}.section-title{margin-bottom:20px}.info-section{padding-bottom:60px}.info-grid{grid-template-columns:1fr 1fr;gap:10px;padding:10px}.info-button{min-height:126px;padding:14px 36px 14px 14px}.footer-inner{flex-direction:column;align-items:center;text-align:center}}
   @media(max-width:599px){.portal-debug{right:8px;top:66px;width:min(300px,calc(100vw - 16px));max-height:calc(100vh - 74px)}.portal-debug.is-collapsed{width:170px}.portal-debug-control{grid-template-columns:38px 1fr 54px}}
   @media(max-width:360px){.info-grid{grid-template-columns:1fr}.info-button{min-height:98px}}
   @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}</style>
@@ -188,25 +188,25 @@
   <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span>VIVI</span> <span>GAME</span> <span>ARCADE</span></h1><img class="site-logo" src="images/portal/vivi-game-arcade-logo.png" alt="" width="1600" height="600" onload="this.parentElement.classList.add('logo-ready')" onerror="this.hidden=true"><p class="tagline pixel">INSERT COIN — SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>2</strong></span><span>LAST UPDATE <strong>2026.08.16</strong></span></div></div>
 </header>
 <main>
-  <section class="shell" id="game-floor" aria-labelledby="game-floor-title">
+  <section class="cs-shell" id="game-floor" aria-labelledby="game-floor-title">
     <h2 class="section-title pixel" id="game-floor-title">GAME FLOOR</h2>
     <div class="floor" id="floor">
       <div class="rack" id="rack"></div>
       <p class="rack-note" id="rackNote"></p>
 
       <div class="deck" id="deck">
-        <div class="cart-fly" id="cartFly"><span class="shell"><span class="cart-art" id="flyArt"></span></span></div>
+        <div class="cart-fly" id="cartFly"><span class="cs-shell"><span class="cart-art" id="flyArt"></span></span></div>
         <div class="machine"></div>
         <!-- 発光は本体の絵より後に置く。前に置くと不透明な絵に隠れる -->
         <div class="body-glow"></div>
         <div class="body-surge"></div>
         <div class="slot-flash" id="slotFlash"></div>
-        <div class="screen">
-          <div class="screen-art" id="screenArt"></div>
+        <div class="cs-screen">
+          <div class="cs-screen-art" id="screenArt"></div>
           <div class="caption"><b id="capTitle"></b><span id="capDesc"></span></div>
-          <div class="screen-idle">NO CARTRIDGE</div>
+          <div class="cs-screen-idle">NO CARTRIDGE</div>
         </div>
-        <a class="play" id="playLink" href="#">PLAY</a>
+        <a class="cs-play" id="playLink" href="#">PLAY</a>
       </div>
       <div class="deck-tags" id="deckTags"></div>
     </div>
@@ -298,13 +298,13 @@
     b.className = 'cart' + (g.blank ? ' blank' : '');
     b.type = 'button';
     b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = '<span class="shell"><span class="cart-art"></span></span><span class="cname"></span>';
+    b.innerHTML = '<span class="cs-shell"><span class="cart-art"></span></span><span class="cname"></span>';
     b.querySelector('.cname').textContent = g.name;
     if(g.art){
       var art = b.querySelector('.cart-art');
       art.style.setProperty('--art', "url('" + g.art + "')");
       // 中で光っている状態にする。挿すとこの光がそのまま本体へ移る
-      b.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .45));
+      b.querySelector('.cs-shell').style.setProperty('--glow', rgba(g.color, .45));
     }
     b.addEventListener('click', function(){ insert(g, b); });
     rack.appendChild(b);
@@ -336,7 +336,7 @@
     floor.style.setProperty('--game', g.color);
     floor.style.setProperty('--game-dim', rgba(g.color, .28));
     flyArt.style.setProperty('--art', "url('" + g.art + "')");
-    fly.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .6));
+    fly.querySelector('.cs-shell').style.setProperty('--glow', rgba(g.color, .6));
     screenArt.style.setProperty('--art', "url('" + g.art + "')");
     capTitle.textContent = g.name;
     capDesc.textContent = g.desc;
