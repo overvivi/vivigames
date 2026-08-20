@@ -35,25 +35,44 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 
 /* ---------- カセット置き場 ---------- */
 .rack{display:flex; flex-wrap:wrap; justify-content:center; gap:14px;}
-.cart{position:relative; width:94px; padding:0; border:0; background:none;
+.cart{position:relative; width:108px; padding:0; border:0; background:none;
   cursor:pointer; transition:transform .18s ease; font:inherit;}
 .cart:hover,.cart:focus-visible{transform:translateY(-6px);}
 .cart:focus-visible{outline:2px solid var(--cyan); outline-offset:6px;}
-.shell{display:block; position:relative; aspect-ratio:1086/1448;
-  --label-x:13.4%; --label-y:29.4%; --label-w:72.6%; --label-h:52.4%;
-  background:url('images/portal/cartridge-shell.png') center/contain no-repeat;
-  filter:drop-shadow(0 8px 14px rgba(0,0,0,.6));}
+/* 透明の殻。本体がスケルトンなので、カセットも中身が透けて光る作りにする。
+   絵は「印刷したラベル」ではなく「中で発光しているもの」として見せる。 */
+.shell{display:block; position:relative; aspect-ratio:35/32;
+  --label-x:7%; --label-y:15%; --label-w:86%; --label-h:70%;
+  border-radius:7px 7px 4px 4px;
+  background:linear-gradient(158deg,rgba(255,255,255,.13),rgba(255,255,255,.04) 42%,rgba(0,0,0,.30));
+  border:1px solid rgba(255,255,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34), inset 0 -8px 14px rgba(0,0,0,.35),
+             0 0 18px var(--glow,transparent), 0 8px 15px rgba(0,0,0,.55);}
+/* 殻の中の基板と端子 */
+.shell::before{content:''; position:absolute; left:31%; right:31%; top:2.5%; height:7%;
+  border-radius:3px; background:rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26);}
+.shell::after{content:''; position:absolute; left:20%; right:20%; bottom:2.5%; height:5%;
+  border-radius:2px; background:repeating-linear-gradient(90deg,
+    var(--glow,rgba(255,255,255,.25)) 0 3px,transparent 3px 7px); opacity:.9;}
+/* 中で光っている絵 */
 .label{position:absolute; left:var(--label-x); top:var(--label-y);
-  width:var(--label-w); height:var(--label-h); border-radius:6px; overflow:hidden;
+  width:var(--label-w); height:var(--label-h); border-radius:5px; overflow:hidden;
   background:var(--art,#1b2030) center/cover no-repeat;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.55), inset 0 2px 6px rgba(0,0,0,.5);}
+  opacity:.92; filter:saturate(1.25) brightness(1.06);
+  box-shadow:0 0 14px var(--glow,transparent), inset 0 0 0 1px rgba(255,255,255,.14);}
+/* 樹脂のツヤ。透明感を出す */
+.label::after{content:''; position:absolute; inset:0;
+  background:linear-gradient(122deg,rgba(255,255,255,.22) 0 18%,transparent 34%);}
 .cart .name{display:block; margin-top:7px; font-size:9.5px; letter-spacing:.09em;
   color:var(--muted); text-align:center;}
-.cart.blank .shell{opacity:.5;}
+.cart.blank .shell{opacity:.45;}
+.cart.blank .shell::after{opacity:.3;}
 .cart.blank .label{background:repeating-linear-gradient(45deg,#171b26 0 6px,#12151e 6px 12px);}
 /* 挿さっているカセットの跡。列に穴が空かないよう空のくぼみを残す */
-.cart.inserted .shell{opacity:.28; filter:none;}
-.cart.inserted .label{background:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}
+.cart.inserted .shell{opacity:.3; box-shadow:inset 0 1px 0 rgba(255,255,255,.14);}
+.cart.inserted .label{background:none; opacity:1; filter:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}
 .cart.inserted .name{color:var(--game);}
 
 .toast{height:16px; margin-top:9px; text-align:center; font-size:10.5px;
@@ -63,21 +82,22 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 .cart.nudge{animation:nudge .26s;}
 
 /* ---------- 携帯機 ---------- */
-.deck{position:relative; width:min(760px,100%); margin:26px auto 0;
+.deck{position:relative; width:min(760px,100%); margin:52px auto 0;
   aspect-ratio:1600/760;
   /* 絵へ差し替えたら、ここの数値を測り直せば合う */
-  --screen-x:5.5%; --screen-y:10%; --screen-w:38%; --screen-h:80%;
-  --slot-x:70%;                       /* 上端の差込口の中心 */
-  --play-x:60%; --play-y:62%; --play-w:26%; --play-h:17%;}
+  --screen-x:33%; --screen-y:13%; --screen-w:34%; --screen-h:63%;
+  --slot-x:50%;                       /* 上端の差込口の中心 */
+  --play-x:38%; --play-y:80%; --play-w:24%; --play-h:14%;}
 
 /* 潜り込むカセット。本体より下の層に置くので、下がるほど隠れる */
-.cartFlight{position:absolute; left:var(--slot-x); top:0; width:13%;
+.cartFlight{position:absolute; left:var(--slot-x); top:0; width:22%;
   transform:translate(-50%,-105%); z-index:1; pointer-events:none; opacity:0;}
 .cartFlight.go{animation:sink .55s cubic-bezier(.35,.05,.25,1) forwards;}
 @keyframes sink{
-  0%  {transform:translate(-50%,-105%); opacity:1;}
-  55% {transform:translate(-50%,-72%);  opacity:1;}
-  100%{transform:translate(-50%,18%);   opacity:1;}
+  0%  {transform:translate(-50%,-118%); opacity:0;}
+  28% {transform:translate(-50%,-88%);  opacity:1;}
+  58% {transform:translate(-50%,-66%);  opacity:1;}
+  100%{transform:translate(-50%,22%);   opacity:1;}
 }
 .cartFlight .shell{filter:drop-shadow(0 6px 10px rgba(0,0,0,.7));}
 
@@ -107,8 +127,20 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 .chip{position:absolute; border-radius:2px; background:rgba(6,9,15,.85);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), 0 1px 3px rgba(0,0,0,.6);}
 .slotLip{position:absolute; left:var(--slot-x); top:-1.2%; transform:translateX(-50%);
-  width:15%; height:5%; border-radius:4px 4px 2px 2px; background:#04050a; z-index:3;
+  width:24%; height:4.5%; border-radius:4px 4px 2px 2px; background:#04050a; z-index:3;
   box-shadow:inset 0 4px 8px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.18);}
+
+/* 吸い込まれた瞬間、差込口が一度だけ強く光る。
+   「カセットを挿した」より「データを流し込んだ」に見せたいため */
+.flash{position:absolute; left:var(--slot-x); top:0; transform:translate(-50%,-50%);
+  width:30%; height:9%; border-radius:50%; z-index:3; pointer-events:none; opacity:0;
+  background:radial-gradient(ellipse,var(--game) 0%,var(--game-dim) 42%,transparent 70%);}
+.flash.go{animation:absorb .55s ease-out;}
+@keyframes absorb{
+  0%,52%{opacity:0; transform:translate(-50%,-50%) scaleX(.5);}
+  66%   {opacity:1; transform:translate(-50%,-50%) scaleX(1.15);}
+  100%  {opacity:0; transform:translate(-50%,-50%) scaleX(1.4);}
+}
 
 /* 画面 */
 .screen{position:absolute; left:var(--screen-x); top:var(--screen-y);
@@ -134,17 +166,17 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 .deck.on .idle{display:none;}
 
 /* 操作系（飾り） */
-.dpad{position:absolute; left:47.5%; top:24%; width:9%; aspect-ratio:1; z-index:3;}
+.dpad{position:absolute; left:10%; top:30%; width:11%; aspect-ratio:1; z-index:3;}
 .dpad i{position:absolute; background:linear-gradient(180deg,#2b3143,#141824);
   border-radius:3px; box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 2px 4px rgba(0,0,0,.6);}
 .dpad i:nth-child(1){left:34%; top:0; width:32%; height:100%;}
 .dpad i:nth-child(2){top:34%; left:0; height:32%; width:100%;}
-.knobs{position:absolute; right:6%; top:22%; width:19%; z-index:3;
+.knobs{position:absolute; right:8%; top:31%; width:20%; z-index:3;
   display:flex; gap:10%; transform:rotate(-14deg);}
 .knobs b{flex:1; aspect-ratio:1; border-radius:50%;
   background:radial-gradient(circle at 34% 30%,#3a4157,#171c2a 60%,#0b0e16);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 3px 6px rgba(0,0,0,.65);}
-.grill{position:absolute; right:6%; bottom:9%; width:16%; height:11%; z-index:3;
+.grill{position:absolute; right:7%; bottom:8%; width:13%; height:13%; z-index:3;
   background:repeating-linear-gradient(114deg,rgba(255,255,255,.09) 0 2px,transparent 2px 7px);
   border-radius:3px;}
 
@@ -153,7 +185,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   width:var(--play-w); height:var(--play-h); z-index:4;
   display:flex; align-items:center; justify-content:center; text-decoration:none;
   font-family:'Press Start 2P',monospace; font-size:clamp(9px,1.6vw,13px);
-  letter-spacing:.08em; color:var(--game); border-radius:8px;
+  letter-spacing:.08em; color:var(--game); border-radius:40px;
   border:1px solid var(--game); background:rgba(4,7,14,.82);
   box-shadow:0 0 16px var(--game-dim), inset 0 1px 0 rgba(255,255,255,.12);
   transition:transform .1s, background .18s, color .18s;}
@@ -166,7 +198,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   .cart,.art,.caption,.pcb{transition:none;}
 }
 @media (max-width:560px){
-  .rack{gap:9px;} .cart{width:72px;}
+  .rack{gap:9px;} .cart{width:78px;}
   .deck{margin-bottom:92px;}
   /* 本体が小さくなるとPLAYが押しにくいので、下へ出して全幅にする */
   .play{left:0; top:100%; width:100%; height:auto; margin-top:14px; padding:14px 0;}
@@ -192,11 +224,13 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 
     <div class="machine">
       <div class="pcb"></div>
-      <span class="chip" style="left:52%; top:52%; width:13%; height:16%"></span>
-      <span class="chip" style="left:70%; top:78%; width:8%;  height:9%"></span>
-      <span class="chip" style="left:14%; top:92%; width:18%; height:5%"></span>
+      <span class="chip" style="left:22%; top:70%; width:11%; height:14%"></span>
+      <span class="chip" style="left:70%; top:66%; width:9%;  height:11%"></span>
+      <span class="chip" style="left:12%; top:14%; width:14%; height:5%"></span>
+      <span class="chip" style="left:76%; top:14%; width:10%; height:5%"></span>
     </div>
     <div class="slotLip"></div>
+    <div class="flash" id="flash"></div>
 
     <div class="screen">
       <div class="art" id="art"></div>
@@ -216,9 +250,9 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 </div>
 
 <div class="note">
-  <b>これは試作です。</b>本体はCSSの図形で仮に組んであります。カセットと画面の絵は本物です。
-  カセットは本体の裏へ潜り込ませて完全に消しているので、差込口と1ピクセル単位で
-  合わせる必要がありません。画面の大きさ、カセットとの縮尺、吸い込まれる速さを見てください。
+  <b>これは試作です。</b>本体はCSSの図形で仮に組んであります。ゲームの絵は本物です。
+  カセットもCSSで描いているので、<b>発注した殻の画像はもう要りません</b>。形も色も自由に変えられます。
+  配置はGBA準拠（十字キー左・画面中央・ボタン右）、カセットもGBAと同じほぼ正方形にしてあります。
 </div>
 
 <script>
@@ -237,6 +271,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   const deck = document.getElementById('deck');
   const flight = document.getElementById('flight');
   const flightLabel = document.getElementById('flightLabel');
+  const flash = document.getElementById('flash');
   const art = document.getElementById('art');
   const capT = document.getElementById('capTitle');
   const capD = document.getElementById('capDesc');
@@ -253,6 +288,8 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     b.innerHTML = '<span class="shell"><span class="label"></span></span><span class="name"></span>';
     b.querySelector('.name').textContent = g.name;
     if(g.art) b.querySelector('.label').style.setProperty('--art', g.art);
+    // 中で光っている状態にする。挿すとこの光がそのまま本体へ移る
+    if(g.color) b.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .45));
     b.addEventListener('click', ()=> insert(g, b));
     rack.appendChild(b);
     buttons.push(b);
@@ -281,6 +318,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     deck.style.setProperty('--game', g.color);
     deck.style.setProperty('--game-dim', rgba(g.color, .28));
     flightLabel.style.setProperty('--art', g.art);
+    flight.querySelector('.shell').style.setProperty('--glow', rgba(g.color, .6));
     art.style.setProperty('--art', g.art);
     capT.textContent = g.name;
     capD.textContent = g.desc;
@@ -292,6 +330,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     flight.classList.remove('go');
     void flight.offsetWidth;
     flight.classList.add('go');
+    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     clearTimeout(onTimer);
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     onTimer = setTimeout(()=> deck.classList.add('on'), calm ? 0 : 430);
