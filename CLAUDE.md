@@ -9,20 +9,39 @@
 巨大HTMLを変更したら、**最後に必ず `npm run verify` を実行する。**
 構文・`<script>`の開閉と`</html>`終端・素材参照の実在を1コマンドで検査する
 (base64行を壊す編集と、素材の欠落を検出するため)。
-テストは変更した領域だけに絞る: `npm run test:runner` / `test:boss` / `test:portal`。
+テストは変更した領域だけに絞る: `npm run test:runner` / `test:boss` / `test:portal` / `test:hex`。
 
 ## ファイル構成
 
 | ファイル | 内容 | 状態 |
 |---|---|---|
 | `index.html` | ゲーム置き場(ポータル)。パッチノートもここに記載 | 現役 |
-| `games/temple-run-clone.html` | **HELL RUNNER** 本体(約6.5MB) | 現役 |
-| `games/boss-battle-demo.html` | **討伐2048** 本体(約7.3MB) | 現役 |
-| `tetris.html` | テトリス。ポータルに3本目として追加予定だが**未リンク** | 試作 |
+| `games/temple-run-clone.html` | **HELL RUNNER** 本体(1.8MB) | 現役・**凍結** |
+| `games/boss-battle-demo.html` | **討伐2048** 本体(3.2MB) | 現役 |
+| `games/hexamine.html` | **HEXAMINE** 本体(0.1MB) | 現役 |
+| `games/hell-runner-2.html` | **HELL RUNNER 2** 本体(6.3MB) | 制作中・β掲載 |
+| `tetris.html` | テトリス。**未リンク** | 試作 |
 | `supabase-setup.sql` | ランキング用テーブル作成SQL | 参照用 |
 | `supabase-fix-permissions.sql` | GRANT修正SQL(下記の落とし穴を参照) | 参照用 |
 
 ファイルサイズが大きいのは、ドット絵スプライト・UI画像・BGMを **base64で埋め込んでいる**ため。
+2026-08-21に再圧縮して約20MB削った。HEXAMINEが小さいのは、素材を `images/` の
+外部ファイルにしているのではなく、盤面をコードで描いていて絵をほぼ使わないため。
+
+## 素材を軽くする道具
+
+埋め込み素材は放っておくと数MB単位で膨らむ。手作業ではなくスクリプトで通す。
+
+| コマンド | 用途 |
+|---|---|
+| `npm run portal:images` | ポータル素材の縮小＋webp変換 |
+| `node tools/game-images.mjs <html>` | 埋め込みPNGをWebPへ。大きい絵は非可逆、ドット絵は可逆 |
+| `node tools/game-audio.mjs <html>` | 埋め込みBGMのビットレートを下げる |
+
+- 依存は `sharp` と `ffmpeg-static`(devDependency)
+- **PowerShellでは `npm` が実行ポリシーで弾かれる。`npm.cmd` を使う**
+- **Prettier等の自動整形ツールは入れないこと。** base64を1行に詰めているため、
+  折り返されるとファイルが壊れる
 コード自体は HELL RUNNER が約2200行、討伐2048 が約1700行で、base64は数十行に収まっている。
 
 ## 落とし穴 / ハマりどころ
