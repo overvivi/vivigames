@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <!-- 本体画像の寸法基準図。生成AIへ「構図の参考」として見せる。
+       赤い枠の中には何も置かないこと。ここへHTML側で部品を重ねる。 -->
+  <rect width="1600" height="900" fill="#0b0d14"/>
+  <g font-family="sans-serif" fill="#8894b0">
+    <text x="26" y="42" font-size="26" fill="#dfe7ff">console-body.png / 1600 x 900 / 背景は透過</text>
+  </g>
+
+  <!-- 本体が収まる範囲 -->
+  <rect x="64" y="126" width="1472" height="720" rx="18"
+        fill="none" stroke="#3f4a63" stroke-width="3" stroke-dasharray="10 8"/>
+  <text x="76" y="118" font-size="22" fill="#6d7a99" font-family="sans-serif">本体はこの内側に収める（外は余白）</text>
+
+  <!-- 上面: 差込口を置く空き地 -->
+  <rect x="560" y="80" width="480" height="130" rx="10"
+        fill="rgba(255,60,120,.12)" stroke="#ff3c78" stroke-width="4"/>
+  <text x="600" y="70" font-size="24" fill="#ff7aa5" font-family="sans-serif">上面：ここは平らな空き地にする（差込口はHTMLで描く）</text>
+
+  <!-- 前面: パネルを置く空き地 -->
+  <rect x="224" y="468" width="1152" height="270" rx="12"
+        fill="rgba(255,60,120,.12)" stroke="#ff3c78" stroke-width="4"/>
+  <text x="240" y="455" font-size="24" fill="#ff7aa5" font-family="sans-serif">前面：ここは平らな暗い面にする（表示窓はHTMLで描く）</text>
+  <text x="240" y="620" font-size="30" fill="#ff7aa5" font-family="sans-serif" opacity=".85">文字・ランプ・模様を置かない</text>
+
+  <!-- 自由に描いてよい領域の目印 -->
+  <text x="90" y="300" font-size="24" fill="#6d7a99" font-family="sans-serif">← 側面・放熱口・</text>
+  <text x="90" y="332" font-size="24" fill="#6d7a99" font-family="sans-serif">　 補強はここに</text>
+  <text x="1300" y="300" font-size="24" fill="#6d7a99" font-family="sans-serif">自由 →</text>
+  <text x="700" y="820" font-size="24" fill="#6d7a99" font-family="sans-serif">脚はここまでに収める</text>
+</svg>
