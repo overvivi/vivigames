@@ -143,8 +143,9 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
   -webkit-mask-position:center; mask-position:center;
   background:radial-gradient(ellipse at 50% 55%,var(--game-dim),transparent 68%);
-  mix-blend-mode:screen; transition:opacity .5s;}
-.deck.on .bodyGlow{opacity:1;}
+  mix-blend-mode:screen; transition:opacity .6s;}
+/* 走る光より後に点く。同時だと走った瞬間が埋もれる */
+.deck.on .bodyGlow{opacity:1; transition-delay:.55s;}
 .deck:not(.real) .bodyGlow{display:none;}
 
 /* 流れ込んだデータが本体の中を走る。
@@ -156,15 +157,16 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
   -webkit-mask-position:center; mask-position:center;
   background:linear-gradient(96deg,
-    transparent 30%, var(--game-dim) 42%, var(--game) 50%, var(--game-dim) 58%, transparent 70%);
-  background-size:260% 100%; background-position:135% 0;
+    transparent 36%, var(--game-dim) 44%, var(--game) 50%,
+    var(--game-dim) 56%, transparent 64%);
+  background-size:300% 100%; background-position:150% 0;
   mix-blend-mode:screen;}
-.deck.flow .bodySurge{animation:surge .85s cubic-bezier(.25,.6,.3,1);}
+.deck.flow .bodySurge{animation:surge 1.15s cubic-bezier(.3,.5,.35,1);}
 @keyframes surge{
-  0%  {opacity:0;   background-position:135% 0;}
-  18% {opacity:.95;}
-  80% {opacity:.55;}
-  100%{opacity:0;   background-position:-45% 0;}
+  0%  {opacity:0; background-position:150% 0;}
+  12% {opacity:.85;}
+  78% {opacity:.72;}
+  100%{opacity:0; background-position:-55% 0;}
 }
 .deck:not(.real) .bodySurge{display:none;}
 @media (prefers-reduced-motion: reduce){ .deck.flow .bodySurge{animation:none;} }
@@ -271,8 +273,6 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   <div class="deck" id="deck">
     <div class="cartFlight" id="flight"><span class="shell"><span class="label" id="flightLabel"></span></span></div>
 
-    <div class="bodyGlow"></div>
-    <div class="bodySurge"></div>
     <div class="machine">
       <div class="pcb"></div>
       <span class="chip" style="left:22%; top:70%; width:11%; height:14%"></span>
@@ -280,6 +280,10 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
       <span class="chip" style="left:12%; top:14%; width:14%; height:5%"></span>
       <span class="chip" style="left:76%; top:14%; width:10%; height:5%"></span>
     </div>
+    <!-- 発光は本体の絵より後に描く。同じ z-index なのでDOM順が描画順になり、
+         前に置くと不透明な絵に隠れてしまう -->
+    <div class="bodyGlow"></div>
+    <div class="bodySurge"></div>
     <div class="slotLip"></div>
     <div class="flash" id="flash"></div>
 
