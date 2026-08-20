@@ -204,9 +204,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
    delete from hexamine_scores where name = '接続確認';
    ```
 2. **HEXAMINEを一通り遊ぶ。** チュートリアル6面と∞・デイリーを通しで触ってから公開する
-3. **`portal-prototype.html` を消すか決める。** 役目を終えており `index.html` と重複する。
-   pushするとURLで見えてしまう
-4. **GitHubへpush。** 今日の作業はまだ一度もpushしていない
+3. **GitHubへpush。** 今日の作業はまだ一度もpushしていない
 
 ### ポータル
 
