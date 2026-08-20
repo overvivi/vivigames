@@ -943,6 +943,10 @@ if(typeof importScripts === 'function'){
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
   const LONG_MS = 340; // 長押しで空孔。実機で詰める値
+  // 「長押しのつもりで早く離した」を、意図しないタップとして確定させない。
+  // この割合より長く押していた場合は、どちらとも取らずに何もしない。
+  // デイリーが一発勝負なので、事故のミスで1日が潰れるのを防ぐ。
+  const TAP_MAX = 0.55;
   const HINT_TEXT = 'タップ＝原子あり　／　長押し＝空孔　／　ドラッグで移動・ピンチで拡大（PCは左右クリックとホイール、0キーで表示リセット）';
 
   const $ = id => document.getElementById(id);
@@ -1306,12 +1310,32 @@ if(typeof importScripts === 'function'){
   // スマホには右クリックが無い。タップ=原子あり、長押し=空孔で分ける。
   // 長押し中は枠色を変えて、判定に入ったことを見せる。
   function bindInput(node, i){
-    let timer = null, longFired = false;
+    let timer = null, longFired = false, pressedAt = 0;
+    // 押している間、輪郭を1周ぶん描いて長押しの進み具合を見せる。
+    // いつ切り替わるか分からないと、途中で離して事故になる。
+    const holdOn = ()=>{
+      const hex = cellNodes[i].hex;
+      const per = layout ? layout.size * 0.92 * 6 : 0;
+      if(!per) return;
+      hex.style.transition = 'none';
+      hex.style.strokeDasharray = per;
+      hex.style.strokeDashoffset = per;
+      hex.getBoundingClientRect();          // ここで一度確定させないと動かない
+      hex.style.transition = 'stroke-dashoffset ' + LONG_MS + 'ms linear';
+      hex.style.strokeDashoffset = '0';
+    };
+    const holdOff = ()=>{
+      const hex = cellNodes[i].hex;
+      hex.style.transition = '';
+      hex.style.strokeDasharray = '';
+      hex.style.strokeDashoffset = '';
+    };
     // 指が動いた時に外から打ち切れるよう、進行中の操作を共有しておく
     const abort = ()=>{
       if(timer){ clearTimeout(timer); timer = null; }
       longFired = true;          // 以降のpointerupでマークさせない
       clearScope();
+      holdOff();
       paintCell(i);
     };
 
@@ -1323,21 +1347,31 @@ if(typeof importScripts === 'function'){
       }
       if(busy) return;
       longFired = false;
+      pressedAt = performance.now();
       cellNodes[i].hex.setAttribute('stroke', 'var(--magenta)');
       cellNodes[i].hex.setAttribute('stroke-width', '3');
-      timer = setTimeout(()=>{ longFired = true; timer = null; commit(i, BLACK); }, LONG_MS);
+      holdOn();
+      timer = setTimeout(()=>{ longFired = true; timer = null; holdOff(); commit(i, BLACK); }, LONG_MS);
       activePress = { abort:abort };
     };
     const endPress = ()=>{
       activePress = null;
       clearScope();
-      if(timer){ clearTimeout(timer); timer = null; if(!longFired) commit(i, BLUE); }
+      if(timer){
+        clearTimeout(timer); timer = null;
+        holdOff();
+        const held = performance.now() - pressedAt;
+        // 短ければタップ。中途半端な長さは、長押しの失敗とみなして何もしない
+        if(held < LONG_MS * TAP_MAX) commit(i, BLUE);
+        else paintCell(i);
+      }
       else if(!longFired) paintCell(i);
     };
     const cancelPress = ()=>{
       activePress = null;
       clearScope();
       if(timer){ clearTimeout(timer); timer = null; }
+      holdOff();
       if(!longFired) paintCell(i);
     };
     // PCはホバーだけで範囲が見えたほうが速い
