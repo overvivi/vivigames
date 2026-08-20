@@ -1,0 +1,21 @@
+#!/bin/sh
+# コミット前に公開ファイルの健全性を検査する。
+#
+# games/ のHTMLは base64 を1行へ詰めて埋め込んでいるため、
+# 不用意な編集や整形で行が壊れると、開くまで気づけない。
+# 壊れたものをコミットしてしまう事故を、ここで構造的に防ぐ。
+#
+# 有効化: git config core.hooksPath tools/hooks
+# 一時的に飛ばす場合のみ: git commit --no-verify
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node が見つからないため検査を飛ばす" >&2
+  exit 0
+fi
+
+node tests/verify.cjs || {
+  echo "" >&2
+  echo "pre-commit: 検査に失敗したためコミットを中止した。" >&2
+  echo "  直してから commit するか、意図的に飛ばす場合は --no-verify を付ける。" >&2
+  exit 1
+}
