@@ -30,6 +30,18 @@
   #boardWrap{flex:1 1 auto; position:relative; overflow:hidden;}
   #board{position:absolute; inset:0; width:100%; height:100%;}
   .cell{cursor:pointer;}
+  /* 間違えたマスは開かず、揺らして知らせる。
+     黙って開いてしまうと「いつの間にかミスが増えていた」状態になり、
+     どこで間違えたのか分からない(特に最後の1手だと結果画面へ直行する)。 */
+  .cell.miss{animation:cellmiss .36s ease-out;}
+  .cell.miss .hexFill{fill:rgba(255,43,166,.55); stroke:var(--magenta); stroke-width:3;}
+  @keyframes cellmiss{
+    0%{transform:translateX(0);}   18%{transform:translateX(-4px);}
+    36%{transform:translateX(4px);} 54%{transform:translateX(-3px);}
+    72%{transform:translateX(3px);} 100%{transform:translateX(0);}
+  }
+  .stat.bad.hit b{animation:missblink .38s steps(1) 3;}
+  @keyframes missblink{0%,100%{opacity:1;} 50%{opacity:.1;}}
   .cell .hexFill{transition:fill .18s, stroke .18s;}
   /* 中央揃えは全てのラベルに効かせる。.cell の内側だけに限定していたため、
      外側ヒントには適用されず、指定座標が文字の左下として扱われて右上へずれていた。 */
@@ -1251,13 +1263,38 @@ if(typeof importScripts === 'function'){
     if(busy || state[i] !== UNKNOWN) return;
     if(hintScopeOn){ clearScope(); hintScopeOn = false; }
     const actual = puzzle.truth[i];
-    if(guess !== actual) mistakes++;   // 間違えても失敗にはせず、正しい値を開く
+    if(guess !== actual){
+      // 間違いはマスを開かない。ミスに気づかないまま進むのを防ぐ
+      mistakes++;
+      statMiss.textContent = mistakes;
+      // マスは開かないので、押している間の枠色を自分で戻す必要がある
+      // (開く場合は paintCell が戻していた)
+      paintCell(i);
+      flashMistake(i);
+      return;
+    }
     state[i] = actual;
     paintCell(i);
     solvedCount++;
     advanceLesson();
     refreshGuide();
     updateStats();
+  }
+
+  // 間違えたことを、その場で分かる形にして返す
+  let missTimers = new Map();
+  function flashMistake(i){
+    const node = cellNodes[i];
+    if(node){
+      const prev = missTimers.get(i);
+      if(prev){ clearTimeout(prev); node.g.classList.remove('miss'); void node.g.getBoundingClientRect(); }
+      node.g.classList.add('miss');
+      missTimers.set(i, setTimeout(()=>{ node.g.classList.remove('miss'); missTimers.delete(i); }, 380));
+    }
+    const stat = statMiss.parentElement;
+    stat.classList.remove('hit'); void stat.getBoundingClientRect();
+    stat.classList.add('hit');
+    setTimeout(()=> stat.classList.remove('hit'), 1200);
   }
 
   // ---------- 次の一手 ----------
