@@ -12,6 +12,8 @@
     "test:update-backgrounds": "playwright test tests/backgrounds.spec.js --update-snapshots",
     "test:ui": "playwright test --ui",
     "test:hex": "node tools/hex/solver.test.mjs",
+    "test:hex-ui": "playwright test tests/hexamine-ui.spec.js",
+    "test:rhythm": "playwright test tests/rhythm-game.spec.js",
     "serve": "node tests/static-server.cjs",
     "portal:images": "node tools/portal-images.mjs"
   },

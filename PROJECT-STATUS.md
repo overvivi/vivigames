@@ -118,7 +118,21 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 送信に失敗しても `submitted` を立てず、フォームも残す。通信の失敗で記録を捨てないため
 - テスト `npm run test:hex`（108件）。solver.test.mjs が `games/hexamine.html` から
   ソルバーを取り出して検証する
+- 携帯の外側ヒントは、数字そのものではなく盤外側だけの透明な判定帯を押せる。タップ後は範囲を固定表示し、同じヒントをもう一度押すと閉じる。数字を狙い損ねてマスを誤タップする事故と、離した直後に範囲が消えて読めない問題を防ぐ。`npm run test:hex-ui`（1件）で判定帯の端でもマスを変えないことと固定表示を確認
+- デイリーチャレンジのHINTは3回まで。HUDの`HINT（残り 3）`で残数を示し、実際に確定手を示せた時だけ消費する。残数・ミス・経過時間は同じ日なら入り直しても引き継ぎ、0回でボタンを無効化する
 - Discordのランキング通知は共通の`tools/ranking-to-discord.mjs`へ登録済み。1時間ごとに当日の1位更新だけを通知し、最初の実行では既存記録を基準値として保存する。HELL RUNNER 2（β）も同じ仕組みで総合1位更新を通知する
+
+### RHYTHM LAB（`games/rhythm-game-test.html`）
+
+複合型音楽ゲームの**全モード比較用・未公開試作**。ポータルにはまだ載せない。
+
+- `音ゲーテスト作成用サンプル.mp3`（ピコピコリン、約36秒）を試作用に参照。ユーザーが置いた未追跡素材のため、勝手に移動・公開・コミットしない
+- 同一の曲時間・BPM・判定・スコア・コンボを共有し、TAIKO（2入力）、POP（4レーン）、DDR（矢印4入力）、ORBIT（1入力）の4モードを切替可能
+- `DEV SYNC TUNER`でBPMとAUDIO OFFSETを実機調整し、`COPY TEST VALUES`で確定候補を共有できる。譜面を作り込む前に各操作感と曲同期を比較するため
+- 曲のBPMが不明でも試せるよう、再生中に拍へ4回合わせて押す`TAP BEAT`を追加。平均間隔からBPMを決め、最後のタップを拍の起点として2拍後から譜面を組み直す
+- ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒
+- 開始時は音声の`play()`成功後にだけノーツを進める。Safariがユーザー操作後の待機を自動再生として止めないよう、押下と同じ同期区間で再生を要求する。失敗時は`AUDIO ERROR`として画面に理由を出し、黙って無音のまま始めない
+- `npm run test:rhythm`（1件）で4モード切替と390px携帯時のステージ全面Canvasを確認
 
 
 ### ポータル (`index.html`)
@@ -197,6 +211,8 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 | `npm run test:boss` | 討伐2048 | 10 |
 | `npm run test:portal` | ポータル | 10 |
 | `npm run test:hex` | HEXAMINEのソルバー | 108 |
+| `npm run test:hex-ui` | HEXAMINEの携帯操作 | 2 |
+| `npm run test:rhythm` | RHYTHM LABの全モード試作 | 1 |
 | `npm test` | 全件（Playwright分） | **45** |
 
 - 背景の見た目を意図的に変えた場合のみ `npm run test:update-backgrounds`。通常は基準画像を更新しない
@@ -331,6 +347,33 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - ポータルのPATCH NOTESへ2026.08.21の携帯レイアウト調整を追記。Discord通知はGitHubへpushした差分を自動送信する構成のため、コミット`e8d38a6`をpushして通知対象へ反映
 - 変更: `index.html`、`PROJECT-STATUS.md`
 - 検証: `npm.cmd run test:portal`（10件成功）、`npm.cmd run verify`（4ファイル／インラインスクリプト7件、構文・構造・素材参照すべてOK）
+
+### 2026-08-21 — Codex（RHYTHM LAB 全モード比較試作）
+
+- 同じ曲・共通の拍時間／判定／スコア／コンボを土台に、TAIKO・POP・DDR・ORBITの4モードを切り替えて遊べる`games/rhythm-game-test.html`を追加。PCキーと携帯タップの両方に対応
+- BPMとAUDIO OFFSETを実機で詰め、コピー共有できる`DEV SYNC TUNER`を追加。譜面の作り込みより先に、各モードの操作感と同期を比較するため
+- Canvasが開始前のカバーと違い150px相当の高さしか描画されない問題を実画面で発見し、ステージ内側全体を描画・操作面に修正
+- 曲の再生失敗を黙殺して無音のままノーツを開始していたため、再生成功後にだけ開始するよう修正。失敗時は`AUDIO ERROR`と再試行導線を出す
+- BPM不明の音源へ固定120BPMの譜面を置いていたため、`TAP BEAT`で4拍からBPMと拍の起点を取る方式を追加。専用テストも4回タップ後のSYNCED表示を確認するよう更新
+- `tests/rhythm-game.spec.js`と`npm run test:rhythm`を追加。4モードの切替と390px携帯でCanvasがステージ内側を埋めることを確認
+- 変更: `games/rhythm-game-test.html`、`tests/rhythm-game.spec.js`、`tests/verify.cjs`、`package.json`、`PROJECT-STATUS.md`
+- 検証: `npm.cmd run test:rhythm`（1件成功）、`npm.cmd run test:hex-ui`（1件成功）、`npm.cmd run test:hex`（108件成功）、`npm.cmd run verify`（5ファイル／インラインスクリプト8件、構文・構造・素材参照すべてOK）
+
+### 2026-08-21 — Codex（HEXAMINEデイリーHINT制限）
+
+- デイリーだけHINTを3回までに制限。HUDへ`HINT（残り 3）`を表示し、解ける手を実際に示せた時だけ1回消費する。空振りで回数を失わせないため
+- 残数をデイリー保存データへ追加。既存の同日記録は0回使用から安全に移行し、ミス・経過時間と同様に入り直しても回復しない。残り0でボタンを無効化
+- `tests/hexamine-ui.spec.js`へ3回消費・0回表示・再入場後も0回の回帰テストを追加
+- 変更: `games/hexamine.html`、`tests/hexamine-ui.spec.js`、`PROJECT-STATUS.md`
+- 検証: `npm.cmd run test:hex-ui`（2件成功）、`npm.cmd run test:hex`（108件成功）、`npm.cmd run verify`（5ファイル／インラインスクリプト8件、構文・構造・素材参照すべてOK）
+
+### 2026-08-21 — Codex（HEXAMINE携帯の外側ヒント操作）
+
+- 外側ヒントの数字から盤外側へ、面に沿った透明なタップ判定帯を追加。マスの面へは重ならないため、数字を狙い損ねた操作が原子／空孔の確定へ抜けない
+- 携帯では外側ヒントをタップすると対象範囲を固定表示し、同じヒントの再タップで閉じる方式へ変更。押している間だけでは推理に必要な範囲を読めなかったため
+- `tests/hexamine-ui.spec.js`と`npm run test:hex-ui`を追加。判定帯端のタップ、マスの不変、固定表示と閉じる操作を確認
+- 変更: `games/hexamine.html`、`tests/hexamine-ui.spec.js`、`package.json`、`PROJECT-STATUS.md`
+- 検証: `npm.cmd run test:hex-ui`（1件成功）、`npm.cmd run test:hex`（108件成功）、`npm.cmd run verify`（4ファイル／インラインスクリプト7件、構文・構造・素材参照すべてOK）
 
 ### 2026-08-21 — Claude Code（ポータル刷新・HEXAMINE公開準備・軽量化）
 

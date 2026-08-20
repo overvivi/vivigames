@@ -131,6 +131,7 @@
   .backBtn{padding:7px 13px; background:transparent; border:1px solid var(--line);
     color:var(--muted); font-size:11px; cursor:pointer;}
   .backBtn:hover{color:var(--cyan); border-color:var(--cyan);}
+  #hintBtn:disabled{opacity:.38;cursor:not-allowed;}
   .stageGrid,.sizeGrid{display:grid; gap:10px; width:min(100%,520px);
     grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
   .card{padding:13px 15px; text-align:left; background:rgba(17,20,37,.85);
@@ -1015,6 +1016,7 @@ if(typeof importScripts === 'function'){
   let activePress = null;              // 進行中のタップ/長押し
   const pointers = new Map();          // ピンチ判定用
   let panning = false, pinchStart = null;
+  let lineHintLock = null;             // 携帯で最後に固定表示した外側ヒント
 
   function applyView(){
     if(viewGroup) viewGroup.setAttribute('transform',
@@ -1239,8 +1241,11 @@ if(typeof importScripts === 'function'){
     // 面から離すほど良いわけではない。上面のラベルと、左上のマスが持つ右上面の
     // ラベルは、この距離が1.73に近づくほど互いに寄っていく関係にある。
     // 面に接する下限(内接半径0.80 + 文字の高さの半分)まで詰めた方が両者は離れる。
-    const FACE_GAP = 1.12;
+    // ただし携帯では数字のすぐ外を押すとマスへ抜けてしまう。文字だけを広げず、
+    // 面の外側に専用の判定帯を置けるぶんだけ離す。
+    const FACE_GAP = 1.24;
     const HINT_FONT = 0.30; // 0.34にすると上面と右上面のラベルが接触する // 上の理由で文字を大きくすると隣のラベルと当たる
+    lineHintLock = null;
     for(const line of board.lines){
       const h = lineHints.find(x => x.cells.length === line.cells.length &&
                                     x.cells.every((v,k)=> v === line.cells[k]));
@@ -1252,22 +1257,60 @@ if(typeof importScripts === 'function'){
       const lx = base.x + f.nx * size * FACE_GAP;
       const ly = base.y + f.ny * size * FACE_GAP;
 
-      const t = el('text', { x:lx, y:ly, class:'label lineHint',
+      const g = el('g', { class:'lineHint' });
+      // 判定帯は六角形の外側だけに置く。数字を大きくすると隣の数字とぶつかるうえ、
+      // 円形に広げると近くのマスを奪うため、面に沿った細長い帯にする。
+      const tx = -f.ny, ty = f.nx, near = 0.90, far = 1.68, half = 0.52;
+      const hitPoints = [
+        [base.x + f.nx*size*near + tx*size*half, base.y + f.ny*size*near + ty*size*half],
+        [base.x + f.nx*size*near - tx*size*half, base.y + f.ny*size*near - ty*size*half],
+        [base.x + f.nx*size*far  - tx*size*half, base.y + f.ny*size*far  - ty*size*half],
+        [base.x + f.nx*size*far  + tx*size*half, base.y + f.ny*size*far  + ty*size*half]
+      ].map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+      g.appendChild(el('polygon', { points:hitPoints, fill:'transparent', 'pointer-events':'all' }));
+      const t = el('text', { x:lx, y:ly, class:'label',
         fill:'#b9d6f2', 'font-size':(size*HINT_FONT).toFixed(1),
         transform:'rotate(' + f.angle + ',' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')' });
       t.textContent = decorate(h.count, h.mode);
+      g.appendChild(t);
       // 外側ヒントは隣同士が近くなることがあり、どの数字が今光っている列のものか
       // 見分けられないと誤読につながる。触れている数字自身も光らせる。
       const scope = line.cells.slice();
       const on  = ()=>{ showScope(scope, null); t.setAttribute('fill', 'var(--magenta)'); t.setAttribute('font-weight','900'); };
       const off = ()=>{ clearScope(); t.setAttribute('fill', '#b9d6f2'); t.setAttribute('font-weight','700'); };
-      t.addEventListener('mouseenter', on);
-      t.addEventListener('mouseleave', off);
-      t.addEventListener('pointerdown', e=>{ e.preventDefault(); on(); });
-      t.addEventListener('pointerup', off);
-      t.addEventListener('pointercancel', off);
+      const entry = { off:off };
+      const releaseLock = ()=>{
+        if(!lineHintLock) return false;
+        const wasMine = lineHintLock === entry;
+        const old = lineHintLock;
+        lineHintLock = null;
+        old.off();
+        return wasMine;
+      };
+      g.addEventListener('mouseenter', on);
+      g.addEventListener('mouseleave', ()=>{ if(lineHintLock !== entry) off(); });
+      g.addEventListener('pointerdown', e=>{
+        if(e.pointerType === 'mouse'){ e.stopPropagation(); return; }
+        // 親SVGの移動開始へ渡すと、数字を押したつもりがパン扱いになる。
+        e.preventDefault(); e.stopPropagation();
+        g.setPointerCapture(e.pointerId);
+        entry.wasLocked = releaseLock();
+        if(!entry.wasLocked) on();
+      });
+      g.addEventListener('pointerup', e=>{
+        if(e.pointerType === 'mouse'){ e.stopPropagation(); return; }
+        e.preventDefault(); e.stopPropagation();
+        if(!entry.wasLocked) lineHintLock = entry;
+        entry.wasLocked = false;
+      });
+      g.addEventListener('pointercancel', e=>{
+        if(e.pointerType === 'mouse'){ e.stopPropagation(); return; }
+        e.preventDefault(); e.stopPropagation();
+        if(!entry.wasLocked) off();
+        entry.wasLocked = false;
+      });
       lineNodeMap.set(h, t);
-      viewGroup.appendChild(t);
+      viewGroup.appendChild(g);
     }
 
     hintNodes.lines = lineNodeMap;
@@ -1641,6 +1684,7 @@ if(typeof importScripts === 'function'){
 
   let hintNodes = { cells:[], lines:[] };   // 描画時に作った参照
   let hintBusy = false;
+  const DAILY_HINT_LIMIT = 3;
   let hintFlash = null;   // 実行中の点滅。重なると前の後始末が新しい表示を消してしまう
   let hintScopeOn = false;  // 点滅が終わっても範囲は残す。消えるのは次の操作のとき
   // 点滅が終わったあとも、根拠の数字は自分の範囲と同じ色で残す。
@@ -1733,10 +1777,22 @@ if(typeof importScripts === 'function'){
 
   function requestHint(){
     if(hintBusy || busy || !puzzle) return;
+    if(current && current.type === 'daily' && dailyRun && dailyRun.hintsUsed >= DAILY_HINT_LIMIT){
+      showHintMsg('デイリーチャレンジのHINTは3回までです。');
+      updateHintButton();
+      return;
+    }
     hintBusy = true;
     const done = res =>{
       hintBusy = false;
       if(!res){ showHintMsg('いまの盤面から確定できるマスが見つかりませんでした。'); return; }
+      // 解ける手を実際に示せた時だけ消費する。詰んでいる盤面で空振りしただけなら、
+      // 一発勝負のデイリーで貴重な3回を失わせないため。
+      if(current && current.type === 'daily' && dailyRun){
+        dailyRun.hintsUsed = Math.min(DAILY_HINT_LIMIT, dailyRun.hintsUsed + 1);
+        saveDailyRun();
+        updateHintButton();
+      }
       flashHint(res.hints);
       const hs = res.hints.map(hi => puzzle.hints[hi]).filter(Boolean);
       if(hs.length > 1){
@@ -1857,6 +1913,7 @@ if(typeof importScripts === 'function'){
     $('hud').classList.toggle('hidden', !playing);
     $('toTitle').style.visibility = playing ? 'visible' : 'hidden';
     $('hintBtn').style.visibility = playing ? 'visible' : 'hidden';
+    updateHintButton();
     if(playing) $('hintbar').textContent = HINT_TEXT;
     $('hintbar').style.visibility = playing ? 'visible' : 'hidden';
     if(!playing){ stopTimer(); result.classList.add('hidden'); loading.classList.add('hidden'); }
@@ -1937,8 +1994,10 @@ if(typeof importScripts === 'function'){
     let d = null;
     try{ d = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); }catch(e){}
     if(!d || d.day !== dailySeed()){
-      d = { day:dailySeed(), startedAt:0, mistakes:0, submitted:false, name:'' };
+      d = { day:dailySeed(), startedAt:0, mistakes:0, hintsUsed:0, submitted:false, name:'' };
     }
+    // 既存の挑戦記録には回数が無い。今日の途中で更新しても、突然0回扱いにしない。
+    if(!Number.isInteger(d.hintsUsed)) d.hintsUsed = 0;
     return d;
   }
   function saveDailyRun(){
@@ -2043,6 +2102,13 @@ if(typeof importScripts === 'function'){
   document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click', ()=> showScreen('title')));
   $('toTitle').addEventListener('click', ()=>{ stopTimer(); guideOn = false; guideClear(); lessonBox.classList.add('hidden'); showScreen('title'); });
   $('hintBtn').addEventListener('click', ()=> requestHint());
+  function updateHintButton(){
+    const button = $('hintBtn');
+    const isDaily = !!(current && current.type === 'daily' && dailyRun);
+    const left = isDaily ? Math.max(0, DAILY_HINT_LIMIT - dailyRun.hintsUsed) : null;
+    button.textContent = isDaily ? 'HINT（残り ' + left + '）' : 'HINT';
+    button.disabled = isDaily && left === 0;
+  }
   function refreshDailyLabel(){
     const d = loadDailyRun();
     $('dailyLabel').textContent = d.submitted

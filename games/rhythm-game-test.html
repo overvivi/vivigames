@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080712">
+<title>RHYTHM LAB — ALL MODES TEST</title>
+<style>
+  :root{--bg:#080712;--panel:#111126;--line:rgba(114,229,255,.35);--cyan:#72e5ff;--pink:#ff50b8;--gold:#ffd86b;--text:#f2f5ff;--muted:#9ba5c4}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} body{margin:0;min-width:320px;background:radial-gradient(circle at 50% 0,#20204a 0,transparent 38%),var(--bg);color:var(--text);font:14px system-ui,sans-serif;touch-action:manipulation}
+  #app{width:min(760px,100%);min-height:100dvh;margin:auto;padding:16px;display:flex;flex-direction:column;gap:12px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.back{color:var(--cyan);font-size:11px;text-decoration:none}.title{margin:0;text-align:center;font:12px 'Courier New',monospace;letter-spacing:.12em;color:var(--cyan)}.sub{margin:5px 0 0;text-align:center;color:var(--muted);font-size:11px}
+  .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.mode{min-height:56px;border:1px solid var(--line);background:rgba(12,13,29,.8);color:var(--muted);font-weight:800;cursor:pointer}.mode b,.mode small{display:block}.mode small{margin-top:4px;font-size:9px;font-weight:500}.mode.active{color:#071019;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 24px rgba(114,229,255,.38)}
+  #stage{position:relative;min-height:400px;flex:1;border:1px solid var(--line);overflow:hidden;background:linear-gradient(180deg,rgba(114,229,255,.06),rgba(255,80,184,.03)),#070812;box-shadow:inset 0 0 45px rgba(0,0,0,.5)}#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}.cover{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:linear-gradient(rgba(7,8,18,.72),rgba(7,8,18,.9));text-align:center}.cover.hidden{display:none}.cover h2{margin:0;color:var(--cyan);font:20px 'Courier New',monospace;letter-spacing:.1em}.cover p{line-height:1.75;color:#cad3f1}.start{min-width:190px;margin-top:8px;padding:14px;border:1px solid var(--cyan);background:rgba(114,229,255,.12);color:var(--cyan);font-weight:900;letter-spacing:.12em;cursor:pointer}.start:hover{background:var(--cyan);color:#071019}
+  .hud{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(114,229,255,.18);background:rgba(13,14,31,.8)}.score{font:700 17px 'Courier New',monospace;color:var(--gold)}.combo{text-align:center;font:900 24px 'Courier New',monospace;color:var(--cyan)}.judge{text-align:right;font:900 14px 'Courier New',monospace;color:var(--pink)}.judge.good{color:var(--gold)}.judge.miss{color:#8390ae}
+  details{border:1px solid rgba(114,229,255,.22);background:rgba(13,14,31,.75)}summary{padding:11px 13px;cursor:pointer;color:var(--cyan);font:11px 'Courier New',monospace}.tune{display:grid;grid-template-columns:1fr auto;gap:11px;padding:0 13px 13px;align-items:center}.tune label{display:contents}.tune span{color:var(--muted);font-size:11px}.tune input{width:100%;accent-color:var(--cyan)}.tune output{color:var(--cyan);font:12px 'Courier New',monospace}.tap{grid-column:1/-1;padding:13px;border:1px solid var(--pink);background:rgba(255,80,184,.10);color:var(--pink);font-weight:900;letter-spacing:.12em;cursor:pointer}.tap small{display:block;margin-top:5px;color:var(--text);font-size:10px;font-weight:500;letter-spacing:0}.tap:active{background:var(--pink);color:#210817}.copy{grid-column:1/-1;padding:9px;border:1px solid var(--line);background:transparent;color:var(--cyan);cursor:pointer}.hint{text-align:center;color:var(--muted);font-size:11px;line-height:1.6}@media(max-width:480px){#app{padding:10px}.modes{gap:4px}.mode{min-height:51px;font-size:10px}.mode small{font-size:7px}#stage{min-height:500px}.title{font-size:10px}}
+</style>
+</head>
+<body>
+<main id="app">
+  <div class="top"><a class="back" href="../index.html">← GAME BASE</a><div><h1 class="title">RHYTHM LAB</h1><p class="sub">ALL MODES TEST / ピコピコリン</p></div><span></span></div>
+  <div class="modes" id="modes">
+    <button class="mode active" data-mode="taiko"><b>TAIKO</b><small>2 INPUTS</small></button>
+    <button class="mode" data-mode="pop"><b>POP</b><small>4 LANES</small></button>
+    <button class="mode" data-mode="ddr"><b>DDR</b><small>ARROWS</small></button>
+    <button class="mode" data-mode="orbit"><b>ORBIT</b><small>ONE BEAT</small></button>
+  </div>
+  <section id="stage"><canvas id="game"></canvas><div class="cover" id="cover"><div><h2 id="coverTitle">TAIKO TEST</h2><p id="coverText">左右を曲に合わせて叩く。<br>PC：D / F と J / K　　携帯：画面の左右</p><button class="start" id="start">START TEST</button></div></div></section>
+  <div class="hud"><div><small>SCORE</small><div class="score" id="score">000000</div></div><div><small>COMBO</small><div class="combo" id="combo">0</div></div><div><small>JUDGMENT</small><div class="judge" id="judge">READY</div></div></div>
+  <details open><summary>DEV SYNC TUNER</summary><div class="tune"><label><span>BPM</span><input id="bpm" type="range" min="80" max="180" step="1" value="115"><output id="bpmOut">115</output></label><label><span>AUDIO OFFSET</span><input id="offset" type="range" min="-0.40" max="0.40" step="0.01" value="0.14"><output id="offsetOut">+0.14s</output></label><button class="tap" id="tapBeat">TAP BEAT <small id="tapState">STARTしてから、拍に合わせて4回</small></button><button class="copy" id="copy">COPY TEST VALUES</button></div></details>
+  <div class="hint" id="hint">D / F：左　　J / K：右　　Space：開始・再開</div>
+</main>
+<audio id="music" preload="auto" src="../音ゲーテスト作成用サンプル.mp3"></audio>
+<script>
+// 曲ごとの時間軸だけは先に共通化する。各モードの譜面は同じ beat を入力へ割り当てるだけにし、
+// 曲を増やす時にスコア・判定・同期処理を作り直さないための試作。
+const SONG={title:'ピコピコリン',bpm:115,lead:2.4,length:36.2};
+const MODE={
+  taiko:{title:'TAIKO TEST',text:'左右を曲に合わせて叩く。<br>PC：D / F と J / K　　携帯：画面の左右',hint:'D / F：左　　J / K：右　　携帯：画面の左右',lanes:2,keys:{d:0,f:0,j:1,k:1},colors:['#ff6477','#72e5ff']},
+  pop:{title:'POP TEST',text:'4レーンを落ちてくるノーツに合わせて叩く。<br>PC：D / F / J / K　　携帯：4分割タップ',hint:'D　F　J　K　　携帯：画面を4分割してタップ',lanes:4,keys:{d:0,f:1,j:2,k:3},colors:['#ff6ca8','#ffcf5a','#72e5ff','#9c82ff']},
+  ddr:{title:'DDR TEST',text:'矢印のタイミングで入力。<br>PC：矢印キー　　携帯：画面を4分割タップ',hint:'←　↓　↑　→　　携帯：画面を4分割してタップ',lanes:4,keys:{arrowleft:0,arrowdown:1,arrowup:2,arrowright:3},colors:['#ff6ca8','#ffcf5a','#72e5ff','#9c82ff'],arrows:['←','↓','↑','→']},
+  orbit:{title:'ORBIT TEST',text:'1つの入力で、拍に合わせて軌道を進む。<br>PC：Space　　携帯：画面のどこでもタップ',hint:'Space / Enter　　携帯：画面のどこでもタップ',lanes:1,keys:{' ':0,enter:0},colors:['#72e5ff']}
+};
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),music=document.querySelector('#music');
+const cover=document.querySelector('#cover'),scoreEl=document.querySelector('#score'),comboEl=document.querySelector('#combo'),judgeEl=document.querySelector('#judge'),hintEl=document.querySelector('#hint');
+let mode='taiko',running=false,starting=false,score=0,combo=0,chart=[],startedAt=0,lastJudge='READY',raf=0;
+let bpm=115,offset=.14;
+let chartLead=SONG.lead,tapTimes=[];
+function beatSeconds(){return 60/bpm}
+function makeChart(){
+  const events=[]; const beat=beatSeconds(); const total=Math.floor((SONG.length-chartLead)/beat);
+  for(let n=2;n<total;n++){
+    if(n%8===7) continue;
+    let lane;
+    if(mode==='taiko') lane=(n+n%3)%2;
+    else if(mode==='pop') lane=(n*3+Math.floor(n/3))%4;
+    else if(mode==='ddr') lane=(n*5+Math.floor(n/4))%4;
+    else lane=0;
+    events.push({beat:n,time:chartLead+n*beat,lane,hit:false,miss:false});
+    if((mode==='pop'||mode==='ddr')&&n%12===4) events.push({beat:n,time:chartLead+n*beat,lane:(lane+2)%4,hit:false,miss:false});
+  }
+  return events.sort((a,b)=>a.time-b.time);
+}
+function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
+new ResizeObserver(resize).observe(canvas);
+function setMode(next){mode=next;running=false;starting=false;cancelAnimationFrame(raf);music.pause();music.currentTime=0;chartLead=SONG.lead;tapTimes=[];chart=makeChart();score=combo=0;paintHud('READY');document.querySelector('#tapState').textContent='STARTしてから、拍に合わせて4回';document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));const m=MODE[mode];document.querySelector('#coverTitle').textContent=m.title;document.querySelector('#coverText').innerHTML=m.text;document.querySelector('#start').textContent='START TEST';hintEl.textContent=m.hint;cover.classList.remove('hidden');draw(0)}
+function paintHud(j){lastJudge=j;scoreEl.textContent=String(score).padStart(6,'0');comboEl.textContent=combo;judgeEl.textContent=j;judgeEl.className='judge '+(j==='MISS'?'miss':j==='GOOD'?'good':'')}
+function showStartError(message){
+  document.querySelector('#coverTitle').textContent='AUDIO ERROR';
+  document.querySelector('#coverText').textContent=message;
+  document.querySelector('#start').textContent='RETRY AUDIO';
+  cover.classList.remove('hidden');
+}
+function start(){
+  if(starting||running) return;
+  // play() はユーザーが押したこの同期区間で呼ぶ。読み込み完了を await してから呼ぶと、
+  // Safariが「自動再生」と判定して止めるため。
+  starting=true;
+  document.querySelector('#start').textContent='LOADING AUDIO…';
+  music.pause(); music.currentTime=0;
+  const playing=music.play();
+  Promise.resolve(playing).then(()=>{
+    chartLead=SONG.lead; tapTimes=[]; chart=makeChart(); score=combo=0; paintHud('READY'); running=true; starting=false;
+    cover.classList.add('hidden'); raf=requestAnimationFrame(loop);
+  }).catch(err=>{
+    starting=false;
+    showStartError('曲を再生できませんでした。もう一度押してください。' + (err && err.message ? '（'+err.message+'）' : ''));
+  });
+}
+function songTime(){return music.currentTime+offset}
+function judge(lane){if(!running)return start();const t=songTime();let best=null,dist=Infinity;for(const n of chart){if(n.hit||n.miss||n.lane!==lane)continue;const d=Math.abs(n.time-t);if(d<dist){dist=d;best=n}}
+  if(!best||dist>.18){combo=0;paintHud('MISS');return}best.hit=true;const j=dist<.055?'PERFECT':dist<.11?'GREAT':'GOOD';score+=j==='PERFECT'?1000:j==='GREAT'?700:400;combo++;paintHud(j)
+}
+function loop(){if(!running)return;const t=songTime();for(const n of chart)if(!n.hit&&!n.miss&&t-n.time>.18){n.miss=true;combo=0;paintHud('MISS')}if(music.ended){running=false;cover.classList.remove('hidden');document.querySelector('#coverTitle').textContent='TEST RESULT';document.querySelector('#coverText').innerHTML='SCORE '+score+'<br>別モードも同じ曲で試せます。';return}draw(t);raf=requestAnimationFrame(loop)}
+function draw(t){const w=canvas.clientWidth,h=canvas.clientHeight,m=MODE[mode],lanes=m.lanes,hitY=h*.78;ctx.clearRect(0,0,w,h);ctx.fillStyle='#090a17';ctx.fillRect(0,0,w,h);for(let i=0;i<lanes;i++){const x=i*w/lanes;ctx.fillStyle=i%2?'rgba(255,255,255,.025)':'rgba(114,229,255,.035)';ctx.fillRect(x,0,w/lanes,h);ctx.strokeStyle='rgba(114,229,255,.2)';ctx.strokeRect(x,0,w/lanes,h)}ctx.strokeStyle='rgba(255,255,255,.72)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,hitY);ctx.lineTo(w,hitY);ctx.stroke();
+  for(const n of chart){if(n.hit||n.miss)continue;const dt=n.time-t;if(dt>2.1||dt<-.2)continue;const x=(n.lane+.5)*w/lanes,y=hitY-dt*(hitY/2);const c=m.colors[n.lane];ctx.fillStyle=c;ctx.shadowBlur=18;ctx.shadowColor=c;if(mode==='orbit'){const a=(n.beat%8)/8*Math.PI*2;const r=Math.min(w,h)*.25;ctx.beginPath();ctx.arc(w/2+Math.cos(a)*r,y*.16+h*.42+Math.sin(a)*r,18,0,Math.PI*2);ctx.fill()}else{ctx.beginPath();ctx.arc(x,y,Math.min(w/lanes*.27,25),0,Math.PI*2);ctx.fill();if(m.arrows){ctx.fillStyle='#10101f';ctx.shadowBlur=0;ctx.font='bold 19px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(m.arrows[n.lane],x,y+1)}}ctx.shadowBlur=0}
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';if(mode==='orbit')ctx.fillText('TAP',w/2,hitY);else for(let i=0;i<lanes;i++)ctx.fillText(m.arrows?m.arrows[i]:i===0?'LEFT':'RIGHT',(i+.5)*w/lanes,hitY);
+}
+document.querySelector('#start').addEventListener('click',start);document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));window.addEventListener('keydown',e=>{const key=e.key.toLowerCase(),lane=MODE[mode].keys[key];if(lane!==undefined){e.preventDefault();judge(lane)}});canvas.addEventListener('pointerdown',e=>{e.preventDefault();const r=canvas.getBoundingClientRect(),m=MODE[mode];judge(m.lanes===1?0:Math.min(m.lanes-1,Math.floor((e.clientX-r.left)/r.width*m.lanes)))});
+const bpmInput=document.querySelector('#bpm'),offsetInput=document.querySelector('#offset');
+function tune(){bpm=Number(bpmInput.value);offset=Number(offsetInput.value);document.querySelector('#bpmOut').textContent=bpm;document.querySelector('#offsetOut').textContent=(offset>=0?'+':'')+offset.toFixed(2)+'s';if(!running){chart=makeChart();draw(0)}}
+function tapBeat(){
+  if(!running){document.querySelector('#tapState').textContent='先に START TEST を押して曲を流して';return}
+  const now=songTime();
+  if(tapTimes.length&&now-tapTimes[tapTimes.length-1]>1.5) tapTimes=[];
+  tapTimes.push(now); if(tapTimes.length>6) tapTimes.shift();
+  if(tapTimes.length<4){document.querySelector('#tapState').textContent='TAP '+tapTimes.length+'/4';return}
+  const gaps=tapTimes.slice(1).map((t,i)=>t-tapTimes[i]);
+  const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  const found=Math.max(80,Math.min(180,Math.round(60/avg)));
+  bpm=found; bpmInput.value=found; document.querySelector('#bpmOut').textContent=found;
+  // いま叩いた拍を基準に、反応時間として2拍空けて譜面を作り直す。
+  chartLead=now; chart=makeChart(); score=combo=0; paintHud('SYNCED');
+  document.querySelector('#tapState').textContent='SYNCED '+found+' BPM / 次の2拍後から開始';
+}
+bpmInput.addEventListener('input',tune);offsetInput.addEventListener('input',tune);document.querySelector('#tapBeat').addEventListener('click',tapBeat);document.querySelector('#copy').addEventListener('click',()=>{const text='RHYTHM LAB: BPM='+bpm+', OFFSET='+(offset>=0?'+':'')+offset.toFixed(2)+'s, BEAT_START='+chartLead.toFixed(2)+'s';navigator.clipboard.writeText(text).catch(()=>{});document.querySelector('#copy').textContent=text;setTimeout(()=>document.querySelector('#copy').textContent='COPY TEST VALUES',1800)});setMode('taiko');
+</script>
+</body>
+</html>

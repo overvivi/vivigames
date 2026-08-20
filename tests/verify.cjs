@@ -19,7 +19,8 @@ const FILES = [
   'index.html',
   'games/temple-run-clone.html',
   'games/boss-battle-demo.html',
-  'games/hexamine.html'
+  'games/hexamine.html',
+  'games/rhythm-game-test.html'
 ];
 
 // 相対パスの素材参照を拾う。HTMLの属性・CSSのurl()・JSの文字列リテラルをまとめて拾えるよう、
