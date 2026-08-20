@@ -48,6 +48,14 @@
   #hl{pointer-events:none;}
   #hl polygon{fill:rgba(255,43,166,.13); stroke:var(--magenta); stroke-width:2.4;}
   #hl .src{fill:rgba(255,43,166,.30);}
+  /* 2つのヒントから導く時は、範囲を色で分けて重なりを白く塗る。
+     推理の要は「どこが重なっているか」なので、そこが一番強く出るようにする。 */
+  #hl .g0{fill:rgba(32,230,255,.16); stroke:var(--cyan);}
+  #hl .g1{fill:rgba(255,43,166,.16); stroke:var(--magenta);}
+  #hl .ov{fill:rgba(255,255,255,.40); stroke:#ffffff; stroke-width:3.4;}
+  /* 根拠の数字そのもの。範囲の塗りに埋もれないよう最前面へ太く描く */
+  #hl .hs0{fill:none; stroke:var(--cyan);    stroke-width:4.5;}
+  #hl .hs1{fill:none; stroke:var(--magenta); stroke-width:4.5;}
   .lineHint{cursor:pointer;}
 
   /* ---- 画面(タイトル・選択) ---- */
@@ -119,6 +127,22 @@
     font-size:12px; line-height:1.85; color:var(--text); letter-spacing:.03em;
     box-shadow:0 6px 24px rgba(0,0,0,.5);}
   #lesson.hidden{display:none;}
+  /* PCでは画面が広いぶん文字が小さく見えて読み飛ばされるので、少し大きくする */
+  @media (min-width:900px){ #lesson{width:min(92%,640px); font-size:13.5px; padding:13px 44px 13px 16px;} }
+  #lesson .hintmsg{display:block; margin-top:7px; padding-top:7px;
+    border-top:1px solid rgba(32,230,255,.18); color:#fff3b0;}
+  #lesson .hintmsg.hidden{display:none;}
+  /* HINTだけを出す時は上の区切り線が浮くので消す */
+  #lesson .hintmsg.solo{margin-top:0; padding-top:0; border-top:0;}
+  #lesson .step.hidden, #lesson .body.hidden{display:none;}
+  #lesson .hintmsg .tag{display:inline-block; margin-right:7px; padding:1px 7px;
+    background:rgba(255,243,176,.14); border:1px solid rgba(255,243,176,.45);
+    color:#fff3b0; font-size:9.5px; letter-spacing:.16em; vertical-align:1px;}
+  #lesson .hintmsg em{font-style:normal; font-weight:700; color:#fff;}
+  #lesson .hintmsg em.c0{color:var(--cyan);}
+  #lesson .hintmsg em.c1{color:var(--magenta);}
+  #lesson .hintmsg .ovw{color:#fff; font-weight:700;
+    background:rgba(255,255,255,.20); padding:0 4px;}
   #lesson b{color:var(--cyan); font-weight:700;}
   #lesson .guide{display:block; margin-top:7px; padding-top:7px;
     border-top:1px solid rgba(32,230,255,.18); color:#ffd9ec;}
@@ -150,7 +174,7 @@
   <div id="boardWrap">
     <svg id="board" xmlns="http://www.w3.org/2000/svg"></svg>
 
-    <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><span class="guide hidden"></span><button id="lessonClose">×</button></div>
+    <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><span class="guide hidden"></span><span class="hintmsg hidden"></span><button id="lessonClose">×</button></div>
 
     <div id="title" class="screen">
       <div class="logo">HEXAMINE</div>
@@ -1108,6 +1132,15 @@ if(typeof importScripts === 'function'){
   }
 
   // ヒントが数えている範囲を光らせる。srcIndex はヒント自身のマス
+  // 範囲を1マスぶん足す。clearScope しないので、複数の範囲を重ねて描ける
+  function addScopeCell(i, cls){
+    if(!hlLayer || !layout) return;
+    const p = layout.at(i);
+    hlLayer.appendChild(el('polygon', {
+      points: hexPoints(p.x, p.y, layout.size*0.92), class: cls || ''
+    }));
+  }
+
   function showScope(cells, srcIndex){
     if(!hlLayer || !layout) return;
     clearScope();
@@ -1125,7 +1158,7 @@ if(typeof importScripts === 'function'){
       }));
     }
   }
-  function clearScope(){ if(hlLayer) hlLayer.innerHTML = ''; }
+  function clearScope(){ if(hlLayer) hlLayer.innerHTML = ''; hintScopeOn = false; restoreHintTargets(); }
 
   function paintCell(i){
     const n = cellNodes[i], v = state[i], h = cellHint[i];
@@ -1212,6 +1245,7 @@ if(typeof importScripts === 'function'){
 
   function commit(i, guess){
     if(busy || state[i] !== UNKNOWN) return;
+    if(hintScopeOn){ clearScope(); hintScopeOn = false; }
     const actual = puzzle.truth[i];
     if(guess !== actual) mistakes++;   // 間違えても失敗にはせず、正しい値を開く
     state[i] = actual;
@@ -1238,6 +1272,12 @@ if(typeof importScripts === 'function'){
     lessonIdx = -1; solvedCount = 0;
     guideEl.classList.add('hidden');
     guideClear();
+    hintMsgEl.classList.add('hidden');
+    // デイリーや無限モードでは規則を出さない。前の面の文言が残ると誤解を招く
+    const hasLesson = lessons.length > 0;
+    lessonStep.classList.toggle('hidden', !hasLesson);
+    lessonBody.classList.toggle('hidden', !hasLesson);
+    if(!hasLesson){ lessonStep.textContent = ''; lessonBody.innerHTML = ''; }
     lessonBox.classList.add('hidden');
     advanceLesson();
     refreshGuide();
@@ -1381,36 +1421,71 @@ if(typeof importScripts === 'function'){
   let hintNodes = { cells:[], lines:[] };   // 描画時に作った参照
   let hintBusy = false;
   let hintFlash = null;   // 実行中の点滅。重なると前の後始末が新しい表示を消してしまう
+  let hintScopeOn = false;  // 点滅が終わっても範囲は残す。消えるのは次の操作のとき
+  // 点滅が終わったあとも、根拠の数字は自分の範囲と同じ色で残す。
+  // 数字と範囲の色が対応していないと、どちらの範囲がどの数字のものか読めないため。
+  let hintTargets = [];
+  function restoreHintTargets(){
+    for(const t of hintTargets) t.el.setAttribute(t.attr, t.from);
+    hintTargets = [];
+  }
+
+  // ヒントの呼び名。「どれとどれを見るのか」を文章でも指せるようにする
+  function hintLabel(h){
+    if(h.kind === 'line')  return '外側の ' + decorate(h.count, h.mode);
+    if(h.kind === 'blue')  return '原子マスの ' + h.count;
+    if(h.kind === 'total') return 'REMAINING';
+    return '空孔の ' + decorate(h.count, h.mode);
+  }
 
   function flashHint(indices){
     if(hintFlash){ hintFlash(); hintFlash = null; }   // 前の点滅を片付けてから始める
     // 該当するヒントを一定時間だけ強く光らせる
     const targets = [];
+    const groups = [];
     for(const hi of indices){
       const h = puzzle.hints[hi];
       if(!h) continue;
+      groups.push(h);
+      const col = (indices.length > 1 && groups.length === 1) ? 'var(--cyan)' : 'var(--magenta)';
       if(h.owner !== null && h.owner !== undefined){
-        const n = cellNodes[h.owner];
-        if(n) targets.push({ el:n.hex, attr:'stroke', from:n.hex.getAttribute('stroke') });
+        const node = cellNodes[h.owner];
+        if(node) targets.push({ el:node.hex, attr:'stroke', from:node.hex.getAttribute('stroke'), col:col });
       } else {
         const t = hintNodes.lines.get(h);
-        if(t) targets.push({ el:t, attr:'fill', from:t.getAttribute('fill') });
+        if(t) targets.push({ el:t, attr:'fill', from:t.getAttribute('fill'), col:col });
       }
-      if(h.cells && h.cells.length) showScope(h.cells, (h.owner === null || h.owner === undefined) ? null : h.owner);
     }
+    // 2つのヒントから導く場合、範囲が1つしか出ないと何を見比べるのか分からない。
+    // 範囲を色で分けたうえで、推理の要になる「重なり」を白く塗る。
+    clearScope();
+    hintScopeOn = true;
+    const owner = new Map();   // マス -> 0/1/2(2は重なり)
+    groups.forEach((h,gi)=>{
+      for(const i of (h.cells || [])) owner.set(i, owner.has(i) ? 2 : gi);
+    });
+    const multi = groups.length > 1;
+    for(const [i,g] of owner){
+      addScopeCell(i, !multi ? '' : (g === 2 ? 'ov' : (g === 0 ? 'g0' : 'g1')));
+    }
+    // 数字のマス自体は最後に描く。範囲の塗りに隠れると、どの数字の話か分からなくなる。
+    groups.forEach((h,gi)=>{
+      if(h.owner === null || h.owner === undefined) return;
+      addScopeCell(h.owner, multi ? ('hs' + gi) : 'src');
+    });
     // 押した瞬間から光らせる。初回を間隔待ちにすると反応が無いように見える
     let on = false, count = 0;
     let timer = null;
     const tick = ()=>{
       on = !on; count++;
-      for(const t of targets) t.el.setAttribute(t.attr, on ? 'var(--magenta)' : t.from);
+      for(const t of targets) t.el.setAttribute(t.attr, on ? t.col : t.from);
       if(count >= 8) stop();
     };
     const stop = ()=>{
       if(timer) clearInterval(timer);
       timer = null;
-      for(const t of targets) t.el.setAttribute(t.attr, t.from);
-      clearScope();
+      for(const t of targets) t.el.setAttribute(t.attr, t.col);
+      hintTargets = targets;
       hintFlash = null;
     };
     hintFlash = stop;
@@ -1418,17 +1493,45 @@ if(typeof importScripts === 'function'){
     timer = setInterval(tick, 300);
   }
 
+  // HINTの説明は画面下の細い行に出していたが、PCでは小さすぎて気づかれなかった。
+  // 盤面に重なる解説パネルへ出し、2つ使う場合は何と何を見比べるのかまで書く。
+  const hintMsgEl = lessonBox.querySelector('.hintmsg');
+  let hintMsgTimer = null;
+  function showHintMsg(html){
+    hintMsgEl.innerHTML = '<span class="tag">HINT</span>' + html;
+    hintMsgEl.classList.remove('hidden');
+    hintMsgEl.classList.toggle('solo', !lessons.length && guideEl.classList.contains('hidden'));
+    lessonBox.classList.remove('hidden');
+    if(hintMsgTimer) clearTimeout(hintMsgTimer);
+    hintMsgTimer = setTimeout(()=>{
+      hintMsgEl.classList.add('hidden');
+      // チュートリアル以外はパネルごと引っ込める(常設の表示ではないため)
+      if(!lessons.length && guideEl.classList.contains('hidden')) lessonBox.classList.add('hidden');
+    }, 12000);
+  }
+
   function requestHint(){
     if(hintBusy || busy || !puzzle) return;
     hintBusy = true;
-    const note = msg => { $('hintbar').textContent = msg; hintBusy = false; };
     const done = res =>{
-      if(!res){ note('確定できるマスが見つかりませんでした'); return; }
+      hintBusy = false;
+      if(!res){ showHintMsg('いまの盤面から確定できるマスが見つかりませんでした。'); return; }
       flashHint(res.hints);
-      note(res.depth === 1
-        ? '光っているヒントだけで1マス確定できます'
-        : '光っている2つのヒントを見比べると1マス確定できます');
-      setTimeout(()=>{ $('hintbar').textContent = HINT_TEXT; }, 6000);
+      const hs = res.hints.map(hi => puzzle.hints[hi]).filter(Boolean);
+      if(hs.length > 1){
+        // 重なりの数を出す。ここが2つのヒントをつなぐ場所そのもの
+        const sets = hs.map(h => new Set(h.cells || []));
+        let ov = 0;
+        for(const i of sets[0]) if(sets.every(t => t.has(i))) ov++;
+        showHintMsg('<em class="c0">' + hintLabel(hs[0]) + '</em>（水色）と <em class="c1">'
+          + hintLabel(hs[1]) + '</em>（桃色）を見比べます。'
+          + '<span class="ovw">白く重なった ' + ov + ' マス</span>が鍵です。'
+          + '重なりに入る原子の数を両方から挟み込むと、'
+          + '重なっていない側のマスが決まります。');
+      } else {
+        showHintMsg('<em>' + hintLabel(hs[0]) + '</em> だけで1マス確定できます。'
+          + '光っている範囲の中で、まだ開いていないマスを数えてみてください。');
+      }
     };
     const req = { type:'next', shape:current.shape, hints:puzzle.hints, state:state };
     const w = ensureWorker();
