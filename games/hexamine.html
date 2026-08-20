@@ -126,6 +126,10 @@
     border-left:3px solid var(--cyan);
     font-size:12px; line-height:1.85; color:var(--text); letter-spacing:.03em;
     box-shadow:0 6px 24px rgba(0,0,0,.5);}
+  /* パネルは盤面に重なるので、下にある外側ヒントを押せなくしてしまう。
+     素通しにして、閉じるボタンだけ押せるようにする。 */
+  #lesson{pointer-events:none;}
+  #lessonClose{pointer-events:auto;}
   #lesson.hidden{display:none;}
   /* PCでは画面が広いぶん文字が小さく見えて読み飛ばされるので、少し大きくする */
   @media (min-width:900px){ #lesson{width:min(92%,640px); font-size:13.5px; padding:13px 44px 13px 16px;} }
@@ -1547,6 +1551,11 @@ if(typeof importScripts === 'function'){
       done(api.nextStep(api.makeBoard(current.shape), puzzle.hints, state));
     }
   }
+
+  // ホイールを押し込むとブラウザの自動スクロール(丸いアイコン)が出て、
+  // 以降のクリックがそちらへ吸われてしまう。盤面では使わない操作なので止める。
+  $('boardWrap').addEventListener('mousedown', e=>{ if(e.button === 1) e.preventDefault(); });
+  $('boardWrap').addEventListener('auxclick',  e=>{ if(e.button === 1) e.preventDefault(); });
 
   // ---------- 盤面の移動と拡大縮小 ----------
   // 盤面は端末によらず同じ大きさで作る(デイリーの公平性のため)。
