@@ -78,6 +78,31 @@
   .screen.hidden{display:none;}
   .logo{font-size:clamp(30px,9vw,52px); letter-spacing:.22em; color:var(--cyan);
     text-shadow:0 0 26px rgba(32,230,255,.55),0 0 60px rgba(255,43,166,.22);}
+  /* タイトルの NE を土星の輪のように分子が回る。
+     輪と分子を「奥」「手前」の2枚に分け、奥だけ z-index:-1 に置くことで
+     文字の裏を通らせる。.ne と .logo は stacking context を作らないので、
+     負の z-index は .screen の文脈まで上がり、文字より先に描かれる。
+     transform を持つ .orbit を1枚にまとめると自前の文脈ができて
+     裏へ回れなくなるため、あえて2枚に分けている。 */
+  .ne{position:relative;}
+  .orbit{position:absolute; left:50%; top:50%; width:3.1em; height:1.22em;
+    margin-left:calc(-1.55em - .11em); margin-top:-.61em;
+    transform:rotate(-15deg); pointer-events:none;}
+  .orbit svg{width:100%; height:100%; overflow:visible;}
+  .orbit.back{z-index:-1;}
+  .orbit.front{z-index:1;}
+  .orbit .ring{fill:none; stroke:var(--cyan);}
+  .orbit.back  .ring{stroke-width:1.2; opacity:.26;}
+  .orbit.front .ring{stroke-width:1.7; opacity:.62;}
+  .orbit .mol polygon{fill:rgba(32,230,255,.9); stroke:var(--cyan); stroke-width:1.4;}
+  /* 奥を通る時は小さく薄く。それだけで奥行きが出る */
+  .orbit.back  .mol{opacity:.42;}
+  .orbit.back  .mol polygon{transform:scale(.78);}
+  .orbit.front .mol polygon{fill:rgba(150,244,255,.92); stroke:#eafcff; stroke-width:1.8;
+    filter:drop-shadow(0 0 3px rgba(32,230,255,.8));}
+  /* 動きを減らす設定の人には止めて見せる */
+  @media (prefers-reduced-motion: reduce){ .orbit animateMotion, .orbit animate{ display:none; } }
+
   .sub{margin-top:-6px; font-size:11px; letter-spacing:.14em; color:var(--muted);}
   .menu{display:flex; flex-direction:column; gap:11px; width:min(100%,330px); margin-top:12px;}
   .menuBtn{display:flex; flex-direction:column; gap:4px; padding:14px 18px; text-align:left;
@@ -193,7 +218,26 @@
     <div id="lesson" class="hidden"><span class="step"></span><span class="body"></span><span class="guide hidden"></span><span class="hintmsg hidden"></span><button id="lessonClose">×</button></div>
 
     <div id="title" class="screen">
-      <div class="logo">HEXAMINE</div>
+      <div class="logo">HEXAMI<span class="ne">NE
+        <span class="orbit back"><svg viewBox="0 0 300 110" aria-hidden="true">
+          <path class="ring" d="M 292,55 A 142,46 0 1,1 8,55 A 142,46 0 1,1 292,55"/>
+          <g class="mol">
+            <animateMotion dur="7s" repeatCount="indefinite" path="M 292,55 A 142,46 0 1,1 8,55 A 142,46 0 1,1 292,55"/>
+            <animate attributeName="opacity" dur="7s" repeatCount="indefinite"
+              calcMode="discrete" values="0;1" keyTimes="0;0.5"/>
+            <polygon points="14,0 7,12.12 -7,12.12 -14,0 -7,-12.12 7,-12.12"/>
+          </g>
+        </svg></span>
+        <span class="orbit front"><svg viewBox="0 0 300 110" aria-hidden="true">
+          <path class="ring" d="M 292,55 A 142,46 0 0,1 8,55"/>
+          <g class="mol">
+            <animateMotion dur="7s" repeatCount="indefinite" path="M 292,55 A 142,46 0 1,1 8,55 A 142,46 0 1,1 292,55"/>
+            <animate attributeName="opacity" dur="7s" repeatCount="indefinite"
+              calcMode="discrete" values="1;0" keyTimes="0;0.5"/>
+            <polygon points="14,0 7,12.12 -7,12.12 -14,0 -7,-12.12 7,-12.12"/>
+          </g>
+        </svg></span>
+      </span></div>
       <div class="sub">分子構造を、論理だけで復元する</div>
       <div class="menu">
         <button class="menuBtn" data-go="stageSelect">
