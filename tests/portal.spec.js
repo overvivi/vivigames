@@ -8,10 +8,10 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // 3本 + COMING SOON
-  await expect(page.locator('.cart')).toHaveCount(4);
+  // 遊べる4本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(5);
   await expect(page.locator('.cart .cname')).toHaveText([
-    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'COMING SOON'
+    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
@@ -140,7 +140,7 @@ test('掴んで動かしただけではゲームが切り替わらない', async
 });
 
 test('画像ロゴを読めない時もHTMLタイトルを表示する', async ({ page })=>{
-  await page.route('**/vivi-game-arcade-logo.png',route=>route.abort());
+  await page.route('**/vivi-game-base-logo.webp',route=>route.abort());
   await page.goto('/index.html');
 
   await expect(page.locator('.site-logo')).toBeHidden();
@@ -162,7 +162,7 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
   const files=[
     '/images/portal/arcade-bg-desktop.webp',
     '/images/portal/arcade-bg-mobile.webp',
-    '/images/portal/vivi-game-arcade-logo.png',
+    '/images/portal/vivi-game-base-logo.webp',
     '/images/portal/console-body.webp',
     '/images/portal/cart-label-hell-runner.webp',
     '/images/portal/cart-label-boss-2048.webp',
