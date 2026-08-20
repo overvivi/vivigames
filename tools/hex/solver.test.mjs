@@ -231,5 +231,60 @@ ok(isConsecutive([0,1,2], new Set([1]), true) === true, '1個以下は常に連�
   });
 }
 
+// ---- 不定形の盤面 ----
+// ∞モードとデイリーは種から輪郭を作る。デイリーは全員が同じ形である必要があり、
+// 途切れた島や欠けたマス数があると盤面として成立しない。
+{
+  const cut = (head, tail)=>{ const a = html.indexOf(head) + head.length;
+    return html.slice(a, html.indexOf(tail, a)); };
+  // 正本から関数ごと取り出して動かす
+  const shapeSrc = html.slice(html.indexOf('function shapeRnd(seed)'),
+                             html.indexOf('// ---------- 盤面の再構築'));
+  const DIRS_SRC = 'const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];';
+  const organicShape = vm.runInNewContext(
+    DIRS_SRC + shapeSrc + ';organicShape');
+
+  const key = c => c[0] + ',' + c[1];
+  const connected = cells =>{
+    const set = new Set(cells.map(key));
+    const seen = new Set([key(cells[0])]);
+    const stack = [cells[0]];
+    const D = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+    while(stack.length){
+      const c = stack.pop();
+      for(const d of D){
+        const p = [c[0]+d[0], c[1]+d[1]], k = key(p);
+        if(set.has(k) && !seen.has(k)){ seen.add(k); stack.push(p); }
+      }
+    }
+    return seen.size === set.size;
+  };
+
+  const SIZES_CELLS = [37, 61, 91, 127, 169, 271];
+  for(const cells of SIZES_CELLS){
+    const a = organicShape(12345, cells);
+    ok(a.length === cells, `不定形 ${cells}: 指定どおりのマス数`);
+    ok(new Set(a.map(key)).size === a.length, `不定形 ${cells}: 重複が無い`);
+    ok(connected(a), `不定形 ${cells}: 盤面が途切れていない`);
+    // 同じ種なら同じ形。デイリーのランキングはこれが前提
+    const b = organicShape(12345, cells);
+    ok(JSON.stringify(a) === JSON.stringify(b), `不定形 ${cells}: 同じ種なら同じ形`);
+  }
+  // 種が違えば形も変わる(毎回同じでは∞モードの意味が無い)
+  let diff = 0;
+  for(let s=1; s<=8; s++){
+    if(JSON.stringify(organicShape(s, 91)) !== JSON.stringify(organicShape(s+100, 91))) diff++;
+  }
+  ok(diff === 8, '不定形: 種が違えば形も違う');
+
+  // 実際に解ける盤面が作れること
+  for(let s=1; s<=3; s++){
+    const shape = organicShape(s * 777, 91);
+    let p = null, seed = s * 31;
+    for(let a=0; a<25 && !p; a++, seed++) p = generate(makeBoard(shape), { seed, density:0.44 });
+    ok(!!p, `不定形 seed${s*777}: 推測なしで解ける盤面を生成できる`);
+  }
+}
+
 console.log(`\n${pass} 件成功 / ${fail} 件失敗`);
 process.exit(fail ? 1 : 0);

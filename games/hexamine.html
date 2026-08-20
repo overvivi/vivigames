@@ -861,17 +861,18 @@ if(typeof importScripts === 'function'){
 
   // 無限モードの大きさ。隙間時間にも遊べるよう小さいものから用意する。
   const SIZES = [
-    { name:'SMALL',   R:3, cells:37,  note:'すぐ生成' },
-    { name:'MEDIUM',  R:4, cells:61,  note:'すぐ生成' },
-    { name:'LARGE',   R:5, cells:91,  note:'1秒ほど' },
-    { name:'HUGE',    R:6, cells:127, note:'数秒' },
-    { name:'GIANT',   R:7, cells:169, note:'十数秒' },
-    { name:'MONSTER', R:9, cells:271, note:'20秒前後' }
+    // note は生成待ちの目安。実測に合わせてある(高速化で以前より大幅に短くなった)
+    { name:'SMALL',   cells:37,  note:'すぐ' },
+    { name:'MEDIUM',  cells:61,  note:'すぐ' },
+    { name:'LARGE',   cells:91,  note:'すぐ' },
+    { name:'HUGE',    cells:127, note:'すぐ' },
+    { name:'GIANT',   cells:169, note:'1秒ほど' },
+    { name:'MONSTER', cells:271, note:'数秒' }
   ];
 
   // デイリーは携帯でも無理なく解ける規模にする。速さとミスの少なさを competing させたいので、
   // 画面を何度も動かす必要がある大きさにはしない。
-  const DAILY_R = 5;
+  const DAILY_CELLS = 91;
 
   // ---------- 記録(端末保存) ----------
   const REC_KEY = 'hexamineRecords_v1';
@@ -975,10 +976,60 @@ if(typeof importScripts === 'function'){
     }, 60);
   }
 
-  function hexagonShape(R){
-    const out=[];
-    for(let q=-R;q<=R;q++) for(let r=-R;r<=R;r++) if(Math.abs(q+r)<=R) out.push([q,r]);
-    return out;
+  // 種から決まる不定形の盤面。∞モードとデイリーで使う。
+  // ソルバーは形を選ばないので(チュートリアルの分子形と同じ仕組み)、
+  // 六角形に縛る理由が無い。毎回輪郭が変わるほうが∞モードらしく、
+  // 穴が空くぶん外側の直線ヒントも増えて読みごたえが出る。
+  // 種だけで決まるので、デイリーは全員が同じ形になる。
+  function shapeRnd(seed){
+    let a = seed >>> 0;
+    return ()=>{
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function organicShape(seed, cells){
+    const r = shapeRnd(seed);
+    const key = c => c[0] + ',' + c[1];
+    const holes = Math.max(1, Math.round(cells / 30));
+    const grow = cells + holes;
+    // 既に接している数が多いマスを優先して伸ばす。細長い形にならず輪郭が丸くなる。
+    // wobble は「隣接数より乱数を優先する度合い」。大きいほど輪郭が暴れる。
+    const wobble = 2 + r() * 2.2;
+    const have = new Map([['0,0', [0,0]]]);
+    const front = new Map();
+    const touch = c=>{
+      for(const d of DIRS){
+        const p = [c[0]+d[0], c[1]+d[1]];
+        if(!have.has(key(p))) front.set(key(p), p);
+      }
+    };
+    touch([0,0]);
+    while(have.size < grow && front.size){
+      let best = null, bw = -1;
+      for(const p of front.values()){
+        let nb = 0;
+        for(const d of DIRS) if(have.has(key([p[0]+d[0], p[1]+d[1]]))) nb++;
+        const w = nb + r() * wobble;
+        if(w > bw){ bw = w; best = p; }
+      }
+      front.delete(key(best));
+      have.set(key(best), best);
+      touch(best);
+    }
+    // 穴は「6方向すべてが埋まっているマス」からしか抜かない。
+    // こうしておけば盤面が分断されることが無い。
+    for(let k=0; k<holes; k++){
+      const cand = [];
+      for(const c of have.values()){
+        if(DIRS.every(d => have.has(key([c[0]+d[0], c[1]+d[1]])))) cand.push(c);
+      }
+      if(!cand.length) break;
+      have.delete(key(cand[Math.floor(r() * cand.length)]));
+    }
+    return [...have.values()];
   }
 
   // ---------- 盤面の再構築(表示用。ソルバーと同じ規則) ----------
@@ -1722,10 +1773,14 @@ if(typeof importScripts === 'function'){
       b.innerHTML = '<div class="cName">' + sz.name + '</div>' +
         '<div class="cSub">' + sz.cells + 'マス　' + sz.note + '</div>' +
         '<div class="cRec' + (records['size-'+sz.name] ? '' : ' none') + '">' + recordLine('size-'+sz.name) + '</div>';
-      b.addEventListener('click', ()=> startMode({
-        type:'infinite', id:'size-'+sz.name, size:sz,
-        shape:hexagonShape(sz.R), keepRatio:0, density:0.44
-      }));
+      b.addEventListener('click', ()=>{
+        // 形も種から決めるので、種は先に確定させておく
+        const seed = ((Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0) || 1;
+        startMode({
+          type:'infinite', id:'size-'+sz.name, size:sz, seed:seed,
+          shape:organicShape(seed, sz.cells), keepRatio:0, density:0.44
+        });
+      });
       grid.appendChild(b);
     }
   }
@@ -1751,7 +1806,7 @@ if(typeof importScripts === 'function'){
   $('hintBtn').addEventListener('click', ()=> requestHint());
   $('dailyBtn').addEventListener('click', ()=> startMode({
     type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(),
-    shape:hexagonShape(DAILY_R), keepRatio:0, density:0.44
+    shape:organicShape(dailySeed(), DAILY_CELLS), keepRatio:0, density:0.44
   }));
 
   // ---------- 生成 ----------
