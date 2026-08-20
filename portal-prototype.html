@@ -314,11 +314,11 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
 (function(){
   const GAMES = [
     { id:'hell', name:'HELL RUNNER', desc:'崩れる足場を駆け抜ける', href:'games/temple-run-clone.html',
-      color:'#ff4b2b', art:"url('images/portal/cart-label-hell-runner.png')" },
+      color:'#ff4b2b', art:"url('images/portal/cart-label-hell-runner.webp')" },
     { id:'boss', name:'討伐2048',     desc:'合体させてボスを討伐',   href:'games/boss-battle-demo.html',
-      color:'#a855f7', art:"url('images/portal/cart-label-boss-2048.png')" },
+      color:'#a855f7', art:"url('images/portal/cart-label-boss-2048.webp')" },
     { id:'hexa', name:'HEXAMINE',    desc:'分子構造を論理だけで復元', href:'games/hexamine.html',
-      color:'#20e6ff', art:"url('images/portal/cart-label-hexamine.png')" },
+      color:'#20e6ff', art:"url('images/portal/cart-label-hexamine.webp')" },
     { id:'next', name:'COMING SOON', desc:'次のゲームは準備中',      href:null, blank:true }
   ];
 
@@ -335,7 +335,9 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     const deck = document.getElementById('deck');
     if(!b.n){ deck.classList.remove('real'); deck.style.removeProperty('--body'); return; }
     deck.classList.add('real');
-    deck.style.setProperty('--body', "url('" + SRC + b.n + ".png')");
+    // 採用した案1だけ変換済みの webp を使う。他は見比べ用なので原本のまま
+    const url = (b.n === 1) ? 'images/portal/console-body.webp' : (SRC + b.n + '.png');
+    deck.style.setProperty('--body', "url('" + url + "')");
     deck.style.setProperty('--screen-x', b.screen[0]+'%');
     deck.style.setProperty('--screen-y', b.screen[1]+'%');
     deck.style.setProperty('--screen-w', b.screen[2]+'%');

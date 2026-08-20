@@ -12,9 +12,11 @@
     "test:update-backgrounds": "playwright test tests/backgrounds.spec.js --update-snapshots",
     "test:ui": "playwright test --ui",
     "test:hex": "node tools/hex/solver.test.mjs",
-    "serve": "node tests/static-server.cjs"
+    "serve": "node tests/static-server.cjs",
+    "portal:images": "node tools/portal-images.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "sharp": "^0.35.3"
   }
 }
