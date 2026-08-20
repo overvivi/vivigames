@@ -140,7 +140,12 @@
     100%{opacity:0;transform:translate(-50%,-50%) scaleX(1.4)}}
   .cs-screen{position:absolute;left:var(--screen-x);top:var(--screen-y);width:var(--screen-w);height:var(--screen-h);
     z-index:3;border-radius:6px;overflow:hidden;background:#03050b}
-  .cs-screen-art{position:absolute;inset:0;background:var(--art,#0a0d16) center/cover no-repeat;
+  /* ラベルは正方形、画面は横長なので、cover だと高さの42%が切れる。
+     中央基準だと上下が均等に切れて、絵の主役である上半分を失う。
+     下寄りに切る。画面の下側はキャプションの帯で隠れるため、
+     そこが欠けても見た目の損失が小さい。 */
+  .cs-screen-art{position:absolute;inset:0;
+    background:var(--art,#0a0d16) center 26%/cover no-repeat;
     opacity:0;transform:scale(1.06);transition:opacity .45s,transform .6s}
   .deck.on .cs-screen-art{opacity:1;transform:scale(1)}
   .cs-screen::after{content:'';position:absolute;inset:0;pointer-events:none;
