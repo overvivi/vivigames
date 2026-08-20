@@ -90,7 +90,7 @@ test('画像ロゴを読めない時もHTMLタイトルを表示する', async (
 
   await expect(page.locator('.site-logo')).toBeHidden();
   await expect(page.locator('h1')).toBeVisible();
-  await expect(page.locator('h1')).toContainText('VIVI GAME ARCADE');
+  await expect(page.locator('h1')).toContainText('VIVI GAME BASE');
 });
 
 test('情報モーダルを開閉でき、背景スクロールを戻す', async ({ page })=>{
