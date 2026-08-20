@@ -130,31 +130,6 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   width:24%; height:4.5%; border-radius:4px 4px 2px 2px; background:#04050a; z-index:3;
   box-shadow:inset 0 4px 8px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.18);}
 
-/* 外付けのケーブル。本体より下の層に置くので、絵の裏から生えて見える。
-   絵に描き込むと動かせないが、こちらで描けば光を走らせられる。
-   カセットが入った瞬間、光がケーブルを外へ流れていく。 */
-.cables{position:absolute; inset:0 -17% -6% -17%; z-index:1; pointer-events:none;
-  opacity:0; transition:opacity .5s;}
-.deck.on .cables{opacity:1;}
-.cables svg{width:100%; height:100%; overflow:visible;}
-.cables .sheath{fill:none; stroke:#151a26; stroke-width:44; stroke-linecap:round;}
-.cables .braid{fill:none; stroke:#39435a; stroke-width:32; stroke-linecap:round;
-  stroke-dasharray:7 11;}
-.cables .core{fill:none; stroke:var(--game); stroke-width:11; stroke-linecap:round;
-  opacity:.34; filter:drop-shadow(0 0 8px var(--game-dim));}
-/* 走る光。挿した瞬間に一度だけ外へ流れる */
-.cables .pulse{fill:none; stroke:var(--game); stroke-width:14; stroke-linecap:round;
-  opacity:0; stroke-dasharray:130 2400; filter:drop-shadow(0 0 10px var(--game));}
-.deck.flow .cables .pulse{animation:flow 1s ease-out;}
-@keyframes flow{
-  0%  {opacity:0; stroke-dashoffset:180;}
-  15% {opacity:1;}
-  85% {opacity:1;}
-  100%{opacity:0; stroke-dashoffset:-2400;}
-}
-@media (prefers-reduced-motion: reduce){ .deck.flow .cables .pulse{animation:none;} }
-@media (max-width:560px){ .cables{display:none;} }
-
 /* 候補の絵を敷いたときは、仮の図形を消す */
 .deck.real .machine{background:var(--body) center/contain no-repeat; border:0; box-shadow:none;
   filter:drop-shadow(0 20px 26px rgba(0,0,0,.6));}
@@ -171,6 +146,28 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   mix-blend-mode:screen; transition:opacity .5s;}
 .deck.on .bodyGlow{opacity:1;}
 .deck:not(.real) .bodyGlow{display:none;}
+
+/* 流れ込んだデータが本体の中を走る。
+   線を1本描くとリボンに見えてしまうので、描くのは光だけにする。
+   bodyGlow と同じくアルファで切り抜き、screen で重ねるので絵に馴染む。 */
+.bodySurge{position:absolute; inset:0; z-index:2; pointer-events:none; opacity:0;
+  -webkit-mask-image:var(--body); mask-image:var(--body);
+  -webkit-mask-size:contain; mask-size:contain;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  background:linear-gradient(96deg,
+    transparent 30%, var(--game-dim) 42%, var(--game) 50%, var(--game-dim) 58%, transparent 70%);
+  background-size:260% 100%; background-position:135% 0;
+  mix-blend-mode:screen;}
+.deck.flow .bodySurge{animation:surge .85s cubic-bezier(.25,.6,.3,1);}
+@keyframes surge{
+  0%  {opacity:0;   background-position:135% 0;}
+  18% {opacity:.95;}
+  80% {opacity:.55;}
+  100%{opacity:0;   background-position:-45% 0;}
+}
+.deck:not(.real) .bodySurge{display:none;}
+@media (prefers-reduced-motion: reduce){ .deck.flow .bodySurge{animation:none;} }
 
 /* 候補の切り替え */
 .picker{display:flex; justify-content:center; gap:8px; margin:0 0 18px;}
@@ -274,17 +271,8 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
   <div class="deck" id="deck">
     <div class="cartFlight" id="flight"><span class="shell"><span class="label" id="flightLabel"></span></span></div>
 
-    <div class="cables">
-      <svg viewBox="0 0 2250 1000" aria-hidden="true">
-        <g id="cablePaths">
-          <path d="M 620,700 C 430,760 250,790 20,770"/>
-          <path d="M 700,745 C 520,835 320,890 60,880"/>
-          <path d="M 1630,700 C 1820,760 2000,790 2230,770"/>
-          <path d="M 1550,745 C 1730,835 1930,890 2190,880"/>
-        </g>
-      </svg>
-    </div>
     <div class="bodyGlow"></div>
+    <div class="bodySurge"></div>
     <div class="machine">
       <div class="pcb"></div>
       <span class="chip" style="left:22%; top:70%; width:11%; height:14%"></span>
@@ -356,22 +344,6 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     document.querySelector('.cartFlight').style.width = b.cart+'%';
   }
 
-  // ケーブルは同じ形を層違いで重ねて描く。1本ずつ書くと修正が面倒なため
-  (function buildCables(){
-    const g = document.getElementById('cablePaths');
-    if(!g) return;
-    const ds = [...g.querySelectorAll('path')].map(p=>p.getAttribute('d'));
-    g.innerHTML = '';
-    const svgNS = 'http://www.w3.org/2000/svg';
-    for(const cls of ['sheath','braid','core','pulse']){
-      for(const d of ds){
-        const p = document.createElementNS(svgNS,'path');
-        p.setAttribute('d', d); p.setAttribute('class', cls);
-        g.appendChild(p);
-      }
-    }
-  })();
-
   const rack = document.getElementById('rack');
   const deck = document.getElementById('deck');
   const flight = document.getElementById('flight');
@@ -436,7 +408,7 @@ h1{font-family:'Press Start 2P',monospace; font-size:clamp(11px,2.6vw,15px);
     void flight.offsetWidth;
     flight.classList.add('go');
     flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
-    // 光がケーブルを伝って外へ流れる
+    // 本体の内部を光が走る
     deck.classList.remove('flow'); void deck.offsetWidth;
     setTimeout(()=> deck.classList.add('flow'), calmNow() ? 0 : 400);
     clearTimeout(onTimer);
