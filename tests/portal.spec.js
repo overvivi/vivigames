@@ -84,6 +84,61 @@ test('スマホでは横にはみ出さず、PLAYを押しやすい', async ({ p
   expect(box.width).toBeGreaterThan(200);
 });
 
+// 作品が増えても置き場は1列に保つ。折り返すと本体との距離が作品数で変わり、
+// 10本並んだときに縦へ伸びてしまう。
+// いまは4本なので画面には収まる。作品が増えたときの挙動を確かめたいので、
+// テスト側でカセットを複製してあふれさせる。
+const overflowRack = page => page.evaluate(()=>{
+  const rack = document.getElementById('rack');
+  const first = rack.querySelector('.cart');
+  for(let i = 0; i < 8; i++) rack.appendChild(first.cloneNode(true));
+  window.dispatchEvent(new Event('resize'));   // 矢印の出し分けを更新させる
+});
+
+test('カセットが増えても1列のまま横へ流れる', async ({ page })=>{
+  await page.setViewportSize({ width:1280, height:900 });
+  await page.goto('/index.html');
+  await overflowRack(page);
+
+  const rows = await page.evaluate(()=>
+    new Set([...document.querySelectorAll('.cart')]
+      .map(c => Math.round(c.getBoundingClientRect().top))).size);
+  expect(rows).toBe(1);
+
+  // 置き場だけが流れ、ページ自体は横に伸びない
+  const pageOverflow = await page.evaluate(()=>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(pageOverflow).toBeLessThanOrEqual(1);
+
+  const over = await page.evaluate(()=>{
+    const r = document.getElementById('rack');
+    return r.scrollWidth - r.clientWidth;
+  });
+  expect(over).toBeGreaterThan(0);
+
+  // あふれている間だけ矢印を出す
+  await expect(page.locator('#rackNext')).toHaveClass(/show/);
+});
+
+test('掴んで動かしただけではゲームが切り替わらない', async ({ page })=>{
+  await page.setViewportSize({ width:1280, height:900 });
+  await page.goto('/index.html');
+  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
+  await overflowRack(page);
+
+  const box = await page.locator('#rack').boundingBox();
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width - 30, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 30, y, { steps:14 });
+  await page.mouse.up();
+
+  const moved = await page.evaluate(()=> document.getElementById('rack').scrollLeft);
+  expect(moved).toBeGreaterThan(0);
+  // 掴んで動かしただけなのに挿し変わると、操作として気持ち悪い
+  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
+});
+
 test('画像ロゴを読めない時もHTMLタイトルを表示する', async ({ page })=>{
   await page.route('**/vivi-game-arcade-logo.png',route=>route.abort());
   await page.goto('/index.html');

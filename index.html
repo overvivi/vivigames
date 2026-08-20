@@ -64,8 +64,27 @@
      新作のたびに違うデザインの筐体が並んでいたため。
      いまは実機1台にカセットを挿す形で、新作で増えるのは平らな絵1枚だけ。 */
   .floor{--game:#20e6ff;--game-dim:rgba(32,230,255,.28)}
-  .rack{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-bottom:6px}
-  .cart{position:relative;width:112px;padding:0;border:0;background:none;cursor:pointer;
+  /* カセットが増えても1列に保つ。折り返すと本体との距離が作品数で変わり、
+     10本並んだときに縦へ伸びてしまうため、横へスクロールさせる。 */
+  .rack-wrap{position:relative;margin-bottom:6px}
+  .rack{display:flex;flex-wrap:nowrap;gap:16px;overflow-x:auto;overscroll-behavior-x:contain;
+    padding:6px 2px;scrollbar-width:none;-ms-overflow-style:none;
+    /* safe を付けないと、あふれた時に左端のカセットへ到達できなくなる */
+    justify-content:center;justify-content:safe center}
+  .rack::-webkit-scrollbar{display:none}
+  .rack.dragging{cursor:grabbing;scroll-behavior:auto;user-select:none}
+  .rack.scrollable{cursor:grab}
+  .rack-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+    width:34px;height:34px;padding:0;display:none;place-items:center;
+    border:1px solid var(--line);border-radius:50%;color:var(--cyan);
+    background:rgba(5,4,10,.82);cursor:pointer;font-size:15px;line-height:1;
+    transition:border-color .2s,background .2s}
+  .rack-nav:hover,.rack-nav:focus-visible{border-color:var(--cyan);background:rgba(10,20,34,.95)}
+  .rack-nav.show{display:grid}
+  .rack-nav.prev{left:-6px}
+  .rack-nav.next{right:-6px}
+  @media(max-width:599px){.rack-nav{display:none!important}}
+  .cart{position:relative;flex:0 0 auto;width:112px;padding:0;border:0;background:none;cursor:pointer;
     font:inherit;transition:transform .18s ease}
   .cart:hover,.cart:focus-visible{transform:translateY(-6px)}
   .cart:focus-visible{outline:2px solid var(--cyan);outline-offset:6px}
@@ -195,7 +214,11 @@
   <section class="shell" id="cartridges" aria-labelledby="cartridges-title">
     <h2 class="section-title pixel" id="cartridges-title">CARTRIDGES</h2>
     <div class="floor" id="floor">
-      <div class="rack" id="rack"></div>
+      <div class="rack-wrap">
+        <button class="rack-nav prev" id="rackPrev" type="button" aria-label="前のカセットを見る">‹</button>
+        <div class="rack" id="rack"></div>
+        <button class="rack-nav next" id="rackNext" type="button" aria-label="次のカセットを見る">›</button>
+      </div>
       <p class="rack-note" id="rackNote"></p>
 
       <div class="deck" id="deck">
@@ -367,8 +390,58 @@
     setTimeout(function(){ deck.classList.add('flow'); }, quiet ? 0 : 400);
   }
 
+  // ---------- カセット置き場の横スクロール ----------
+  // 作品が増えても1列に保つ。PCはドラッグでも動かせるようにする。
+  // 触る操作は端末の標準スクロールに任せるので、握るのはマウスのときだけ。
+  var prev = document.getElementById('rackPrev'),
+      next = document.getElementById('rackNext');
+  var dragging = false, startX = 0, startScroll = 0, moved = 0;
+
+  function refreshNav(){
+    var over = rack.scrollWidth - rack.clientWidth;
+    rack.classList.toggle('scrollable', over > 4);
+    prev.classList.toggle('show', over > 4 && rack.scrollLeft > 4);
+    next.classList.toggle('show', over > 4 && rack.scrollLeft < over - 4);
+  }
+  function nudge(dir){
+    var step = rack.clientWidth * 0.7;
+    rack.scrollBy({ left: dir * step, behavior: 'smooth' });
+  }
+  prev.addEventListener('click', function(){ nudge(-1); });
+  next.addEventListener('click', function(){ nudge(1); });
+  rack.addEventListener('scroll', refreshNav, { passive:true });
+  window.addEventListener('resize', refreshNav);
+
+  rack.addEventListener('pointerdown', function(e){
+    if(e.pointerType !== 'mouse') return;   // 指はブラウザ標準のスクロールに任せる
+    dragging = true; moved = 0;
+    startX = e.clientX; startScroll = rack.scrollLeft;
+    rack.classList.add('dragging');
+  });
+  // 追跡は window で行う。setPointerCapture を使うと、そのあとの click が
+  // カセットではなく置き場へ飛んでしまい、ゲームを選べなくなる。
+  window.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    var dx = e.clientX - startX;
+    if(Math.abs(dx) > moved) moved = Math.abs(dx);
+    rack.scrollLeft = startScroll - dx;
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    rack.classList.remove('dragging');
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  // 動かしたあとのクリックでゲームが切り替わらないようにする。
+  // 掴んで動かしただけなのに挿し変わると、操作として気持ち悪い。
+  rack.addEventListener('click', function(e){
+    if(moved > 8){ e.stopPropagation(); e.preventDefault(); moved = 0; }
+  }, true);
+
   // 最初は一番新しいゲームを挿しておく
   insert(GAMES[2], buttons[2]);
+  refreshNav();
 })();
 </script>
 </body>
