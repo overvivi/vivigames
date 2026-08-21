@@ -24,7 +24,8 @@ const server = http.createServer((req,res)=>{
 });
 
 const PORT = Number(process.env.PORT) || 4173;
-const HOST = '127.0.0.1';
+// 実機確認だけは同一Wi-Fiから開ける必要があるため、明示した時だけLANへ公開する。
+const HOST = process.env.HOST || '127.0.0.1';
 
 // 既に起動していたらそれを使う。Playwrightが reuseExistingServer で立てたものが
 // 残っている場合があり、二重起動で落ちると開発サーバーごと止まってしまう。

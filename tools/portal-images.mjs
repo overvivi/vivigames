@@ -26,7 +26,8 @@ const TARGETS = [
   { src:'cart-label-hell-runner-draft.png', out:'cart-label-hell-runner.webp', width:640,  note:'ラベル（画面に約260px）' },
   { src:'cart-label-hell-runner-2-beta.png', out:'cart-label-hell-runner-2-beta.webp', width:640, note:'HELL RUNNER 2 βラベル' },
   { src:'cart-label-boss-2048-draft.png',  out:'cart-label-boss-2048.webp',   width:640,  note:'ラベル' },
-  { src:'cart-label-hexamine-draft.png',   out:'cart-label-hexamine.webp',    width:640,  note:'ラベル' }
+  { src:'cart-label-hexamine-draft.png',   out:'cart-label-hexamine.webp',    width:640,  note:'ラベル' },
+  { src:'cart-label-todays-champion.png',  out:'cart-label-todays-champion.webp', width:640, note:'本日の最強決定戦ラベル' }
 ];
 
 const kb = n => (n / 1024).toFixed(0) + 'KB';

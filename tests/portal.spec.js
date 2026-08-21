@@ -8,10 +8,10 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // 遊べる4本 + COMING SOON。COMING SOON は常に最後
-  await expect(page.locator('.cart')).toHaveCount(5);
+  // 開発中を含む遊べる5本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(6);
   await expect(page.locator('.cart .cname')).toHaveText([
-    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', 'COMING SOON'
+    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
@@ -26,6 +26,11 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   // 挿さっているものは置き場に空のくぼみとして残す。消すと列に穴が空いて見える
   await expect(page.locator('.cart').first()).toHaveClass(/inserted/);
   await expect(page.locator('.cart').first()).toHaveAttribute('aria-pressed','true');
+
+  // 開発中のカセットも通常のゲームと同じ導線で開ける。
+  await page.locator('.cart').nth(4).click();
+  await expect(page.locator('#capTitle')).toHaveText('本日の最強決定戦');
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/todays-champion.html');
 });
 
 test('ゲームごとに本体の色が変わる', async ({ page })=>{
@@ -86,7 +91,7 @@ test('スマホでは横にはみ出さず、PLAYを押しやすい', async ({ p
 
 // 作品が増えても置き場は1列に保つ。折り返すと本体との距離が作品数で変わり、
 // 10本並んだときに縦へ伸びてしまう。
-// いまは4本なので画面には収まる。作品が増えたときの挙動を確かめたいので、
+// いまは5本なので画面には収まる。作品が増えたときの挙動を確かめたいので、
 // テスト側でカセットを複製してあふれさせる。
 const overflowRack = page => page.evaluate(()=>{
   const rack = document.getElementById('rack');
@@ -173,7 +178,8 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     '/images/portal/console-body.webp',
     '/images/portal/cart-label-hell-runner.webp',
     '/images/portal/cart-label-boss-2048.webp',
-    '/images/portal/cart-label-hexamine.webp'
+    '/images/portal/cart-label-hexamine.webp',
+    '/images/portal/cart-label-todays-champion.webp'
   ];
   for(const file of files){
     const response=await request.get(file);

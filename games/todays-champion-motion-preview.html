@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>本日の最強決定戦 | MOTION PREVIEW</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100svh;background:#050915;color:#eef5ff;font-family:system-ui,"Yu Gothic",sans-serif}.wrap{width:min(1100px,100%);margin:auto;padding:22px 16px 38px}.eyebrow{color:#ffdc42;font-weight:800;letter-spacing:.12em;font-size:12px}.title{font-size:clamp(27px,7vw,54px);margin:4px 0 0;letter-spacing:.04em}.sub{margin:4px 0 20px;color:#aebbd1;font-size:14px}.stage{position:relative;overflow:hidden;min-height:390px;border:1px solid #313d5a;background:radial-gradient(circle at 50% 25%,#372158 0,transparent 42%),linear-gradient(#111a34,#050812)}.stage::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 47px,#ffffff09 48px 49px),linear-gradient(180deg,transparent 70%,#04050e);pointer-events:none}.signal{position:relative;z-index:2;text-align:center;padding:18px 0 3px;font-weight:900;letter-spacing:.2em;color:#bfeeff;font-size:clamp(16px,4vw,28px);text-shadow:0 0 16px #55bfff}.fighters{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;align-items:end;min-height:310px}.fighter{height:305px;position:relative}.fighter canvas{position:absolute;bottom:-22px;width:100%;height:330px;image-rendering:pixelated}.name{position:absolute;bottom:12px;left:14px;font-weight:900;letter-spacing:.08em;text-shadow:0 2px 0 #000}.right .name{left:auto;right:14px}.vs{position:absolute;z-index:3;left:50%;top:56%;transform:translate(-50%,-50%);font-size:42px;font-weight:1000;color:#ffdc42;text-shadow:0 0 15px #f77720}.legend{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:14px 0 18px}.legend span{padding:6px 9px;border:1px solid #33415f;background:#0d1427;color:#bdcae1;font-size:12px}.legend b{color:#fff}.cards{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:9px}.card{appearance:none;cursor:pointer;min-height:180px;border:1px solid #354466;background:#0e1426;color:#fff;padding:0;text-align:left;position:relative;overflow:hidden}.card::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 35%,#071021ee)}.card img{display:block;width:100%;height:180px;object-fit:cover;object-position:center top;opacity:.68;transition:.18s}.card strong,.card small{position:absolute;z-index:1;left:10px}.card strong{bottom:24px;font-size:15px;letter-spacing:.08em}.card small{bottom:9px;color:#d0dcf6}.card[aria-pressed="true"]{border-color:#ffdc42;box-shadow:0 0 0 2px #ffdc4255}.card[aria-pressed="true"] img{opacity:1;transform:scale(1.04)}.hint{text-align:center;color:#8d9bb8;font-size:13px;margin:18px 0 0}@media(max-width:620px){.wrap{padding:18px 10px 28px}.stage{min-height:330px}.fighters{min-height:250px}.fighter{height:255px}.fighter canvas{height:280px;bottom:-18px}.cards{grid-template-columns:repeat(5,1fr);gap:5px}.card{min-height:128px}.card img{height:128px}.card strong{left:5px;bottom:20px;font-size:11px}.card small{left:5px;bottom:6px;font-size:9px}.vs{font-size:29px}.legend{gap:5px}.legend span{font-size:10px;padding:5px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">TODAY'S CHAMPION / MOTION CHECK</div>
+  <h1 class="title">本日の最強決定戦</h1>
+  <p class="sub">カードを押すと左のファイターが切り替わる。待機 → 構え → 勝利の3ポーズを確認。</p>
+  <section class="stage" aria-label="ドット絵モーション確認">
+    <div class="signal" id="signal">SCAN READY</div><div class="vs">VS</div>
+    <div class="fighters"><div class="fighter"><canvas id="left" width="500" height="660"></canvas><div class="name" id="leftName"></div></div><div class="fighter right"><canvas id="right" width="500" height="660"></canvas><div class="name" id="rightName"></div></div></div>
+  </section>
+  <div class="legend"><span><b>01</b> 待機</span><span><b>02</b> 警戒</span><span><b>03</b> 勝利</span></div>
+  <div class="cards" id="cards"></div>
+  <p class="hint">※ いまは動きとシルエットを見るためのプレビュー。本編では決着時に踏み込み・被弾・ヒットストップを追加する。</p>
+</main>
+<script>
+const fighters=[
+  {id:'raven',name:'RAVEN',tag:'ZERO BLADE',color:'#32d9ff',portrait:'../images/todays-champion/portraits/raven.png'},
+  {id:'mika',name:'MIKA',tag:'PINK RIOT',color:'#ff4ca9',portrait:'../images/todays-champion/portraits/mika.png'},
+  {id:'brick',name:'BRICK',tag:'IRON FIST',color:'#ff9c20',portrait:'../images/todays-champion/portraits/brick.png'},
+  {id:'noise',name:'NOISE',tag:'BEAT BREAKER',color:'#9a62ff',portrait:'../images/todays-champion/portraits/noise.png'},
+  {id:'kiri',name:'KIRI',tag:'GHOST SIGNAL',color:'#d5a4ff',portrait:'../images/todays-champion/portraits/kiri.png'}
+];
+const sheet=new Image();sheet.src='../images/todays-champion/source/pixel-character-poses.png';
+let selected=0,pose=0;
+const cards=document.querySelector('#cards');
+fighters.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.className='card';b.setAttribute('aria-pressed',String(i===0));b.innerHTML=`<img src="${f.portrait}" alt="${f.name}"><strong>${f.name}</strong><small>${f.tag}</small>`;b.addEventListener('click',()=>{selected=i;document.querySelectorAll('.card').forEach((el,n)=>el.setAttribute('aria-pressed',String(n===i)));render()});cards.append(b)});
+function draw(canvas,index,flip){const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,500,660);if(!sheet.complete)return;const sw=307,sh=341;const sx=index*307,sy=pose*341;c.save();if(flip){c.translate(500,0);c.scale(-1,1)}c.drawImage(sheet,sx,sy,sw,sh,38,0,424,472);c.restore();}
+function render(){const opponent=(selected+3)%fighters.length;draw(document.querySelector('#left'),selected,false);draw(document.querySelector('#right'),opponent,true);const a=fighters[selected],b=fighters[opponent];document.querySelector('#leftName').textContent=a.name;document.querySelector('#leftName').style.color=a.color;document.querySelector('#rightName').textContent=b.name;document.querySelector('#rightName').style.color=b.color;document.querySelector('#signal').textContent=['SCAN READY','DRONE LOCKED','ENGAGE!'][pose]}
+sheet.addEventListener('load',render);setInterval(()=>{pose=(pose+1)%3;render()},1200);render();
+</script>
+</body>
+</html>
