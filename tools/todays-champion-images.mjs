@@ -41,6 +41,24 @@ inputSize += pixelBefore;
 outputSize += pixelAfter;
 console.log(`pixel   ${kb(pixelBefore).padStart(7)} → ${kb(pixelAfter).padStart(6)}（可逆）`);
 
+const chibiFrom = path.join(SOURCE, 'chibi-duel-poses.png');
+const chibiTo = path.join(OUTPUT, 'chibi-duel-poses.webp');
+const chibiBefore = statSync(chibiFrom).size;
+await sharp(chibiFrom).webp({ lossless:true, effort:6 }).toFile(chibiTo);
+const chibiAfter = statSync(chibiTo).size;
+inputSize += chibiBefore;
+outputSize += chibiAfter;
+console.log(`chibi   ${kb(chibiBefore).padStart(7)} → ${kb(chibiAfter).padStart(6)}（可逆・透過）`);
+
+const resultFrom = path.join(SOURCE, 'chibi-result-poses-v2.png');
+const resultTo = path.join(OUTPUT, 'chibi-result-poses-v2.webp');
+const resultBefore = statSync(resultFrom).size;
+await sharp(resultFrom).webp({ lossless:true, effort:6 }).toFile(resultTo);
+const resultAfter = statSync(resultTo).size;
+inputSize += resultBefore;
+outputSize += resultAfter;
+console.log(`result  ${kb(resultBefore).padStart(7)} → ${kb(resultAfter).padStart(6)}（可逆・透過）`);
+
 // 対戦背景はスマホでも一瞬で試合画面へ入れるよう横幅を抑えた公開用WebPにする。
 const stageFrom = path.join(SOURCE, 'stage-bg.png');
 const stageTo = path.join(OUTPUT, 'stage-bg.webp');
