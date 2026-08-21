@@ -16,5 +16,11 @@
   "runner_scores_hell_runner_2_draft": {
     "name": "ぽ",
     "score": 144395
+  },
+  "todays_champion_scores": {
+    "day": 20260822,
+    "name": "太陽健康ランド",
+    "characterId": "raven",
+    "ms": 111
   }
 }
