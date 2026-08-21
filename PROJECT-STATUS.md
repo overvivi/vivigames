@@ -131,7 +131,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - `DEV SYNC TUNER`でBPMとAUDIO OFFSETを実機調整し、`COPY TEST VALUES`で確定候補を共有できる。譜面を作り込む前に各操作感と曲同期を比較するため
 - 曲のBPMが不明でも試せるよう、再生中に拍へ4回合わせて押す`TAP BEAT`を追加。平均間隔からBPMを決め、最後のタップを拍の起点として2拍後から譜面を組み直す
 
-### 本日の最強決定戦（新規・仕様確定、未着手）
+### 本日の最強決定戦（実装中）
 
 近未来の路地裏を舞台にした、当日最速の反応速度を競う1ボタン対戦ゲーム。カービィの「刹那の見切り」の待機と一撃の気持ちよさを参考にするが、キャラクター・世界観・演出は完全オリジナルで制作する。
 
@@ -156,6 +156,40 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 王者戦のCAUTIONは`hidden`属性を表示CSSが上書きして閉じず、対戦画面へ進んでいてもテープだけ残る不具合を修正。`caution[hidden]{display:none}`を明示し、テープの表示・非表示と通常NPC戦での非表示をPlaywrightで確認済み
 - 対戦画面のちびキャラを一段引き（通常255px、決着245px）にし、背景の路地を広く見せる。勝者の踏み込みと敗者の倒れ込みも半歩分へ抑え、390px携帯画面で敗者を含む2人が決着後まで画面内に残ることを確認済み
 - 対戦専用のWeb Audio効果音を追加。START後の赤スキャン、`ENGAGE!`、一撃、勝利、敗北を短い電子音で合成する。外部音源を増やさず、STARTタップでAudioContextを解禁してSafariの自動再生制限を回避する
+- 選択カードのちび絵が名前・肩書きへ重なり、対戦中の切り抜きは足元を失っていた問題を修正。カード内のちび絵は名前領域より上へ縮小配置し、対戦用は切り抜き余白を8pxへ広げて足まで描画する。390px携帯スクリーンショットと`npm run verify`で確認済み
+- 敗北専用シートには分離した靴・エフェクトなどの不要断片が混ざるため、敗者には専用シートを使わず全身が保証される通常ちび絵の構えポーズ＋倒れ込みCSSを使用する。勝者だけが勝利専用ポーズへ切替わる。390px携帯の決着スクリーンショットで両キャラが全身のまま画面内に残ることを確認済み
+- 決闘ルールを再整理。二人は交差点の左右端で向かい、赤信号の待機から青緑のGOで中央へ踏み込んで一撃を交わす。決着後は勝者・敗者を左右へ戻して全身を残し、勝敗が読める構図にする
+- 監視ドローン演出は廃止。雨の近未来交差点へ描き替えた`source/intersection-bg.png`を公開用`intersection-bg.webp`へ圧縮し、背景の横信号へHTMLの赤／青緑点灯を重ねる。`WAIT FOR GREEN`→`GREEN — GO!`で入力タイミングを視覚的に明示する
+- 足元や別ポーズが混ざる`chibi-duel-poses.webp`は対戦描画から外した。5列×3行が揃った`pixel-character-poses.webp`のみにし、原画に焼き込まれた濃紺背景は`champion:images`で透明化して、決闘背景の上に四角を残さない
+- 390px幅の決闘待機・勝利決着をスクリーンショット確認。二人の開始位置を広げ、信号・両キャラ・背景を同時に見せられることを確認。`npm.cmd run champion:images`、`npm.cmd run verify`成功
+- キャラ素材は従来の共通シートから全面作り直し中。新規の正本は`source/sprites/<character>/idle.png`／`dash.png`／`attack.png`／`win.png`／`lose.png`の**1状態1ファイル**とし、Canvasでの切り出しを廃止する。レイヴンの5枚は透明PNG・全身収録を確認済み。残り4人を同形式で制作後、このパスを直接読む実装へ置換する
+- 待機ループは不要。全キャラを試合進行に対応する5枚で統一する: (1)踏み込む前の戦闘構え、(2)武器を出しながら前へ走るダッシュ、(3)すれ違い後の攻撃を振り切った決め、(4)勝利、(5)敗北。キャラの横移動はCSSで行い、見せ場だけをこの5枚へ切り替える。構えは直立ではなく、前後へ開いた足・低い重心・攻撃へ移れる武器位置を必須にする
+- レイヴンの`idle-sheet-5frames.png`／`guard-sheet-5frames.png`は採用せず、構図と加工方法の試作原画として`source/sprites/raven/`へ保管。ゲームには未接続
+- 5人の構え→ダッシュ→振り切りの個別設計: レイヴン=刀へ手を置く抜刀／居合い、ミカ=ローラースケートで低く構える／横滑り飛び蹴り、ブリック=義手の拳を前に出す／肩からのストレート、ノイズ=ヘッドホンの音を溜めるDJ構え／低い回転からの音圧掌打、キリ=クリスタルナイフを逆手に隠す／滑り込む刺突。この個性を(1)構え、(2)ダッシュ、(3)振り切りの3枚へ明確に反映し、(4)勝利・(5)敗北は各攻撃の余韻につなげる
+- ユーザーの切り抜き加工用に、5人ぶんの横シートを`source/sheets/`へ保存。`raven-action-sheet.png`、`mika-action-sheet.png`、`brick-action-sheet.png`、`noise-action-sheet.png`、`kiri-action-sheet.png`は、左から構え／ダッシュ／振り切り／勝利／敗北の順。各ポーズ間に大きな透明余白を取り、全員がRGBAであることを確認。ノイズは初版の単純な等身・絵柄を不採用にし、他4人の高密度ちびドット絵へ寄せた第2版を本体へ採用。市松付きの元出力は`noise-action-sheet-raw.png`、初版は`noise-action-sheet-v1.png`として残す。ゲームには未接続
+- 攻撃エフェクトはキャラシートへ焼き込まない。切り抜き後のキャラと別レイヤーにし、振り切りの瞬間だけ重ねる。これによりキャラ本体を隠さず、サイズ・位置・色をゲーム上で調整できる。初期案はレイヴン=青い居合い弧、ミカ=ピンクのキック軌跡、ブリック=橙の拳圧、ノイズ=紫の音波、キリ=紫の結晶閃光
+- ユーザーが切り抜く**編集原本**は、全ポーズ共通の640×640px・RGBA PNGにする。自動トリミングはせず、靴底／接地点をY=560pxへ固定し、上下左右には余白を残す。攻撃の武器先端もキャンバス内へ収め、エフェクトは含めない。編集確定後は公開用に透過WebP（劣化が見えない設定、必要ならlossless）へ変換し、ゲーム側は軽いWebPだけを読む
+- ユーザーが5人×5ポーズを個別PNGへ切り抜き済み。`source/sheets/raven1〜5.png`、`mika1〜5.png`、`brick1〜5.png`、`noise1〜5.png`、`kiri1〜5.png`が、すべて640×640・RGBA。番号は構え／ダッシュ／振り切り／勝利／敗北の順。25枚を透明背景上で一覧確認し、武器先端・足元の欠け、別キャラの混入は見当たらない。次工程は公開用WebP化と、この個別素材を読む対戦画面への置換
+- 次の素材工程は攻撃エフェクト5枚。各キャラの3番（振り切り）にだけ別レイヤーで重ねる。キャラ本体へ焼き込まないため、位置・大きさ・点滅をゲーム側で調整できる
+- 攻撃エフェクト5枚を作成済み。`source/effects/raven-attack.png`（青の居合い弧）、`mika-attack.png`（ピンクのキック軌跡）、`brick-attack.png`（橙の拳圧）、`noise-attack.png`（紫の音波）、`kiri-attack.png`（結晶閃光）はすべて640×640・RGBA PNG。生成元は`source/effects/raw/`に保存。ゲームには未接続
+- 個別素材を公開用WebPへ変換済み。`images/todays-champion/sprites/<character>-{guard,dash,attack,win,lose}.webp`の25枚と、`images/todays-champion/effects/<character>-attack.webp`の5枚を`npm run champion:images`で再生成できる。旧Canvasシートを対戦描画から外し、個別WebPを直接読む方式へ置換した
+- 選択画面はゲームへ入った直後に画面全体を5枚の立ち絵で使う構成へ変更。START後は交差点ステージを全面表示し、赤信号待機→緑GO→双方ダッシュ→振り切り＋両者の攻撃エフェクト→勝者4番／敗者5番の順に演出する。決着時は左右のファイターを相手側へ通り越させ、開始位置と逆の側で止める
+- 背景信号に重ねる要素は枠なしの赤・黄・緑の丸3灯だけへ簡略化。`?debug=1`限定の`DUEL TUNER`で、5キャラ×構え／ダッシュ／攻撃／勝利／敗北／エフェクトのX・Y・SIZEをスライダーと数値入力で個別調整できる。信号3灯もX・Y・SIZEを同様に調整可能。パネルは`−`で畳め、`COPY VALUES`で値を取得できる
+- DUEL TUNERへ`MOTION SPEED`（0.10〜1.00倍、スライダー＋数値入力）を追加。ダッシュ・攻撃・逆側への着地を同じ倍率でスロー化するため、動きの途中にある素材・エフェクトを調整できる。合図は緑→黄→赤へ変更し、緑→黄は650ms固定、**黄→赤のみ700〜3000msのランダム**。赤が入力タイミングで、緑・黄でのタップはフライングになる。`npm.cmd run verify`成功、Playwrightでデバッグ数値入力7件と黄フェーズ遷移を確認
+- 通常のキャラ選択画面下部に`OPEN DEV TUNER`を追加。押すと`todays-champion.html?debug=1`へ遷移し、調整パネルを開ける。Playwrightでリンク遷移とパネル表示を確認、`npm.cmd run verify`成功
+- 実機調整値を5人の全ポーズ・攻撃エフェクトと信号3灯へ反映。通常プレイの動作速度は維持し、`MOTION SPEED=0.10x`はデバッグ時だけの初期値にした。決闘中に`← FIGHTER SELECT`でタイマーを止めて選択画面へ戻れるようにした。各素材を`FLIP IMAGE`で個別に左右反転でき、NPC側にはさらに逆向きに反映される。信号は外枠なし、赤・黄・緑を個別X/Y、共通SIZE（最大5.00）で調整・コピーできる。位置確認用の全幅基準線をデバッグ時だけ追加し、結果表示の上から高さを調整できる。`npm.cmd run verify`、`git diff --check`成功
+- キャラ／エフェクトはX位置・画像反転とも敵側で反対向きになるよう修正。キャラの手前へ出すミカの蹴り軌跡だけを例外とし、レイヴン・ブリック・ノイズ・キリの攻撃エフェクトは武器や腕を隠さない背面レイヤーへ移した。ユーザー実機の再調整値（信号SIZE 3.23xを含む）を反映。`npm.cmd run verify`、`git diff --check`成功
+- ユーザー提供の`信号１・２.mp3`をGREEN開始時とYELLOW移行時の2回、`信号３.mp3`をRED合図時に再生するよう組み込み。START操作中に無音で各音源を解禁してから待機中に鳴らすため、Safariの自動再生制限へ対応する。`npm.cmd run verify`、`git diff --check`成功
+- 新記録時のランキング登録フォームを画面中央の専用レイアウトへ変更。RETRYを隠し、結果文・入力欄・REGISTERが重ならないようにした。`supabase-todays-champion.sql`はテーブル、RLS、公開SELECT/INSERTポリシー、anon/authenticatedへのテーブル／ID採番権限まで定義済み。`npm.cmd run verify`、`git diff --check`成功
+- Supabaseの`todays_champion_scores`を実際に読み出し、HTTP 200／現時点は記録0件を確認。`tests/todays-champion.spec.js`を追加し、当日最速（150ms・キリ・TEST CHAMPION）の応答で敵名・敵スプライト・`CAUTION!`・王者戦導線が反映されることを自動確認した。`npx.cmd playwright test tests/todays-champion.spec.js`（1件）、`npm.cmd run verify`、`git diff --check`成功
+- ユーザー提供の`プレイヤー同士が重なる瞬間.mp3`を、両者が中央で重なるアタック切替の瞬間へ組み込んだ。`?debug=1`の`AUDIO MIX`で信号1/2・信号3・衝突・WIN・LOSEを0〜1.50で個別調整し、`COPY VALUES`へも含める。王者戦と音量調整のPlaywrightは2件成功、`npm.cmd run verify`、`git diff --check`成功
+- 王者戦の敵は名前・キャラだけでなく、当日最速記録の`ms`を反応時間へ使用するよう修正。実データではミカ184msが当日最速で、後続の190ms／269msは遅いため王者が変わらないことを確認。Playwrightで150ms王者が`NPC 150ms`で決着することを確認した。`npx.cmd playwright test tests/todays-champion.spec.js`（2件）、`npm.cmd run verify`、`git diff --check`成功
+- ユーザー提供の`ランキング1位いるときの音.mp3`をCAUTION画面専用BGMとして追加。画面開始で再生しGREEN開始時・選択画面帰還時に停止する。CAUTIONには王者名／記録と`BREAK THE RECORD. TAKE THE CROWN.`を表示し、挑戦の意味を明確化。`AUDIO MIX`へCHAMPION音量を追加。`npx.cmd playwright test tests/todays-champion.spec.js`（2件）、`npm.cmd run verify`、`git diff --check`成功
+- CAUTIONが0.95秒で切り替わり文字とBGMを認識できなかったため、3秒へ延長。BGMをほかの音源の事前解禁処理から分離し、CAUTION開始時の再生を直後に止めないよう修正した。`npx.cmd playwright test tests/todays-champion.spec.js`（2件）、`npm.cmd run verify`、`git diff --check`成功
+- CAUTIONの見出しを大きくし、`← GAME BASE`を決闘中に常設。音源は`audio/todays-champion/`へ英語名で整理し、初期音量を信号1/2=1・信号3=1・衝突=0.5・王者BGM=0.5・WIN/LOSE=1へ確定した。未使用の旧ちび対戦シートを公開素材から外して約1.7MB削減し、変換スクリプトも再生成対象から除外した
+- Discordの新王者通知はWebhookをブラウザへ出さないSupabase Edge Function `notify-champion`として追加。新記録登録後に関数へ通知し、関数側で当日1位と再照合・重複防止してから投稿する。稼働には`supabase-todays-champion-discord.sql`の実行、`DISCORD_WEBHOOK_URL`シークレット設定、関数デプロイが別途1回必要
+- **次回の残作業:** Discord通知を有効にする時だけ、Supabase SQL Editorで通知テーブルSQLを実行し、`DISCORD_WEBHOOK_URL`をシークレットへ登録して`notify-champion`関数をデプロイする。ゲーム本体の実機調整は`OPEN DEV TUNER`と`COPY VALUES`で継続できる
+- 検証: `npm.cmd run champion:images`成功、`npm.cmd run verify`成功。390px幅の待機、攻撃エフェクト、勝利決着をスクリーンショットで確認。開始時の離れた対峙、攻撃時の青居合い／紫音波、決着後に逆側へ残る2人を確認済み
 - ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒
 - 開始時は音声の`play()`成功後にだけノーツを進める。Safariがユーザー操作後の待機を自動再生として止めないよう、押下と同じ同期区間で再生を要求する。失敗時は`AUDIO ERROR`として画面に理由を出し、黙って無音のまま始めない
 - `npm run test:rhythm`（1件）で4モード切替と390px携帯時のステージ全面Canvasを確認
