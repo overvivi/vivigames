@@ -19,6 +19,8 @@
 <style>
 /* 3秒だけで王者と記録を読ませる画面なので、通常の結果通知より強い文字サイズにする。 */
 .caution{font-size:clamp(52px,16vw,112px)}.caution small{font-size:.29em;margin-top:8px}.caution em{margin-top:22px;font-size:.24em}.base-return{display:none}.in-duel .base-return{display:block;position:fixed;z-index:20;top:16px;right:16px;padding:9px 12px;border:1px solid #8194b8;background:#071020d9;color:#e5efff;font:800 12px system-ui,"Yu Gothic",sans-serif;letter-spacing:.08em;text-decoration:none}.base-return:hover,.base-return:focus-visible{border-color:#ffdc42;color:#ffdc42}
+/* 携帯ではパネルを半画面に留め、見たい側のゲーム画面を残して動きと数値を同時に確認できるようにする。 */
+.view-switch{display:none}@media(max-width:620px){.dev-tools{left:8px;right:8px;top:auto;bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-height:calc(50svh - 14px);padding:10px;font-size:11px;scroll-padding-top:44px}.dev-tools.view-bottom{top:max(8px,env(safe-area-inset-top));bottom:auto}.dev-head{position:sticky;top:-10px;z-index:1;margin:0 -10px 7px;padding:10px;background:#081020f8;box-shadow:0 5px 10px #081020}.dev-head h2{font-size:12px}.view-switch{display:flex;gap:3px;margin-left:auto}.view-switch button{min-height:30px;margin:0;padding:5px 7px;font-weight:800;font-size:10px}.view-switch button[aria-pressed="true"]{border-color:#ffdc42;color:#ffdc42;background:#25202a}.dev-head #devToggle{min-height:30px;padding:5px 8px}.dev-tools.compact{left:auto;right:8px;top:auto;bottom:max(8px,env(safe-area-inset-bottom))}.dev-tools.compact.view-bottom{top:max(8px,env(safe-area-inset-top));bottom:auto}}
 </style>
 </head>
 <body>
@@ -171,6 +173,17 @@ if(DEBUG){
   function addAudioField(label,key){const row=document.createElement('label'),range=document.createElement('input'),number=document.createElement('input');range.type='range';range.min=0;range.max=1.5;range.step=.01;number.type='number';number.min=0;number.max=1.5;number.step=.01;row.append(label,range,number);const sync=value=>{audioMix[key]=Number(value);range.value=audioMix[key];number.value=audioMix[key];};range.addEventListener('input',()=>sync(range.value));number.addEventListener('input',()=>sync(number.value));sync(audioMix[key]);audioFields.append(row);}
   addAudioField('SIGNAL 1/2','signalOneTwo');addAudioField('SIGNAL 3','signalThree');addAudioField('IMPACT','impact');addAudioField('CHAMPION','championBgm');addAudioField('WIN','win');addAudioField('LOSE','lose');
   copyTune.addEventListener('click',async()=>{const value=JSON.stringify({sprites:tuning,signal:lampTuning,guide:guideTuning,audio:audioMix,speed:playbackSpeed});tuneOutput.textContent=value;try{await navigator.clipboard.writeText(value);tuneOutput.textContent='COPIED: '+value;}catch{tuneOutput.textContent='COPY THIS: '+value;}});
+}
+</script>
+<script>
+if(DEBUG){
+  // 触る項目が多くても、調整パネルを上下へ寄せれば反対側のモーションを常に見比べられる。
+  const panel=document.querySelector('.dev-tools'),head=panel.querySelector('.dev-head'),viewSwitch=document.createElement('span');
+  viewSwitch.className='view-switch';
+  viewSwitch.innerHTML='<button type="button" data-view="top" aria-pressed="true">↑ TOP VIEW</button><button type="button" data-view="bottom" aria-pressed="false">↓ BOTTOM VIEW</button>';
+  head.querySelector('h2').after(viewSwitch);
+  const setView=view=>{const bottom=view==='bottom';panel.classList.toggle('view-bottom',bottom);viewSwitch.querySelector('[data-view="top"]').setAttribute('aria-pressed',String(!bottom));viewSwitch.querySelector('[data-view="bottom"]').setAttribute('aria-pressed',String(bottom));};
+  viewSwitch.addEventListener('click',event=>{const button=event.target.closest('button[data-view]');if(button)setView(button.dataset.view);});
 }
 </script>
 </body>

@@ -33,3 +33,17 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('WIN');
   await expect(tools).toContainText('LOSE');
 });
+
+test('携帯の調整パネルは見たいゲーム画面側を切り替えられる', async ({ page })=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/todays-champion.html?debug=1');
+  const tools=page.locator('.dev-tools');
+  const bottom=await tools.evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height};});
+  // 初期は上半分を見せるため、パネルを下側の半画面に留める。
+  expect(bottom.top).toBeGreaterThan(350);
+  expect(bottom.height).toBeLessThan(430);
+  await page.getByRole('button',{name:/BOTTOM VIEW/}).click();
+  const top=await tools.evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom};});
+  expect(top.top).toBeLessThan(30);
+  expect(top.bottom).toBeLessThan(430);
+});
