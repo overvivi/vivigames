@@ -24,6 +24,8 @@ const GAMES = [
   { table: 'runner_scores',      label: 'HELL RUNNER', kind: 'score' },
   { table: 'boss_battle_scores', label: '討伐2048',    kind: 'score' },
   { table: 'hexamine_scores',    label: 'HEXAMINE',    kind: 'daily' },
+  // 当日最速だけが王者になる。日付が変わった最初の王者も知らせるため、通常のデイリー順位とは分ける。
+  { table: 'todays_champion_scores', label: '本日の最強決定戦', kind: 'reaction' },
   // βの間は無印と別テーブル。バランス調整で点数の意味が変わるため
   { table: 'runner_scores_hell_runner_2_draft', label: 'HELL RUNNER 2 (β)', kind: 'score' }
 ];
@@ -86,6 +88,8 @@ async function fetchTop(game){
   const table = game.table;
   const query = game.kind === 'daily'
     ? `day=eq.${jstDay()}&select=name,mistakes,ms&order=mistakes.asc,ms.asc&limit=1`
+    : game.kind === 'reaction'
+      ? `day=eq.${jstDay()}&select=name,character_id,ms&order=ms.asc&limit=1`
     : 'select=name,score&order=score.desc&limit=1';
   const endpoint = `${url}/rest/v1/${table}?${query}`;
   const res = await fetch(endpoint, {
@@ -119,6 +123,44 @@ for(const game of GAMES){
 
   const prev = state[game.table];
   const name = sanitizeName(top.name);
+
+  if(game.kind === 'reaction'){
+    const day = jstDay();
+    const cur = { day, name: top.name, characterId: String(top.character_id || ''), ms: Number(top.ms) };
+    const label = `${cur.ms}ms${cur.characterId ? ` / ${cur.characterId.toUpperCase()}` : ''}`;
+
+    // 機能追加直後も現在の王者を知らせ、通知先で「王者戦が始まった」ことを確認できるようにする。
+    if(!prev){
+      messages.push(
+        `🏆 **${game.label} 現在の王者！**\n` +
+        `${name} — ${label}`
+      );
+      state[game.table] = cur;
+      stateChanged = true;
+      continue;
+    }
+    if(prev.day !== day){
+      messages.push(
+        `🏆 **${game.label} 今日の王者が誕生！**\n` +
+        `${name} — ${label}`
+      );
+      state[game.table] = cur;
+      stateChanged = true;
+      continue;
+    }
+    if(cur.ms >= Number(prev.ms)){
+      console.log(`${game.label}: 更新なし（現在 ${label} / 前回 ${prev.ms}ms）`);
+      continue;
+    }
+    messages.push(
+      `🏆 **${game.label} 王者更新！**\n` +
+      `1位: ${name} — ${label}\n` +
+      `（前回: ${sanitizeName(prev.name)} — ${prev.ms}ms）`
+    );
+    state[game.table] = cur;
+    stateChanged = true;
+    continue;
+  }
 
   if(game.kind === 'daily'){
     const day = jstDay();
