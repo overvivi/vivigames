@@ -61,8 +61,27 @@ grant usage on all sequences in schema public to anon, authenticated;
 
 ### base64埋め込みファイルの編集
 
-6〜7MBのHTMLを丸ごと読むとコンテキストを食い潰す。編集時は base64 の行(500字超の行)を避けて、
-コード部分だけを対象にすること。
+**巨大HTMLを丸ごと読まないこと。** ゲーム本体は base64 を埋め込んでいるため、
+`hell-runner-2.html` は3.8MB、`boss-battle-demo.html` は3.2MB ある。
+**1本読むだけで会話の上限を使い切る。**
+
+代わりにこうする:
+
+- 場所を探すときは `grep`(Grepツール)。行番号を得てから `sed -n 'A,Bp'` で必要な範囲だけ読む
+- 500字を超える行は base64。`grep -v` で除外するか `cut -c1-120` で切って表示する
+- 構造の確認に読む必要はない。`npm run verify` が構文・`<script>`の開閉・`</html>`終端・
+  素材参照の実在を、ファイルを見せずに検査する
+- 一括置換は `node -e` の使い捨てスクリプトより Edit ツールのほうが安い。
+  スクリプトは書いた分と実行結果の両方がコンテキストに乗る
+
+### 会話を分ける
+
+このリポジトリは1回の会話で扱う量が大きくなりやすい。
+**目的が変わったら新しい会話にする。** 引き継ぎは `PROJECT-STATUS.md` にあるので、
+「PROJECT-STATUS.md を読んで」から始めれば経緯・踏んだ罠・次の作業を引き継げる。
+
+区切りの目安は、commit / push まで到達したとき。
+長い設計相談のあとは、実装を別の会話へ分ける。
 
 ## HELL RUNNER(`games/temple-run-clone.html`)— **完成品。触らない**
 
