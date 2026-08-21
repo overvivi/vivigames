@@ -40,4 +40,18 @@ const pixelAfter = statSync(pixelTo).size;
 inputSize += pixelBefore;
 outputSize += pixelAfter;
 console.log(`pixel   ${kb(pixelBefore).padStart(7)} → ${kb(pixelAfter).padStart(6)}（可逆）`);
+
+// 対戦背景はスマホでも一瞬で試合画面へ入れるよう横幅を抑えた公開用WebPにする。
+const stageFrom = path.join(SOURCE, 'stage-bg.png');
+const stageTo = path.join(OUTPUT, 'stage-bg.webp');
+if(!existsSync(stageFrom)){
+  console.error(`原画が見つかりません: ${stageFrom}`);
+  process.exit(1);
+}
+const stageBefore = statSync(stageFrom).size;
+await sharp(stageFrom).resize({ width:1280, withoutEnlargement:true }).webp({ quality:82, effort:6 }).toFile(stageTo);
+const stageAfter = statSync(stageTo).size;
+inputSize += stageBefore;
+outputSize += stageAfter;
+console.log(`stage   ${kb(stageBefore).padStart(7)} → ${kb(stageAfter).padStart(6)}`);
 console.log(`合計    ${kb(inputSize).padStart(7)} → ${kb(outputSize).padStart(6)}（${(100 - outputSize / inputSize * 100).toFixed(0)}%減）`);

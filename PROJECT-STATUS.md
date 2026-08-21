@@ -1,6 +1,6 @@
 # PROJECT STATUS — Codex / Claude Code共通引き継ぎ
 
-最終更新: 2026-08-19 / Codex
+最終更新: 2026-08-21 / Codex
 
 このファイルが作業状況の正本。Codex・Claude Codeとも、作業前に読み、作業後に更新する。
 詳細な制約は `AGENTS.md` を優先する。特に巨大HTMLの全体読み込み・全体整形は禁止。
@@ -148,7 +148,8 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - ポータル用ラベル絵は`images/portal/cart-label-todays-champion.webp`（640px正方形、71KB）を作成済み。レイヴンとミカの対峙、中央の監視ドローンを上寄りの安全地帯に置き、携帯機画面で下側が切れても主役が残る構図にした。`index.html`へ`本日の最強決定戦`のカセットをCOMING SOON手前に登録し、警告灯イエロー`#ffd34e`をカセット・本体内部・PLAYの共通色にした。PLAY先は`games/todays-champion.html`の開発中ページ
 - 開発中ページの公開素材をWebPへ圧縮。立ち絵5枚とドット絵は合計14.1MB→1.8MB（87%減）で、原本PNGは`images/todays-champion/source/`にだけ残し.gitignore対象とする。再生成は`npm run champion:images`
 - ドット絵の企画シートは各行・各キャラの余白が等しくないため、Canvasでの均等分割を廃止。ポーズごとの実際の上下端とキャラごとの横端を指定し、警戒中に次の勝利ポーズの一部が足元へ混ざる表示崩れを修正。390px携帯スクリーンショットで確認済み
-- `games/todays-champion.html`はNPC練習決闘まで実装済み。START→ランダム待機→`ENGAGE!`へのステージタップで反応時間と勝敗を決め、合図前は`FEINT!`でNPC負けにする。日替わり王者・ランキング・ボイス・決着専用モーションは次工程
+- `games/todays-champion.html`はNPC練習決闘まで実装済み。選択後はカードを隠して、雨の近未来路地（`images/todays-champion/stage-bg.webp`）で2人のドット絵だけが向かい合う。START→ランダム待機→`ENGAGE!`へのステージタップで反応時間と勝敗を決め、合図前は`FEINT!`でNPC勝ちにする。勝者は素早く中央へ踏み込み勝利ポーズ、敗者は倒れ込む決着モーションを表示する。企画シートに焼き込まれた夜紺背景はCanvas上で透過処理するため、路地背景と二重にならない。日替わり王者・ランキング・ボイスは次工程
+- 対戦背景の原画は`images/todays-champion/source/stage-bg.png`（gitignore対象）へ、公開用WebPは`images/todays-champion/stage-bg.webp`へ保存。`npm run champion:images`で立ち絵・ドット絵と同時に再生成する
 - ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒
 - 開始時は音声の`play()`成功後にだけノーツを進める。Safariがユーザー操作後の待機を自動再生として止めないよう、押下と同じ同期区間で再生を要求する。失敗時は`AUDIO ERROR`として画面に理由を出し、黙って無音のまま始めない
 - `npm run test:rhythm`（1件）で4モード切替と390px携帯時のステージ全面Canvasを確認
