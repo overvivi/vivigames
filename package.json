@@ -15,7 +15,8 @@
     "test:hex-ui": "playwright test tests/hexamine-ui.spec.js",
     "test:rhythm": "playwright test tests/rhythm-game.spec.js",
     "serve": "node tests/static-server.cjs",
-    "portal:images": "node tools/portal-images.mjs"
+    "portal:images": "node tools/portal-images.mjs",
+    "champion:images": "node tools/todays-champion-images.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

@@ -23,13 +23,13 @@
 </main>
 <script>
 const fighters=[
-  {id:'raven',name:'RAVEN',tag:'ZERO BLADE',color:'#32d9ff',portrait:'../images/todays-champion/portraits/raven.png'},
-  {id:'mika',name:'MIKA',tag:'PINK RIOT',color:'#ff4ca9',portrait:'../images/todays-champion/portraits/mika.png'},
-  {id:'brick',name:'BRICK',tag:'IRON FIST',color:'#ff9c20',portrait:'../images/todays-champion/portraits/brick.png'},
-  {id:'noise',name:'NOISE',tag:'BEAT BREAKER',color:'#9a62ff',portrait:'../images/todays-champion/portraits/noise.png'},
-  {id:'kiri',name:'KIRI',tag:'GHOST SIGNAL',color:'#d5a4ff',portrait:'../images/todays-champion/portraits/kiri.png'}
+  {id:'raven',name:'RAVEN',tag:'ZERO BLADE',color:'#32d9ff',portrait:'../images/todays-champion/portraits/raven.webp'},
+  {id:'mika',name:'MIKA',tag:'PINK RIOT',color:'#ff4ca9',portrait:'../images/todays-champion/portraits/mika.webp'},
+  {id:'brick',name:'BRICK',tag:'IRON FIST',color:'#ff9c20',portrait:'../images/todays-champion/portraits/brick.webp'},
+  {id:'noise',name:'NOISE',tag:'BEAT BREAKER',color:'#9a62ff',portrait:'../images/todays-champion/portraits/noise.webp'},
+  {id:'kiri',name:'KIRI',tag:'GHOST SIGNAL',color:'#d5a4ff',portrait:'../images/todays-champion/portraits/kiri.webp'}
 ];
-const sheet=new Image();sheet.src='../images/todays-champion/source/pixel-character-poses.png';
+const sheet=new Image();sheet.src='../images/todays-champion/pixel-character-poses.webp';
 let selected=0,pose=0;
 const cards=document.querySelector('#cards');
 fighters.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.className='card';b.setAttribute('aria-pressed',String(i===0));b.innerHTML=`<img src="${f.portrait}" alt="${f.name}"><strong>${f.name}</strong><small>${f.tag}</small>`;b.addEventListener('click',()=>{selected=i;document.querySelectorAll('.card').forEach((el,n)=>el.setAttribute('aria-pressed',String(n===i)));render()});cards.append(b)});

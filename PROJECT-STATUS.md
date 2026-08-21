@@ -146,6 +146,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - ボイスはユーザーが用意する。立ち絵とドット絵はCodexが制作する。選択カード用の立ち絵5枚を`images/todays-champion/portraits/`へ保存し、待機／警戒／勝利のドット絵企画原画を`images/todays-champion/source/pixel-character-poses.png`へ保存済み。`games/todays-champion-motion-preview.html`で、5人の選択と待機→警戒→勝利の自動切替を確認できる。本編、個別スプライト分割、決着／被弾は未着手
 - 携帯実機確認用に、同一Wi-Fi限定の一時サーバーをport 4174で起動中。`http://192.168.0.8:4174/games/todays-champion-motion-preview.html`で確認できる。終了時は起動したNodeプロセスだけを停止する
 - ポータル用ラベル絵は`images/portal/cart-label-todays-champion.webp`（640px正方形、71KB）を作成済み。レイヴンとミカの対峙、中央の監視ドローンを上寄りの安全地帯に置き、携帯機画面で下側が切れても主役が残る構図にした。`index.html`へ`本日の最強決定戦`のカセットをCOMING SOON手前に登録し、警告灯イエロー`#ffd34e`をカセット・本体内部・PLAYの共通色にした。PLAY先は`games/todays-champion.html`の開発中ページ
+- 開発中ページの公開素材をWebPへ圧縮。立ち絵5枚とドット絵は合計14.1MB→1.8MB（87%減）で、原本PNGは`images/todays-champion/source/`にだけ残し.gitignore対象とする。再生成は`npm run champion:images`
 - ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒
 - 開始時は音声の`play()`成功後にだけノーツを進める。Safariがユーザー操作後の待機を自動再生として止めないよう、押下と同じ同期区間で再生を要求する。失敗時は`AUDIO ERROR`として画面に理由を出し、黙って無音のまま始めない
 - `npm run test:rhythm`（1件）で4モード切替と390px携帯時のステージ全面Canvasを確認
@@ -396,6 +397,12 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - PLAY先の`games/todays-champion.html`を追加。キャラ選択と待機→警戒→勝利のドット絵確認を含む`IN DEVELOPMENT`ページで、`← GAME BASE`から置き場へ戻れる
 - `tests/portal.spec.js`を新しいカセット数・画像取得・開発中ページのPLAY導線へ更新、`tests/verify.cjs`へ開発中ページを登録。検証: `npm.cmd run test:portal`（10件成功）、`npm.cmd run verify`（7ファイル／インラインスクリプト10件、構文・構造・素材参照すべてOK）
 - ユーザー指示でコミット`a0f5a44`（`本日の最強決定戦を追加`）を`main`へpush。未使用の企画原画と音ゲーテストMP3は公開対象から除外した
+
+### 2026-08-21 — Codex（本日の最強決定戦・公開素材の圧縮）
+
+- 2.2〜2.8MBだった立ち絵PNG5枚を幅480px・WebP品質84へ変換し、合計11.9MB→409KBへ圧縮。画面でのカード表示より十分大きい解像度を残して、携帯の読み込みを軽くした
+- ドット絵は見た目を変えない可逆WebPへ変換し、1.9MB→1.4MB。HTML参照をすべてWebPへ切り替え、原本PNGは公開対象外の`images/todays-champion/source/`へ移動
+- 再現可能にするため`tools/todays-champion-images.mjs`と`npm run champion:images`を追加。検証: `npm.cmd run test:portal`（10件成功）、`npm.cmd run verify`（7ファイル／インラインスクリプト10件、構文・構造・素材参照すべてOK）
 
 ### 2026-08-21 — Codex（ポータル携帯版の位置確定）
 

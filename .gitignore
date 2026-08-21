@@ -22,5 +22,8 @@ images/portal/source/
 # 公開で使う images/hell-runner-2/{icons,frames,ui,collectibles} は追跡している。
 images/hell-runner-2/source/
 
+# 本日の最強決定戦の立ち絵・ドット絵原画。公開ページは圧縮済みWebPだけを使う。
+images/todays-champion/source/
+
 # ブラウザが吐くGPUのエラーログ
 debug.log
