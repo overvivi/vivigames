@@ -187,7 +187,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - ユーザー提供の`ランキング1位いるときの音.mp3`をCAUTION画面専用BGMとして追加。画面開始で再生しGREEN開始時・選択画面帰還時に停止する。CAUTIONには王者名／記録と`BREAK THE RECORD. TAKE THE CROWN.`を表示し、挑戦の意味を明確化。`AUDIO MIX`へCHAMPION音量を追加。`npx.cmd playwright test tests/todays-champion.spec.js`（2件）、`npm.cmd run verify`、`git diff --check`成功
 - CAUTIONが0.95秒で切り替わり文字とBGMを認識できなかったため、3秒へ延長。BGMをほかの音源の事前解禁処理から分離し、CAUTION開始時の再生を直後に止めないよう修正した。`npx.cmd playwright test tests/todays-champion.spec.js`（2件）、`npm.cmd run verify`、`git diff --check`成功
 - CAUTIONの見出しを大きくし、`← GAME BASE`を決闘中に常設。音源は`audio/todays-champion/`へ英語名で整理し、初期音量を信号1/2=1・信号3=1・衝突=0.5・王者BGM=0.5・WIN/LOSE=1へ確定した。未使用の旧ちび対戦シートを公開素材から外して約1.7MB削減し、変換スクリプトも再生成対象から除外した
-- Discord通知は、すでにランキング専用Webhookを設定済みのGitHub Actionsへ一本化。`todays_champion_scores`を5分ごとに当日最速と照合し、同日中に短い記録へ更新された時と日付が変わった最初の王者をDiscordへ投稿する。初回だけは現在の王者として通知し、通知先で機能追加を確認できる。Webhookをブラウザやリポジトリへ置かないため、追加のSupabase設定は不要
+- Discord通知は、すでにランキング専用Webhookを設定済みのGitHub Actionsへ一本化。`todays_champion_scores`を5分ごとに当日最速と照合し、同日中に短い記録へ更新された時と日付が変わった最初の王者をDiscordへ投稿する。初回だけは現在の王者として通知し、通知先で機能追加を確認できる。通知ロジック自体を更新したpushでも即時実行される。Webhookをブラウザやリポジトリへ置かないため、追加のSupabase設定は不要
 - **次回の残作業:** ゲーム本体の実機調整は`OPEN DEV TUNER`と`COPY VALUES`で継続できる
 - 検証: `npm.cmd run champion:images`成功、`npm.cmd run verify`成功。390px幅の待機、攻撃エフェクト、勝利決着をスクリーンショットで確認。開始時の離れた対峙、攻撃時の青居合い／紫音波、決着後に逆側へ残る2人を確認済み
 - ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒

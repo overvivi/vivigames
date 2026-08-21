@@ -14,6 +14,11 @@
 name: ランキング更新をDiscordへ通知
 
 on:
+  # 通知ロジックを変えた公開直後は、次の定期実行を待たず現在の王者を送れるようにする。
+  push:
+    paths:
+      - '.github/workflows/ranking-discord.yml'
+      - 'tools/ranking-to-discord.mjs'
   schedule:
     # 記録更新の熱量を保つため5分ごと。GitHubの混雑状況により数分遅れることがある。
     - cron: '*/5 * * * *'
