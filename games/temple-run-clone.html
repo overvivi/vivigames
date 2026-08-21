@@ -2637,12 +2637,12 @@ JUMPS 0 / MODE FULL</div>
   // 全部読み終わるまで待たされ、コードを1行直すたびに全画像を再取得することになるため。
   // 区間の割り当ての根拠は docs/画像素材の仕様.md を参照(体感時間が均等になるよう配分してある)。
   const BG_ZONES = [
-    { key:'hell', src:'../images/bg1-hell.png', start:-1, peak1:0, peak2:15000, end:18000 },
-    { key:'graveyard', src:'../images/bg2-graveyard.png', start:15000, peak1:18000, peak2:31500, end:34500 },
-    { key:'forest', src:'../images/bg3-forest.png', start:31500, peak1:34500, peak2:53500, end:56500 },
-    { key:'ruins', src:'../images/bg4-ruins.png', start:53500, peak1:56500, peak2:76500, end:79500 },
-    { key:'cliff', src:'../images/bg5-cliff.png', start:76500, peak1:79500, peak2:98500, end:101500 },
-    { key:'hope', src:'../images/bg6-hope.png', start:98500, peak1:101500, peak2:99999999, end:100000000 }
+    { key:'hell', src:'../images/bg1-hell.webp', start:-1, peak1:0, peak2:15000, end:18000 },
+    { key:'graveyard', src:'../images/bg2-graveyard.webp', start:15000, peak1:18000, peak2:31500, end:34500 },
+    { key:'forest', src:'../images/bg3-forest.webp', start:31500, peak1:34500, peak2:53500, end:56500 },
+    { key:'ruins', src:'../images/bg4-ruins.webp', start:53500, peak1:56500, peak2:76500, end:79500 },
+    { key:'cliff', src:'../images/bg5-cliff.webp', start:76500, peak1:79500, peak2:98500, end:101500 },
+    { key:'hope', src:'../images/bg6-hope.webp', start:98500, peak1:101500, peak2:99999999, end:100000000 }
   ];
   const BG_PARALLAX = 0.12;  // 遠景として流れる速さ。枯れ木(0.11)とほぼ同じで、地形より十分遅い
   const BG_PRELOAD_M = 3000; // この距離だけ手前から読み込み始め、切り替わりに間に合わせる
