@@ -56,8 +56,10 @@ test('開発モードでは調整値を項目ごとにコピーできる', async
 
 test('PCではSpaceで試合開始と合図への反応ができる', async ({ page })=>{
   await page.goto('/games/todays-champion.html');
+  await expect(page.getByRole('link',{name:'← GAME BASE'})).toBeVisible();
   await page.keyboard.press('Space');
   await expect(page.locator('body')).toHaveClass(/in-duel/);
+  await expect(page.getByRole('link',{name:'← GAME BASE'})).toBeHidden();
   await page.keyboard.press('Space');
   await expect(page.locator('#signal')).toHaveText('FLYING');
 });
@@ -168,5 +170,8 @@ test('選択画面は選んだキャラだけを明るくし、ランキング�
   await page.getByRole('button',{name:'RANKING ENTRY'}).click();
   await expect(page.locator('#scoreForm')).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/is-registering/);
+  await expect(page.locator('#championCrown')).toBeVisible();
+  await expect(page.locator('#stage')).toHaveClass(/is-champion/);
+  await expect(page.locator('#championExit')).toBeHidden();
   await expect(page.locator('#signal')).toHaveText("YOU ARE TODAY'S CHAMPION");
 });
