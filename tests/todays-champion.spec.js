@@ -31,6 +31,7 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('SIGNAL 3');
   await expect(tools).toContainText('IMPACT');
   await expect(tools).toContainText('CHAMPION');
+  await expect(tools).toContainText('VOICE');
   await expect(tools).toContainText('WIN');
   await expect(tools).toContainText('LOSE');
 });
@@ -156,4 +157,16 @@ test('開発モードではランキング王者と戦わずに勝敗ポーズ�
   await expect(page.locator('#signal')).toHaveText('PREVIEW — MIRROR CHECK');
   await page.getByRole('button',{name:'POSE LOOP'}).click();
   await expect(page.locator('#signal')).toHaveText('PREVIEW — POSE LOOP');
+});
+
+test('選択画面は選んだキャラだけを明るくし、ランキング入力画面も確認できる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  const cards=page.locator('.card');
+  await cards.nth(3).click();
+  await expect(cards.nth(3)).toHaveAttribute('aria-pressed','true');
+  await expect(cards.nth(0)).toHaveAttribute('aria-pressed','false');
+  await page.getByRole('button',{name:'RANKING ENTRY'}).click();
+  await expect(page.locator('#scoreForm')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/is-registering/);
+  await expect(page.locator('#signal')).toHaveText("YOU ARE TODAY'S CHAMPION");
 });
