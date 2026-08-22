@@ -44,6 +44,14 @@ test('開発モードでは信号3灯を同時点灯して配置を確認でき�
   await expect(page.locator('#stage')).not.toHaveClass(/dev-all-lamps/);
 });
 
+test('開発モードでは調整値を項目ごとにコピーできる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'COPY SIGNAL'}).click();
+  await expect(page.locator('#tuneOutput')).toContainText('signal');
+  await page.getByRole('button',{name:'COPY AUDIO'}).click();
+  await expect(page.locator('#tuneOutput')).toContainText('audio');
+});
+
 test('携帯の調整パネルは見たいゲーム画面側を切り替えられる', async ({ page })=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto('/games/todays-champion.html?debug=1');
