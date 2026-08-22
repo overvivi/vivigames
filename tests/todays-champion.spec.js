@@ -47,3 +47,15 @@ test('携帯の調整パネルは見たいゲーム画面側を切り替えら�
   expect(top.top).toBeLessThan(30);
   expect(top.bottom).toBeLessThan(430);
 });
+
+test('開発モードではランキング王者と戦わずに勝敗ポーズを確認できる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'PLAYER WIN'}).click();
+  await expect(page.locator('#signal')).toHaveText('PREVIEW — PLAYER WIN');
+  await page.getByRole('button',{name:'NPC WIN'}).click();
+  await expect(page.locator('#signal')).toHaveText('PREVIEW — NPC WIN');
+  await page.getByRole('button',{name:'MIRROR CHECK'}).click();
+  await expect(page.locator('#signal')).toHaveText('PREVIEW — MIRROR CHECK');
+  await page.getByRole('button',{name:'POSE LOOP'}).click();
+  await expect(page.locator('#signal')).toHaveText('PREVIEW — POSE LOOP');
+});
