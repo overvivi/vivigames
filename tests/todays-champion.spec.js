@@ -20,7 +20,7 @@ test('当日最速の記録を王者として敵に出す', async ({ page })=>{
 
   // 王者戦では通常NPCの乱数ではなく、登録された150msで反応する。
   await expect(page.locator('#signal')).toHaveText('NPC WINS',{timeout:8000});
-  await expect(page.locator('#result')).toContainText('NPC 150ms');
+  await expect(page.locator('#result')).toHaveText('150ms');
 });
 
 test('開発モードで音源ごとの音量を調整できる', async ({ page })=>{
@@ -58,7 +58,7 @@ test('PCではSpaceで試合開始と合図への反応ができる', async ({ p
   await page.keyboard.press('Space');
   await expect(page.locator('body')).toHaveClass(/in-duel/);
   await page.keyboard.press('Space');
-  await expect(page.locator('#signal')).toHaveText('RED LIGHT!');
+  await expect(page.locator('#signal')).toHaveText('FLYING');
 });
 
 test('名前はキャラの足元中央へ置き、開発モードで微調整できる', async ({ page })=>{
