@@ -15,6 +15,7 @@ test('当日最速の記録を王者として敵に出す', async ({ page })=>{
   await expect(page.locator('#caution')).toBeVisible();
   await expect(page.locator('#caution')).toContainText('TEST CHAMPION');
   await expect(page.locator('#caution')).toContainText('BREAK THE RECORD. TAKE THE CROWN.');
+  await expect(page.locator('#retry')).toBeHidden();
   await expect(page.locator('#signal')).toHaveText('CHAMPION DETECTED');
 
   // 王者戦では通常NPCの乱数ではなく、登録された150msで反応する。
@@ -50,6 +51,39 @@ test('開発モードでは調整値を項目ごとにコピーできる', async
   await expect(page.locator('#tuneOutput')).toContainText('signal');
   await page.getByRole('button',{name:'COPY AUDIO'}).click();
   await expect(page.locator('#tuneOutput')).toContainText('audio');
+});
+
+test('PCではSpaceで試合開始と合図への反応ができる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html');
+  await page.keyboard.press('Space');
+  await expect(page.locator('body')).toHaveClass(/in-duel/);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#signal')).toHaveText('RED LIGHT!');
+});
+
+test('名前はキャラの足元中央へ置き、開発モードで微調整できる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'PLAYER WIN'}).click();
+  await expect(page.locator('.dev-tools')).toContainText('NAME LABELS');
+  expect(await page.locator('#leftName').evaluate(el=>el.style.left)).toBe('50%');
+  const before=await page.locator('#leftName').evaluate(el=>el.style.transform);
+  await page.locator('#nameX').fill('12');
+  await expect.poll(()=>page.locator('#leftName').evaluate(el=>el.style.transform)).not.toBe(before);
+});
+
+test('攻撃ポーズを動かすとエフェクトも同じX/Y量だけ追従する', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await expect(page.locator('#attackEffectLink')).toHaveText('ATTACK + EFFECT: LINK ON');
+  const fighter=page.locator('#tuneFighter'),asset=page.locator('#tuneAsset');
+  await fighter.selectOption('raven');
+  await asset.selectOption('effect');
+  const beforeEffectX=Number(await page.locator('#assetFields input[type=number]').first().inputValue());
+  await asset.selectOption('attack');
+  const attackX=page.locator('#assetFields input[type=number]').first();
+  const beforeAttackX=Number(await attackX.inputValue());
+  await attackX.fill(String(beforeAttackX+12));
+  await asset.selectOption('effect');
+  await expect(page.locator('#assetFields input[type=number]').first()).toHaveValue(String(beforeEffectX+12));
 });
 
 test('携帯の調整パネルは見たいゲーム画面側を切り替えられる', async ({ page })=>{
@@ -96,6 +130,20 @@ test('キャラ調整値は基準画面の比率でPCと携帯へ共通適用さ
   expect(desktop.width/desktop.unit).toBeCloseTo(226.2,3);
   expect(mobile.bottom/mobile.unit).toBeCloseTo(42.2,3);
   expect(desktop.bottom/desktop.unit).toBeCloseTo(42.2,3);
+});
+
+test('キャラの立ち位置はPCと携帯で背景画像の同じ座標を指す', async ({ page })=>{
+  const sourceX=()=>page.locator('.left-fighter').evaluate(el=>{
+    const stage=document.querySelector('#stage').getBoundingClientRect(),fighter=el.getBoundingClientRect();
+    const scale=Math.max(stage.width/1280,stage.height/720),offsetX=(stage.width-1280*scale)/2;
+    return ((fighter.left-stage.left)+fighter.width/2-offsetX)/scale;
+  });
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'PLAYER WIN'}).click();
+  const mobile=await sourceX();
+  await page.setViewportSize({width:1440,height:900});
+  await expect.poll(sourceX).toBeCloseTo(mobile,1);
 });
 
 test('開発モードではランキング王者と戦わずに勝敗ポーズを確認できる', async ({ page })=>{

@@ -813,3 +813,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - DEV TUNERへ`ALL LAMPS: ON/OFF`を追加。調整中だけ赤・黄・緑を同時点灯し、3灯の相対位置と背景への収まりを確認できる。本番の信号進行には混ぜない
 - DEV TUNERのコピーを`SPRITES`、`SIGNAL`、`GUIDE`、`AUDIO`、`SPEED`単位へ分割。必要な項目だけ短いJSONで共有できる。信号のドット風デザインはサイズ感が背景と合わなかったため、従来の丸いCSSと発光へ戻した
 - 全5キャラのguard/dash/attack/win/lose/effectをミカ基準から実機で個別調整。確定値は`games/todays-champion.html`の`playerSpriteTuning`が正本。以後の値共有はDEV TUNERの`COPY SPRITES`を使う
+- DEV TUNERの`ATTACK + EFFECT: LINK ON`では、攻撃ポーズまたは攻撃エフェクトのX/Yを動かすと相手側も同じ差分だけ追従する。現在の相対配置を壊さず動かすためで、SIZE/FLIPは個別調整のまま
+- 5キャラを再微調整。WIN/LOSEのXを中央寄りへ寄せ、ブリックLOSE倍率を0.51へ変更した。通常URLではDEV TUNERやポーズプレビューは出ず、日替わり王者の取得・対戦・勝利時の記録登録が通常フローとして有効
+- キャラ・エフェクト・ガイド線も信号と同じ背景画像座標から計算する方式へ変更。横長PCでは画面の左右50%ではなく、携帯と同じ道路上の座標へ配置し、決着時の突進距離も両者の背景座標間に限定する
+- PCではSpaceで開始・信号への反応が可能（入力欄・DEV TUNER操作中は無効）。CAUTION中はRETRYを必ず隠し、黄黒の面でも読める青緑・琥珀の文字へ変更
+- キャラ名／プレイヤー名を各キャラの足元中央へ移動。`?debug=1`の`NAME LABELS`で共通X/Y/SIZEを細かく調整でき、`COPY NAMES`で個別に値共有できる
+- 最強決定戦の専用Playwrightは、Space操作・CAUTIONのRETRY非表示・名前調整を加えた12件が成功。`npm run verify`、`git diff --check`成功。未コミット
