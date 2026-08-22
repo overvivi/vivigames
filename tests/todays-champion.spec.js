@@ -34,6 +34,16 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('LOSE');
 });
 
+test('開発モードでは信号3灯を同時点灯して配置を確認できる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  const button=page.locator('#allLamps');
+  await button.click();
+  await expect(button).toHaveText('ALL LAMPS: ON');
+  await expect(page.locator('#stage')).toHaveClass(/dev-all-lamps/);
+  await button.click();
+  await expect(page.locator('#stage')).not.toHaveClass(/dev-all-lamps/);
+});
+
 test('携帯の調整パネルは見たいゲーム画面側を切り替えられる', async ({ page })=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto('/games/todays-champion.html?debug=1');
