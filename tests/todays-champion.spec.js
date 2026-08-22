@@ -48,6 +48,17 @@ test('携帯の調整パネルは見たいゲーム画面側を切り替えら�
   expect(top.bottom).toBeLessThan(430);
 });
 
+test('信号は背景のcover拡大率へ追従する', async ({ page })=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'PLAYER WIN'}).click();
+  const portrait=await page.locator('#trafficLamps').evaluate(el=>({left:el.style.left,top:el.style.top,transform:el.style.transform}));
+  await page.setViewportSize({width:844,height:390});
+  await expect.poll(()=>page.locator('#trafficLamps').evaluate(el=>el.style.transform)).not.toBe(portrait.transform);
+  const landscape=await page.locator('#trafficLamps').evaluate(el=>({left:el.style.left,top:el.style.top}));
+  expect(landscape.top).not.toBe(portrait.top);
+});
+
 test('開発モードではランキング王者と戦わずに勝敗ポーズを確認できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   await page.getByRole('button',{name:'PLAYER WIN'}).click();
