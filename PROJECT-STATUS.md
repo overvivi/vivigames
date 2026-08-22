@@ -819,3 +819,4 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - PCではSpaceで開始・信号への反応が可能（入力欄・DEV TUNER操作中は無効）。CAUTION中はRETRYを必ず隠し、黄黒の面でも読める青緑・琥珀の文字へ変更
 - キャラ名／プレイヤー名を各キャラの足元中央へ移動。`?debug=1`の`NAME LABELS`で共通X/Y/SIZEを細かく調整でき、`COPY NAMES`で個別に値共有できる
 - 最強決定戦の専用Playwrightは、Space操作・CAUTIONのRETRY非表示・名前調整を加えた12件が成功。`npm run verify`、`git diff --check`成功。未コミット
+- ポータルのPATCH NOTESへ更新漏れを追記。HEXAMINE v0.2（デイリーの通知・HINT制限）、本日の最強決定戦 v0.1、HELL RUNNER 2 v0.1 β、HELL RUNNER v0.5（軽量化・完成版固定）を掲載
