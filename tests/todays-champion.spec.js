@@ -59,6 +59,27 @@ test('信号は背景のcover拡大率へ追従する', async ({ page })=>{
   expect(landscape.top).not.toBe(portrait.top);
 });
 
+test('キャラ調整値は基準画面の比率でPCと携帯へ共通適用される', async ({ page })=>{
+  const measure=()=>page.locator('#leftSprite').evaluate(el=>{
+    const stage=document.querySelector('#stage').getBoundingClientRect();
+    const unit=Math.min(stage.width/390,stage.height/844);
+    return {width:parseFloat(el.style.width),bottom:parseFloat(el.style.bottom),unit};
+  });
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'PLAYER WIN'}).click();
+  const mobile=await measure();
+  await page.setViewportSize({width:1440,height:900});
+  await expect.poll(async()=>Math.round((await measure()).width)).not.toBe(Math.round(mobile.width));
+  const desktop=await measure();
+
+  // 保存する座標は390×844の基準値。実画面のpxが変わっても、基準換算値は不変。
+  expect(mobile.width/mobile.unit).toBeCloseTo(226.2,3);
+  expect(desktop.width/desktop.unit).toBeCloseTo(226.2,3);
+  expect(mobile.bottom/mobile.unit).toBeCloseTo(42.2,3);
+  expect(desktop.bottom/desktop.unit).toBeCloseTo(42.2,3);
+});
+
 test('開発モードではランキング王者と戦わずに勝敗ポーズを確認できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   await page.getByRole('button',{name:'PLAYER WIN'}).click();
