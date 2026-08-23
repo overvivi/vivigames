@@ -931,3 +931,13 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - SafariでMediaElement経由のGainNode音量が効かなかったため、選択BGM・CAUTION BGM・キャラボイスをWeb Audioのデコード済みAudioBufferとして直接再生する方式へ変更。ツールの`SELECT BGM`／`CHAMPION`／`VOICE`はSafariでもGainNodeの値だけで音量を制御する
 - ブリック選択ボイスは再生完了後に同じキャラでもツールから再試聴でき、別キャラを挟んで戻った時も再生する。再生中の同一キャラ連打だけを止める
 - 選択BGMを128kbpsから64kbps AACへ圧縮し、`1,174,668`Bから`597,015`Bへ軽量化。専用Playwright 15件、`npm run verify`、`git diff --check`成功
+
+### 2026-08-23 — Codex（本日の最強決定戦：キリ選択ボイスの試聴版）
+
+- 受領したキリの選択ボイスを、発話前後の無音整理、低域の響きの軽減、声の輪郭を保つ圧縮、ゲーム用音量化を施した`audio/todays-champion/voices/kiri-select-preview.wav`として追加
+- `voiceSources.kiri.select`へ接続。キリを選んだ時にだけ再生し、選択中の別キャラへ切り替えた時は前の台詞を止める既存ルールをそのまま使う
+- 専用Playwright 16件、`npm run verify`、`git diff --check`成功
+
+### 2026-08-23 — Codex（音ゲー試作曲の参照整理）
+
+- ユーザー指示で削除した未追跡の試作曲を参照していた未公開の音ゲーサンプルから、素材参照だけを外した。音ゲーの開発・公開はせず、全体検査だけ通る状態にして以後は明示指示まで対象外とする

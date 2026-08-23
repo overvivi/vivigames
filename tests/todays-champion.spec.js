@@ -55,6 +55,13 @@ test('ブリック選択時は選択ボイスを読み込む', async ({ page })=
   await expect(page.getByRole('button',{name:'PLAY SELECT VOICE'})).toBeVisible();
 });
 
+test('キリ選択時は整音済みの選択ボイスを読み込む', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  const voiceRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/kiri-select-preview.wav'));
+  await page.getByRole('button',{name:/KIRI/}).click();
+  await voiceRequest;
+});
+
 test('開発モードでは信号3灯を同時点灯して配置を確認できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   const button=page.locator('#allLamps');

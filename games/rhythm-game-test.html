@@ -29,7 +29,8 @@
   <details open><summary>DEV SYNC TUNER</summary><div class="tune"><label><span>BPM</span><input id="bpm" type="range" min="80" max="180" step="1" value="115"><output id="bpmOut">115</output></label><label><span>AUDIO OFFSET</span><input id="offset" type="range" min="-0.40" max="0.40" step="0.01" value="0.14"><output id="offsetOut">+0.14s</output></label><button class="tap" id="tapBeat">TAP BEAT <small id="tapState">STARTしてから、拍に合わせて4回</small></button><button class="copy" id="copy">COPY TEST VALUES</button></div></details>
   <div class="hint" id="hint">D / F：左　　J / K：右　　Space：開始・再開</div>
 </main>
-<audio id="music" preload="auto" src="../音ゲーテスト作成用サンプル.mp3"></audio>
+<!-- 試作曲は未同梱。素材が決まるまで未公開の比較用プロトタイプとして保持する。 -->
+<audio id="music" preload="none"></audio>
 <script>
 // 曲ごとの時間軸だけは先に共通化する。各モードの譜面は同じ beat を入力へ割り当てるだけにし、
 // 曲を増やす時にスコア・判定・同期処理を作り直さないための試作。

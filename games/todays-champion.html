@@ -166,6 +166,7 @@ function source(id,key){return key==='effect'?`../images/todays-champion/effects
 // 直前の台詞を止めてから切り替えるため、連打で声が重なることはない。
 const voiceSources=Object.fromEntries(fighters.map(f=>[f.id,{select:null,start:null,win:null}]));
 voiceSources.brick.select='../audio/todays-champion/voices/brick-select-preview.mp3';
+voiceSources.kiri.select='../audio/todays-champion/voices/kiri-select-preview.wav';
 let activeVoice=null,activeVoiceKey='';
 function stopVoice(){stopBuffered('voice');activeVoice=null;activeVoiceKey='';}
 function playVoice(id,kind){const src=voiceSources[id]?.[kind],key=`${id}:${kind}`;if(!src)return false;if(activeVoiceKey===key&&bufferPlayers.has('voice'))return false;stopVoice();activeVoiceKey=key;playBuffered('voice',src,false,audioMix.voice,()=>{activeVoice=null;activeVoiceKey='';}).then(()=>{activeVoice=bufferPlayers.get('voice')||null;});return true;}
