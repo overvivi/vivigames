@@ -925,3 +925,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - iPhone Safariでは`HTMLAudioElement.volume`が実質変更できず、PC用の音量スライダーが携帯で効かなかった。BGM・信号・衝突音・ボイスをWeb Audioの`GainNode`経由へ変更し、`AUDIO MIX`の値を携帯でも即時反映するよう修正
 - 最初の画面タップでAudioContextを解除してから選択BGMを開始するため、携帯の自動再生制限下でも以後のツール調整が有効になる
 - 専用Playwright 15件、`npm run verify`、`git diff --check`成功
+
+### 2026-08-23 — Codex（本日の最強決定戦：Safari向けバッファ音声ミキサー）
+
+- SafariでMediaElement経由のGainNode音量が効かなかったため、選択BGM・CAUTION BGM・キャラボイスをWeb Audioのデコード済みAudioBufferとして直接再生する方式へ変更。ツールの`SELECT BGM`／`CHAMPION`／`VOICE`はSafariでもGainNodeの値だけで音量を制御する
+- ブリック選択ボイスは再生完了後に同じキャラでもツールから再試聴でき、別キャラを挟んで戻った時も再生する。再生中の同一キャラ連打だけを止める
+- 選択BGMを128kbpsから64kbps AACへ圧縮し、`1,174,668`Bから`597,015`Bへ軽量化。専用Playwright 15件、`npm run verify`、`git diff --check`成功
