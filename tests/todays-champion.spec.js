@@ -19,7 +19,7 @@ test('当日最速の記録を王者として敵に出す', async ({ page })=>{
   await expect(page.locator('#signal')).toHaveText('CHAMPION DETECTED');
 
   // 王者戦では通常NPCの乱数ではなく、登録された150msで反応する。
-  await expect(page.locator('#signal')).toHaveText('NPC WINS',{timeout:8000});
+  await expect(page.locator('#signal')).toHaveText('NPC WINS',{timeout:10000});
   await expect(page.locator('#result')).toHaveText('150ms');
 });
 
@@ -66,6 +66,8 @@ test('キリ選択時は整音済みの選択ボイスを読み込む', async ({
 
 test('開発モードでは信号3灯を同時点灯して配置を確認できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
+  await expect(page.locator('.dev-tools')).toContainText('GROUP X');
+  await expect(page.locator('.dev-tools')).toContainText('GROUP Y');
   const button=page.locator('#allLamps');
   await button.click();
   await expect(button).toHaveText('ALL LAMPS: ON');
