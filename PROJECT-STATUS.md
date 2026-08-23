@@ -900,4 +900,5 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 - `voiceSources.brick.select`へ`brick-select-preview.mp3`を接続。ブリックを選択した時だけ再生し、同一キャラの連打では再生し直さない既存ルールを維持する
 - DEV TUNERの`AUDIO MIX → VOICE`でボイス再生中も音量を即時調整できるように変更。`PLAY SELECT VOICE`を追加し、現在選択中キャラの選択ボイスを試合に入らず何度でも確認できる
-- ブリック選択クリック時に試聴版MP3への実際の読み込み要求が出ることを専用Playwrightへ追加して確認。専用Playwright 15件、`npm run verify`、`git diff --check`成功。未コミット
+- ブリック選択クリック時に試聴版MP3への実際の読み込み要求が出ることを専用Playwrightへ追加して確認。専用Playwright 15件、`npm run verify`、`git diff --check`成功
+- 公開先で先に入ったランキング通知状態の更新を統合して、`4a69559 feat: refine champion results and add Brick voice`としてGitHubへpush済み。別ゲームの未保存変更は対象外
