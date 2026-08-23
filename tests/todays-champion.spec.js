@@ -32,6 +32,8 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('IMPACT');
   await expect(tools).toContainText('CHAMPION');
   await expect(tools).toContainText('VOICE');
+  await expect(tools).toContainText('VOICE BRICK');
+  await expect(tools).toContainText('VOICE KIRI');
   await expect(tools.getByRole('button',{name:'PLAY / STOP SELECT BGM'})).toBeVisible();
   await expect(tools.getByRole('button',{name:'PLAY / STOP CAUTION BGM'})).toBeVisible();
   await expect(tools).toContainText('CHAMPION SCREEN');
