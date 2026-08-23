@@ -919,3 +919,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - `AUDIO MIX`のスライダーと数値入力は、変更中・変更確定後とも対象音源へ即時反映する共通処理へ統一。`PLAY / STOP SELECT BGM`と`PLAY / STOP CAUTION BGM`を追加して、ゲーム進行を待たずBGM音量を確認できる
 - 選択ボイスは同じキャラを連続クリックしても再読込・再生せず、別キャラを挟んで戻った時だけ再生する。ブリック連打でMP3読み込みが1回だけであることを専用Playwrightで確認
 - 専用Playwright 15件、`npm run verify`、`git diff --check`成功
+
+### 2026-08-23 — Codex（本日の最強決定戦：携帯で効く音量ミキサー）
+
+- iPhone Safariでは`HTMLAudioElement.volume`が実質変更できず、PC用の音量スライダーが携帯で効かなかった。BGM・信号・衝突音・ボイスをWeb Audioの`GainNode`経由へ変更し、`AUDIO MIX`の値を携帯でも即時反映するよう修正
+- 最初の画面タップでAudioContextを解除してから選択BGMを開始するため、携帯の自動再生制限下でも以後のツール調整が有効になる
+- 専用Playwright 15件、`npm run verify`、`git diff --check`成功
