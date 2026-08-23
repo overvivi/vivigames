@@ -32,8 +32,20 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('IMPACT');
   await expect(tools).toContainText('CHAMPION');
   await expect(tools).toContainText('VOICE');
+  await expect(tools).toContainText('CHAMPION SCREEN');
+  await expect(tools.getByRole('button',{name:'COPY CHAMPION SCREEN'})).toBeVisible();
+  await expect(tools).toContainText('RESULT BUTTONS');
+  await expect(tools.getByRole('button',{name:'COPY RESULT BUTTONS'})).toBeVisible();
   await expect(tools).toContainText('WIN');
   await expect(tools).toContainText('LOSE');
+});
+
+test('ブリック選択時は選択ボイスを読み込む', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  const voiceRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/brick-select-preview.mp3'));
+  await page.getByRole('button',{name:/BRICK/}).click();
+  await voiceRequest;
+  await expect(page.getByRole('button',{name:'PLAY SELECT VOICE'})).toBeVisible();
 });
 
 test('開発モードでは信号3灯を同時点灯して配置を確認できる', async ({ page })=>{
@@ -56,12 +68,13 @@ test('開発モードでは調整値を項目ごとにコピーできる', async
 
 test('PCではSpaceで試合開始と合図への反応ができる', async ({ page })=>{
   await page.goto('/games/todays-champion.html');
-  await expect(page.getByRole('link',{name:'← GAME BASE'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'GAME BASE'})).toBeVisible();
   await page.keyboard.press('Space');
   await expect(page.locator('body')).toHaveClass(/in-duel/);
-  await expect(page.getByRole('link',{name:'← GAME BASE'})).toBeHidden();
+  await expect(page.getByRole('link',{name:'GAME BASE'})).toBeHidden();
   await page.keyboard.press('Space');
-  await expect(page.locator('#signal')).toHaveText('FLYING');
+  await expect(page.locator('#signal')).toHaveText('NPC WINS');
+  await expect(page.locator('#result')).toHaveText('FLYING');
 });
 
 test('名前はキャラの足元中央へ置き、開発モードで微調整できる', async ({ page })=>{
@@ -173,5 +186,16 @@ test('選択画面は選んだキャラだけを明るくし、ランキング�
   await expect(page.locator('#championCrown')).toBeVisible();
   await expect(page.locator('#stage')).toHaveClass(/is-champion/);
   await expect(page.locator('#championExit')).toBeHidden();
-  await expect(page.locator('#signal')).toHaveText("YOU ARE TODAY'S CHAMPION");
+  await expect(page.locator('#signal')).toBeHidden();
+  await expect(page.locator('.vs')).toBeHidden();
+  await expect(page.locator('#trafficLamps')).toBeHidden();
+});
+
+test('結果画面では決着後だけ選択・リトライのボタンを表示する', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'RESULT BUTTONS',exact:true}).click();
+  await expect(page.locator('#selectReturn')).toBeVisible();
+  await expect(page.locator('#retry')).toBeVisible();
+  const height=await page.locator('#selectReturn').evaluate(el=>el.getBoundingClientRect().height);
+  expect(height).toBeLessThan(100);
 });

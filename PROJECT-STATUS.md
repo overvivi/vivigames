@@ -849,3 +849,55 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 有効な勝利でランキング入力を出す時は、勝利キャラを中央・拡大し、`CROWN TAKEN`／`YOU ARE TODAY'S CHAMPION`／反応時間／`ENTER YOUR NAME`の専用画面へ切替える。通常の結果表示や敗者、RETRYは混ぜない
 - 登録成功後は入力欄を消し、`NEXT CHALLENGER: BEAT <記録>ms →`だけをゲーム置き場へのリンクとして表示。登録前には`GAME BASE`リンクを増やさず、左右に戻る矢印が並ばないようにした
 - DEV TUNERの`RANKING ENTRY`で、王者登録画面を即時確認可能。専用Playwrightは13件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：王者画面の再構成）
+
+- ユーザー実機画像で確認した重なりを解消。選択画面のゲーム置き場導線は文字ボタンを廃止し、HELL RUNNERと同じ左上の`◀`だけへ変更。試合中の`FIGHTER SELECT`は完全に隠し、勝敗確定後だけRETRYの上へ表示する
+- 王者登録画面から`CROWN TAKEN`、中央の対戦用信号文、左右の戻り導線を除去。`YOU ARE TODAY'S CHAMPION`と記録だけを残し、記録は虹色が流れる表示にした。フォームは足元を覆う大型パネルをやめ、画面下の小型入力＋REGISTERへ変更
+- 登録後はゲーム置き場へ遷移せず、`FIGHTER SELECT`だけを表示して選択画面へ戻る。ゲーム置き場へは選択画面左上の`◀`から戻る
+- `?debug=1`の`CHAMPION SCREEN`でFIGHTER／TITLE／SCORE／FORMそれぞれのX・Y・SIZEを独立調整でき、`COPY CHAMPION SCREEN`で値を共有できる。専用Playwright 13件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：王者画面PC値と信号補正）
+
+- ユーザー確定のPC向け王者画面初期値を反映: FIGHTER `(-24,-80,1)`、TITLE `(11,84,1.36)`、SCORE `(11,71,1.8)`、FORM `(19,45,1.74)`。携帯はこの基準値で実機確認後に調整する
+- 王者画面では通常ステージの中央`signal`、`VS`、信号3灯をすべて非表示化。`YOU ARE TODAY'S CHAMPION`は調整可能な王者タイトル1つだけにした
+- 信号3灯の個別X/Yだけが端末ごとの基準倍率を掛けずCSS pxのまま残っていたため、キャラ・信号全体と同じ`metrics.unit`で拡大縮小するよう修正。背景画像は実寸1280×720で、`SIGNAL_IMAGE`定義とも一致を確認済み
+- 専用Playwright 13件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：決着ボタンの個別調整）
+
+- 決着後にだけ出る`FIGHTER SELECT`と`RETRY DUEL`を、`?debug=1`の`RESULT BUTTONS`で個別に調整可能にした。各ボタンのX／Y、WIDTH／HEIGHT、角丸、文字サイズ、表示文言を変更でき、`COPY RESULT BUTTONS`で設定値だけ共有できる
+- `RESULT BUTTONS`プレビューを追加し、王者ランキングを更新せずに勝敗ポーズと2ボタンの重なりを確認できる。通常の対戦中は選択ボタンを表示しない
+- `FIGHTER SELECT`が画面を縦に引き伸ばしていた原因は、旧CSSの`top`と新しい`bottom`が同時に有効だったため。`top:auto`を明示し、指定高さだけのボタンへ修正
+- 専用Playwright 14件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：記録とフライング表示）
+
+- 通常の決着時の反応時間は画面下ではなく、勝者キャラの上へ表示するようにした。プレイヤー勝利は左、NPC勝利は右のキャラ上に追従する
+- フライング時は上部の合図`FLYING`だけを表示し、下部の重複表示を廃止。DEV TUNERの`RESULT BUTTONS`プレビューでも同じく上側だけに統一した
+- 専用Playwright 14件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：決着ボタン値とCAUTION導線）
+
+- ユーザー確定の決着ボタン初期値を反映: SELECT `(67,-50,140×48,角丸0,12px)`、RETRY `(-80,0,140×48,角丸0,12px)`
+- RETRYから日替わり王者との対戦へ入り直す時、`FIGHTER SELECT`の`hidden`を戻していなかったためCAUTION中に残っていた。CAUTIONへ移る前にRETRYとSELECTを両方必ず隠すよう修正
+- 専用Playwright 14件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-22 — Codex（本日の最強決定戦：プレイヤー上の結果スコア）
+
+- 通常の反応時間とフライング表記を、勝敗に関係なくプレイヤー（左側）キャラの頭上へ統一。上部の合図は`YOU WIN!`または`NPC WINS`だけとし、フライング時も`NPC WINS`を維持する
+- `?debug=1`に`RESULT SCORE`（X／Y／SIZE、`COPY RESULT SCORE`）を追加。`RESULT BUTTONS`のプレビューは上部`NPC WINS`＋プレイヤー上`FLYING`で本番同様に確認できる
+- 調整済みの`ALIGNMENT LINE`と`COPY GUIDE`をDEV TUNERから削除し、不要な基準線を出さないようにした
+- 専用Playwright 14件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-23 — Codex（本日の最強決定戦：ブリック選択ボイスの試聴版）
+
+- 受領したブリック選択ボイスを、元音源を残したまま`audio/todays-champion/voices/brick-select-preview.mp3`へ試聴用として出力。頭尾の不要な無音を整理し、低域ノイズ除去、声の輪郭補正、ゲーム用の音量正規化（48kHzモノラル／128kbps MP3）を適用した
+- 現時点ではゲームへは未接続。ユーザーが試聴して音作りの方向性を決めた後、確定名で`voiceSources.brick.select`へ接続する
+- 出力ファイルをデコード検査済み。未コミット
+
+### 2026-08-23 — Codex（本日の最強決定戦：ブリック選択ボイスの仮接続）
+
+- `voiceSources.brick.select`へ`brick-select-preview.mp3`を接続。ブリックを選択した時だけ再生し、同一キャラの連打では再生し直さない既存ルールを維持する
+- DEV TUNERの`AUDIO MIX → VOICE`でボイス再生中も音量を即時調整できるように変更。`PLAY SELECT VOICE`を追加し、現在選択中キャラの選択ボイスを試合に入らず何度でも確認できる
+- ブリック選択クリック時に試聴版MP3への実際の読み込み要求が出ることを専用Playwrightへ追加して確認。専用Playwright 15件、`npm run verify`、`git diff --check`成功。未コミット
