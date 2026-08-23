@@ -126,6 +126,7 @@ const signalOneTwoSrc='../audio/todays-champion/signal-1-2.mp3',signalThreeSrc='
 const audioMix={signalOneTwo:1,signalThree:1,impact:.5,selectBgm:.2,championBgm:.97,voice:.5,win:1,lose:1};
 // 全体VOICEの下でキャラごとの録音差だけを整える。台詞の種類が増えても同じキャラの基準は共通にする。
 const voiceMix={raven:1,mika:1,brick:1.6,noise:1,kiri:1.01};
+const voiceCueMix=Object.fromEntries(fighters.map(f=>[f.id,{select:1,start:1,win:1}]));
 let selected=0,opponent=3,champion=null,lastWinMs=null,leftState='guard',rightState='guard',showEffects=false,state='select',signalAt=0,npcMs=0,waitTimer=null,npcTimer=null,motionTimer=null,resultTimer=null,previewTimer=null,audioCtx=null,playbackSpeed=1,startPending=false,selectedVoiceId=null,bgmFadeFrame=null;
 const decodedAudio=new Map(),bufferPlayers=new Map();
 const tuning=Object.fromEntries(fighters.map(f=>[f.id,Object.fromEntries([...STATES,'effect'].map(key=>[key,{x:0,y:0,scale:1,flip:false}]))]));
@@ -153,7 +154,7 @@ async function decoded(src){if(!decodedAudio.has(src))decodedAudio.set(src,fetch
 function stopBuffered(key){const player=bufferPlayers.get(key);if(!player)return;player.source.onended=null;player.source.stop();bufferPlayers.delete(key);}
 async function playBuffered(key,src,loop,volume,onended){if(!audioCtx)return;const buffer=await decoded(src);if(bufferPlayers.has(key))return;const source=audioCtx.createBufferSource(),gain=audioCtx.createGain();source.buffer=buffer;source.loop=loop;gain.gain.setValueAtTime(volume,audioCtx.currentTime);source.connect(gain).connect(audioCtx.destination);const player={source,gain};bufferPlayers.set(key,player);source.onended=()=>{if(bufferPlayers.get(key)===player){bufferPlayers.delete(key);onended?.();}};source.start();}
 function setBufferedVolume(key,volume){const player=bufferPlayers.get(key);if(player)player.gain.gain.setValueAtTime(volume,audioCtx.currentTime);}
-function applyAudioMix(key){if(key==='voice'){setBufferedVolume('voice',voiceVolume(activeVoiceId));return;}if(['signalOneTwo','signalThree','impact','selectBgm','championBgm'].includes(key))setBufferedVolume(key,audioMix[key]);}
+function applyAudioMix(key){if(key==='voice'){setBufferedVolume('voice',voiceVolume(activeVoiceId,activeVoiceKind));return;}if(['signalOneTwo','signalThree','impact','selectBgm','championBgm'].includes(key))setBufferedVolume(key,audioMix[key]);}
 // 携帯の自動再生制限にはページ表示直後に試行し、拒否された場合も最初の画面タップで必ず開始する。
 function playSelectBgm(){cancelAnimationFrame(bgmFadeFrame);playBuffered('selectBgm','../audio/todays-champion/select-bgm.m4a',true,audioMix.selectBgm);}
 function playChampionBgm(){stopBuffered('championBgm');playBuffered('championBgm','../audio/todays-champion/champion-caution.mp3',true,audioMix.championBgm);}
@@ -168,10 +169,12 @@ function source(id,key){return key==='effect'?`../images/todays-champion/effects
 const voiceSources=Object.fromEntries(fighters.map(f=>[f.id,{select:null,start:null,win:null}]));
 voiceSources.brick.select='../audio/todays-champion/voices/brick-select-preview.mp3';
 voiceSources.kiri.select='../audio/todays-champion/voices/kiri-select-preview.wav';
-let activeVoice=null,activeVoiceKey='',activeVoiceId='';
-function voiceVolume(id){return audioMix.voice*(voiceMix[id]??1);}
-function stopVoice(){stopBuffered('voice');activeVoice=null;activeVoiceKey='';activeVoiceId='';}
-function playVoice(id,kind){const src=voiceSources[id]?.[kind],key=`${id}:${kind}`;if(!src)return false;if(activeVoiceKey===key&&bufferPlayers.has('voice'))return false;stopVoice();activeVoiceKey=key;activeVoiceId=id;playBuffered('voice',src,false,voiceVolume(id),()=>{activeVoice=null;activeVoiceKey='';activeVoiceId='';}).then(()=>{activeVoice=bufferPlayers.get('voice')||null;});return true;}
+voiceSources.kiri.start='../audio/todays-champion/voices/kiri-start-preview.wav';
+voiceSources.kiri.win='../audio/todays-champion/voices/kiri-win-preview.wav';
+let activeVoice=null,activeVoiceKey='',activeVoiceId='',activeVoiceKind='';
+function voiceVolume(id,kind){return audioMix.voice*(voiceMix[id]??1)*(voiceCueMix[id]?.[kind]??1);}
+function stopVoice(){stopBuffered('voice');activeVoice=null;activeVoiceKey='';activeVoiceId='';activeVoiceKind='';}
+function playVoice(id,kind){const src=voiceSources[id]?.[kind],key=`${id}:${kind}`;if(!src)return false;if(activeVoiceKey===key&&bufferPlayers.has('voice'))return false;stopVoice();activeVoiceKey=key;activeVoiceId=id;activeVoiceKind=kind;playBuffered('voice',src,false,voiceVolume(id,kind),()=>{activeVoice=null;activeVoiceKey='';activeVoiceId='';activeVoiceKind='';}).then(()=>{activeVoice=bufferPlayers.get('voice')||null;});return true;}
 // 初戦だけポーズ画像のデコードが演出に追い付かないと、一瞬だけ縮小・反転前の絵が出る。
 // 参照を保持したまま全ポーズを先読みし、初回対戦は画像の準備完了後にだけ始める。
 const decodedDuelAssets=new Map();
@@ -303,6 +306,19 @@ if(DEBUG){
   const groupLampFields=document.querySelector('#lampFields');
   function addLampGroupField(label,key){const row=document.createElement('label'),range=document.createElement('input'),number=document.createElement('input');range.type='range';range.min=-80;range.max=80;range.step=1;number.type='number';number.min=-80;number.max=80;number.step=1;row.append(label,range,number);const sync=value=>{lampTuning.offset[key]=Number(value);range.value=lampTuning.offset[key];number.value=lampTuning.offset[key];render();};range.addEventListener('input',()=>sync(range.value));range.addEventListener('change',()=>sync(range.value));number.addEventListener('input',()=>sync(number.value));number.addEventListener('change',()=>sync(number.value));sync(lampTuning.offset[key]);groupLampFields.prepend(row);}
   addLampGroupField('GROUP Y','y');addLampGroupField('GROUP X','x');
+}
+</script>
+<script>
+if(DEBUG){
+  // 録音ごとの差を吸収できるよう、存在する台詞だけを個別に試聴・補正する。
+  const voicePanel=document.querySelector('.dev-tools'),voiceLineTitle=document.createElement('h2'),voiceLineFields=document.createElement('div'),voiceLineCopy=document.createElement('button'),voiceLineOutput=voicePanel.querySelector('#tuneOutput');
+  voiceLineTitle.textContent='VOICE LINES';voiceLineCopy.type='button';voiceLineCopy.textContent='COPY VOICE LINES';voicePanel.querySelector('#copyTune').before(voiceLineTitle,voiceLineFields,voiceLineCopy);
+  function addVoiceLineField(id,kind){const row=document.createElement('label'),range=document.createElement('input'),number=document.createElement('input');range.type='range';range.min=0;range.max=1.5;range.step=.01;number.type='number';number.min=0;number.max=1.5;number.step=.01;row.append(`${id.toUpperCase()} ${kind.toUpperCase()}`,range,number);const sync=value=>{voiceCueMix[id][kind]=Number(value);range.value=voiceCueMix[id][kind];number.value=voiceCueMix[id][kind];applyAudioMix('voice');};range.addEventListener('input',()=>sync(range.value));range.addEventListener('change',()=>sync(range.value));number.addEventListener('input',()=>sync(number.value));number.addEventListener('change',()=>sync(number.value));sync(voiceCueMix[id][kind]);voiceLineFields.append(row);const preview=document.createElement('button');preview.type='button';preview.textContent=`PLAY ${id.toUpperCase()} ${kind.toUpperCase()}`;preview.addEventListener('click',()=>{stopVoice();playVoice(id,kind);});voiceLineFields.append(preview);}
+  Object.entries(voiceSources).forEach(([id,kinds])=>Object.keys(kinds).filter(kind=>kinds[kind]).forEach(kind=>addVoiceLineField(id,kind)));
+  voiceLineCopy.addEventListener('click',async()=>{const text=JSON.stringify({voiceLines:voiceCueMix});voiceLineOutput.textContent=`VOICE LINES: ${text}`;try{await navigator.clipboard.writeText(text);voiceLineOutput.textContent=`COPIED VOICE LINES: ${text}`;}catch{voiceLineOutput.textContent=`COPY VOICE LINES: ${text}`;}});
+  // 調整済みの座標系は残したまま非表示にし、音と結果の確認を優先する。
+  const hideSection=title=>{const heading=[...voicePanel.querySelectorAll('h2')].find(node=>node.textContent===title);if(!heading)return;heading.hidden=true;let node=heading.nextElementSibling;while(node&&node.tagName!=='H2'){node.hidden=true;node=node.nextElementSibling;}};
+  voicePanel.querySelector('.dev-note').hidden=true;voicePanel.querySelector('#tuneFighter').hidden=true;voicePanel.querySelector('#tuneFighter').closest('label').hidden=true;voicePanel.querySelector('#tuneAsset').hidden=true;voicePanel.querySelector('#tuneAsset').closest('label').hidden=true;voicePanel.querySelector('#assetFields').hidden=true;hideSection('SIGNAL LAMPS');hideSection('NAME LABELS');hideSection('CHAMPION SCREEN');voicePanel.querySelector('#resetTune').hidden=true;voicePanel.querySelector('#copyTune').hidden=true;[...voicePanel.querySelectorAll('button')].filter(button=>['COPY SPRITES','COPY SIGNAL','COPY NAMES','COPY CHAMPION SCREEN','ALL LAMPS: OFF','ALL LAMPS: ON','ATTACK + EFFECT: LINK ON','ATTACK + EFFECT: LINK OFF'].includes(button.textContent)).forEach(button=>button.hidden=true);
 }
 </script>
 </body>

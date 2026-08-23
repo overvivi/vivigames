@@ -34,10 +34,11 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('VOICE');
   await expect(tools).toContainText('VOICE BRICK');
   await expect(tools).toContainText('VOICE KIRI');
+  await expect(tools).toContainText('VOICE LINES');
+  await expect(tools).toContainText('KIRI START');
+  await expect(tools).toContainText('KIRI WIN');
   await expect(tools.getByRole('button',{name:'PLAY / STOP SELECT BGM'})).toBeVisible();
   await expect(tools.getByRole('button',{name:'PLAY / STOP CAUTION BGM'})).toBeVisible();
-  await expect(tools).toContainText('CHAMPION SCREEN');
-  await expect(tools.getByRole('button',{name:'COPY CHAMPION SCREEN'})).toBeVisible();
   await expect(tools).toContainText('RESULT BUTTONS');
   await expect(tools.getByRole('button',{name:'COPY RESULT BUTTONS'})).toBeVisible();
   await expect(tools).toContainText('WIN');
@@ -49,9 +50,9 @@ test('ブリック選択時は選択ボイスを読み込む', async ({ page })=
   let voiceRequests=0;
   page.on('request',request=>{if(request.url().endsWith('/audio/todays-champion/voices/brick-select-preview.mp3'))voiceRequests++;});
   const voiceRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/brick-select-preview.mp3'));
-  await page.getByRole('button',{name:/BRICK/}).click();
+  await page.locator('#cards').getByRole('button',{name:/BRICK/}).click();
   await voiceRequest;
-  await page.getByRole('button',{name:/BRICK/}).click();
+  await page.locator('#cards').getByRole('button',{name:/BRICK/}).click();
   await page.waitForTimeout(150);
   expect(voiceRequests).toBe(1);
   await expect(page.getByRole('button',{name:'PLAY SELECT VOICE'})).toBeVisible();
@@ -60,28 +61,30 @@ test('ブリック選択時は選択ボイスを読み込む', async ({ page })=
 test('キリ選択時は整音済みの選択ボイスを読み込む', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   const voiceRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/kiri-select-preview.wav'));
-  await page.getByRole('button',{name:/KIRI/}).click();
+  await page.locator('#cards').getByRole('button',{name:/KIRI/}).click();
   await voiceRequest;
 });
 
-test('開発モードでは信号3灯を同時点灯して配置を確認できる', async ({ page })=>{
+test('キリの開始・勝利ボイスを開発モードで試聴できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
-  await expect(page.locator('.dev-tools')).toContainText('GROUP X');
-  await expect(page.locator('.dev-tools')).toContainText('GROUP Y');
-  const button=page.locator('#allLamps');
-  await button.click();
-  await expect(button).toHaveText('ALL LAMPS: ON');
-  await expect(page.locator('#stage')).toHaveClass(/dev-all-lamps/);
-  await button.click();
-  await expect(page.locator('#stage')).not.toHaveClass(/dev-all-lamps/);
+  const startRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/kiri-start-preview.wav'));
+  await page.getByRole('button',{name:'PLAY KIRI START'}).click();
+  await startRequest;
+  const winRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/kiri-win-preview.wav'));
+  await page.getByRole('button',{name:'PLAY KIRI WIN'}).click();
+  await winRequest;
 });
 
-test('開発モードでは調整値を項目ごとにコピーできる', async ({ page })=>{
+test('開発モードでは確定済みの信号調整を隠す', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
-  await page.getByRole('button',{name:'COPY SIGNAL'}).click();
-  await expect(page.locator('#tuneOutput')).toContainText('signal');
-  await page.getByRole('button',{name:'COPY AUDIO'}).click();
-  await expect(page.locator('#tuneOutput')).toContainText('audio');
+  await expect(page.locator('#allLamps')).toBeHidden();
+  await expect(page.locator('.dev-tools h2',{hasText:'SIGNAL LAMPS'})).toBeHidden();
+});
+
+test('開発モードでは残した音声台詞の値を個別にコピーできる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'COPY VOICE LINES'}).click();
+  await expect(page.locator('#tuneOutput')).toContainText('voiceLines');
 });
 
 test('PCではSpaceで試合開始と合図への反応ができる', async ({ page })=>{
@@ -95,29 +98,17 @@ test('PCではSpaceで試合開始と合図への反応ができる', async ({ p
   await expect(page.locator('#result')).toHaveText('FLYING');
 });
 
-test('名前はキャラの足元中央へ置き、開発モードで微調整できる', async ({ page })=>{
+test('名前の足元中央配置は維持し、座標調整は開発モードから隠す', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   await page.getByRole('button',{name:'PLAYER WIN'}).click();
-  await expect(page.locator('.dev-tools')).toContainText('NAME LABELS');
   expect(await page.locator('#leftName').evaluate(el=>el.style.left)).toBe('50%');
-  const before=await page.locator('#leftName').evaluate(el=>el.style.transform);
-  await page.locator('#nameX').fill('12');
-  await expect.poll(()=>page.locator('#leftName').evaluate(el=>el.style.transform)).not.toBe(before);
+  await expect(page.locator('#nameX')).toBeHidden();
 });
 
-test('攻撃ポーズを動かすとエフェクトも同じX/Y量だけ追従する', async ({ page })=>{
+test('キャラ位置・サイズ調整は確定値を残して開発モードから隠す', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
-  await expect(page.locator('#attackEffectLink')).toHaveText('ATTACK + EFFECT: LINK ON');
-  const fighter=page.locator('#tuneFighter'),asset=page.locator('#tuneAsset');
-  await fighter.selectOption('raven');
-  await asset.selectOption('effect');
-  const beforeEffectX=Number(await page.locator('#assetFields input[type=number]').first().inputValue());
-  await asset.selectOption('attack');
-  const attackX=page.locator('#assetFields input[type=number]').first();
-  const beforeAttackX=Number(await attackX.inputValue());
-  await attackX.fill(String(beforeAttackX+12));
-  await asset.selectOption('effect');
-  await expect(page.locator('#assetFields input[type=number]').first()).toHaveValue(String(beforeEffectX+12));
+  await expect(page.locator('#tuneFighter')).toBeHidden();
+  await expect(page.locator('#assetFields')).toBeHidden();
 });
 
 test('携帯の調整パネルは見たいゲーム画面側を切り替えられる', async ({ page })=>{

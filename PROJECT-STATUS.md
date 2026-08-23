@@ -963,3 +963,11 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 王者戦のランダム信号待機が最大値寄りの時に専用テスト8秒上限を越える可能性があったため、ゲーム仕様に合わせ10秒へ変更。専用Playwright 16件、`npm run verify`、`git diff --check`成功。未コミット
 - ユーザー実機で確定した携帯向け初期値: GROUP `(4,6)`、RED `(1.5,8)`、YELLOW `(3.4,8)`、GREEN `(4.3,8)`、SIZE `3.59`。PCも同じ背景基準の値として扱う
 - 個別VOICEの初期値はRAVEN`1`、MIKA`1`、BRICK`1.6`、NOISE`1`、KIRI`1.01`。全体VOICE`0.5`と掛け合わせて再生する
+
+### 2026-08-24 — Codex（本日の最強決定戦：キリ開始・勝利ボイスと調整画面整理）
+
+- 受領したキリの開始・勝利ボイスを、前後無音の整理、低域・空間ノイズの軽減、声の輪郭を保つ圧縮、ゲーム用音量化を施し、`audio/todays-champion/voices/kiri-start-preview.wav`（2.48秒）と`kiri-win-preview.wav`（5.55秒）として追加。既存の開始待機・勝利モーション時のボイス導線へ接続した
+- DEV TUNERに`VOICE LINES`を追加。全体VOICE×キャラ別VOICEに加え、BRICK SELECT／KIRI SELECT／KIRI START／KIRI WINを録音ごとに試聴・個別調整できる。`COPY VOICE LINES`で値も個別に共有できる
+- 確定済みのキャラ位置・サイズ、信号、名前、王者入力画面の座標ツールはDEBUG表示から隠し、音声・結果画面の確認を優先。実行時の設定値は変更していない
+- ゲーム置き場のクレジットへ「本日の最強決定戦　音楽：かねこかずき（https://kazuki-kaneko-music.com/）」を追加
+- 専用Playwright 17件、`npm run verify`、`git diff --check`成功。未コミット
