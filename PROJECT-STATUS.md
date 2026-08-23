@@ -913,3 +913,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - `kk_scene28`素材の72秒ループM4Aを`audio/todays-champion/select-bgm.m4a`として追加。選択BGMはページ表示直後から再生を試行し、自動再生が禁止される携帯ブラウザでは最初の画面タップを起点に開始する
 - 王者戦のCAUTION中は選択BGMを残したままCAUTION BGMを重ね、戦闘画面では開始ボイス枠1.2秒の後に両方を0.56秒でフェードアウト。信号は完全無音から開始する。開始ボイス未登録キャラにも短い間を用意し、早押しはフライングとして判定する
 - DEV TUNERの`AUDIO MIX → SELECT BGM`で実機の音量調整が可能。専用Playwright 15件、`npm run verify`、`git diff --check`成功
+
+### 2026-08-23 — Codex（本日の最強決定戦：音量ツールの即時反映）
+
+- `AUDIO MIX`のスライダーと数値入力は、変更中・変更確定後とも対象音源へ即時反映する共通処理へ統一。`PLAY / STOP SELECT BGM`と`PLAY / STOP CAUTION BGM`を追加して、ゲーム進行を待たずBGM音量を確認できる
+- 選択ボイスは同じキャラを連続クリックしても再読込・再生せず、別キャラを挟んで戻った時だけ再生する。ブリック連打でMP3読み込みが1回だけであることを専用Playwrightで確認
+- 専用Playwright 15件、`npm run verify`、`git diff --check`成功

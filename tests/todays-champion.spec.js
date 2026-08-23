@@ -32,6 +32,8 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('IMPACT');
   await expect(tools).toContainText('CHAMPION');
   await expect(tools).toContainText('VOICE');
+  await expect(tools.getByRole('button',{name:'PLAY / STOP SELECT BGM'})).toBeVisible();
+  await expect(tools.getByRole('button',{name:'PLAY / STOP CAUTION BGM'})).toBeVisible();
   await expect(tools).toContainText('CHAMPION SCREEN');
   await expect(tools.getByRole('button',{name:'COPY CHAMPION SCREEN'})).toBeVisible();
   await expect(tools).toContainText('RESULT BUTTONS');
@@ -42,9 +44,14 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
 
 test('ブリック選択時は選択ボイスを読み込む', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
+  let voiceRequests=0;
+  page.on('request',request=>{if(request.url().endsWith('/audio/todays-champion/voices/brick-select-preview.mp3'))voiceRequests++;});
   const voiceRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/brick-select-preview.mp3'));
   await page.getByRole('button',{name:/BRICK/}).click();
   await voiceRequest;
+  await page.getByRole('button',{name:/BRICK/}).click();
+  await page.waitForTimeout(150);
+  expect(voiceRequests).toBe(1);
   await expect(page.getByRole('button',{name:'PLAY SELECT VOICE'})).toBeVisible();
 });
 
