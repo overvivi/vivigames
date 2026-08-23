@@ -125,7 +125,7 @@ const visual={left:{sprite:document.querySelector('#leftSprite'),effect:document
 const signalOneTwoSrc='../audio/todays-champion/signal-1-2.mp3',signalThreeSrc='../audio/todays-champion/signal-3.mp3',impactSrc='../audio/todays-champion/duel-impact.mp3';
 const audioMix={signalOneTwo:1,signalThree:1,impact:.5,selectBgm:.2,championBgm:.97,voice:.5,win:1,lose:1};
 // 全体VOICEの下でキャラごとの録音差だけを整える。台詞の種類が増えても同じキャラの基準は共通にする。
-const voiceMix=Object.fromEntries(fighters.map(f=>[f.id,1]));
+const voiceMix={raven:1,mika:1,brick:1.6,noise:1,kiri:1.01};
 let selected=0,opponent=3,champion=null,lastWinMs=null,leftState='guard',rightState='guard',showEffects=false,state='select',signalAt=0,npcMs=0,waitTimer=null,npcTimer=null,motionTimer=null,resultTimer=null,previewTimer=null,audioCtx=null,playbackSpeed=1,startPending=false,selectedVoiceId=null,bgmFadeFrame=null;
 const decodedAudio=new Map(),bufferPlayers=new Map();
 const tuning=Object.fromEntries(fighters.map(f=>[f.id,Object.fromEntries([...STATES,'effect'].map(key=>[key,{x:0,y:0,scale:1,flip:false}]))]));
@@ -141,7 +141,7 @@ Object.entries(playerSpriteTuning).forEach(([id,assets])=>Object.entries(assets)
 // 390×844で合っている既存調整を基準に、背景coverの拡大・切り抜きへ信号も追従させる。
 const DUEL_DESIGN={width:390,height:844,spriteWidth:226.2,spriteBottom:42.2,spriteMaxHeight:489.5};
 const SIGNAL_IMAGE={width:1280,height:720,anchorX:640,anchorY:79.2,referenceScale:844/720};
-const lampTuning={offset:{x:0,y:0},red:{x:2.38,y:8},yellow:{x:3.4,y:8},green:{x:4.3,y:8},scale:3.59},guideTuning={y:116},nameTuning={x:0,y:0,scale:1},resultScoreTuning={x:0,y:0,scale:1},speedTuning={speed:.2},CAUTION_DURATION=3000,START_VOICE_WINDOW=1200,BGM_FADE_DURATION=560;
+const lampTuning={offset:{x:4,y:6},red:{x:1.5,y:8},yellow:{x:3.4,y:8},green:{x:4.3,y:8},scale:3.59},guideTuning={y:116},nameTuning={x:0,y:0,scale:1},resultScoreTuning={x:0,y:0,scale:1},speedTuning={speed:.2},CAUTION_DURATION=3000,START_VOICE_WINDOW=1200,BGM_FADE_DURATION=560;
 const championTuning={fighter:{x:-24,y:-80,scale:1},title:{x:11,y:84,scale:1.36},score:{x:11,y:71,scale:1.8},form:{x:19,y:45,scale:1.74}};
 const resultButtonTuning={select:{x:76,y:-85,width:140,height:48,radius:0,fontSize:12,text:'FIGHTER SELECT'},retry:{x:-80,y:0,width:140,height:48,radius:0,fontSize:12,text:'RETRY DUEL'}};
 playbackSpeed=speedTuning.speed;
