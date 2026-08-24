@@ -48,3 +48,18 @@ test('デイリーのHINTは3回だけ使え、残数を引き継ぐ', async ({ 
   await expect(hint).toHaveText('HINT（残り 0）');
   await expect(hint).toBeDisabled();
 });
+
+test('PCの右クリック・ホイールクリックではマスを判定しない', async ({ page })=>{
+  await page.goto('/games/hexamine.html');
+  await page.getByRole('button', { name:'TUTORIAL' }).click();
+  await page.getByRole('button', { name:/ベンゼン/ }).click();
+  const cell=page.locator('#board .cell').first();
+  await expect(cell).toBeVisible({ timeout:10000 });
+  const box=await cell.boundingBox();
+  expect(box).not.toBeNull();
+  const unknown=()=>page.locator('#board .cell .hexFill').evaluateAll(fills=>fills.filter(fill=>fill.getAttribute('fill')==='var(--unknown)').length);
+  const before=await unknown();
+  await page.mouse.click(box.x+box.width/2,box.y+box.height/2,{button:'right'});
+  await page.mouse.click(box.x+box.width/2,box.y+box.height/2,{button:'middle'});
+  expect(await unknown()).toBe(before);
+});

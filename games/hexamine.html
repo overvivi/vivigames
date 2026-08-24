@@ -1471,13 +1471,14 @@ if(typeof importScripts === 'function'){
     node.addEventListener('mouseleave', clearScope);
 
     node.addEventListener('pointerdown', e=>{
-      if(e.pointerType === 'mouse' && e.button === 2) return; // PCの右クリックは contextmenu で拾う
+      // PCの盤面入力は左クリックだけ。右／ホイールクリックが判定へ入ると一発勝負で誤答になる。
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault(); startPress();
     });
-    node.addEventListener('pointerup', e=>{ e.preventDefault(); endPress(); });
+    node.addEventListener('pointerup', e=>{ if(e.pointerType === 'mouse' && e.button !== 0)return; e.preventDefault(); endPress(); });
     node.addEventListener('pointerleave', cancelPress);
     node.addEventListener('pointercancel', cancelPress);
-    node.addEventListener('contextmenu', e=>{ e.preventDefault(); if(!busy) commit(i, BLACK); });
+    node.addEventListener('contextmenu', e=>{ e.preventDefault(); });
   }
 
   function commit(i, guess){
@@ -1834,6 +1835,7 @@ if(typeof importScripts === 'function'){
   // 盤面は端末によらず同じ大きさで作る(デイリーの公平性のため)。
   // 画面に収まらない分は、見る側を動かして対応する。
   svg.addEventListener('pointerdown', e=>{
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
     pointers.set(e.pointerId, { x:e.clientX, y:e.clientY, sx:e.clientX, sy:e.clientY });
     if(pointers.size === 2){
       // 2本目が触れた時点で、進行中のタップ/長押しは取り消す
