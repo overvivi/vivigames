@@ -972,6 +972,12 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - ゲーム置き場のクレジットへ「本日の最強決定戦　音楽：かねこかずき（https://kazuki-kaneko-music.com/）」を追加
 - 専用Playwright 17件、`npm run verify`、`git diff --check`成功。未コミット
 
+### 2026-08-24 — Codex（本日の最強決定戦：レイブン3種ボイス仮接続）
+
+- 受領したレイブンの選択・開始・勝利台詞を、前後無音の整理、低域ノイズ軽減、声の輪郭を保つ圧縮、ゲーム用音量化を施し、`raven-select-preview.wav`／`raven-start-preview.wav`／`raven-win-preview.wav`として追加
+- 選択時、戦闘前、勝利時の既存導線へそれぞれ接続。DEBUGの`VOICE LINES`にはRAVEN SELECT／RAVEN START／RAVEN WINとして独立した音量スライダー・試聴ボタン・コピー値が出る
+- 専用Playwright 18件、`npm run verify`、`git diff --check`成功。未コミット
+
 ### 2026-08-24 — Codex（本日の最強決定戦：決着後BGMとキリ勝利ボイス再調整）
 
 - キリ勝利ボイスを再度元録音から処理。高域の帯域を大きく絞り、圧縮によるノイズの持ち上がりを抑えた。台詞の明瞭さよりジリつき低減を優先した仮版

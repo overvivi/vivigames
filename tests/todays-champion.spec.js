@@ -35,6 +35,9 @@ test('開発モードで音源ごとの音量を調整できる', async ({ page 
   await expect(tools).toContainText('VOICE BRICK');
   await expect(tools).toContainText('VOICE KIRI');
   await expect(tools).toContainText('VOICE LINES');
+  await expect(tools).toContainText('RAVEN SELECT');
+  await expect(tools).toContainText('RAVEN START');
+  await expect(tools).toContainText('RAVEN WIN');
   await expect(tools).toContainText('KIRI START');
   await expect(tools).toContainText('KIRI WIN');
   await expect(tools.getByRole('button',{name:'PLAY / STOP SELECT BGM'})).toBeVisible();
@@ -73,6 +76,15 @@ test('キリの開始・勝利ボイスを開発モードで試聴できる', as
   const winRequest=page.waitForRequest(request=>request.url().endsWith('/audio/todays-champion/voices/kiri-win-preview.wav'));
   await page.getByRole('button',{name:'PLAY KIRI WIN'}).click();
   await winRequest;
+});
+
+test('レイブンの3種類の台詞を開発モードで個別に試聴できる', async ({ page })=>{
+  await page.goto('/games/todays-champion.html?debug=1');
+  for(const kind of ['SELECT','START','WIN']){
+    const request=page.waitForRequest(request=>request.url().endsWith(`/audio/todays-champion/voices/raven-${kind.toLowerCase()}-preview.wav`));
+    await page.getByRole('button',{name:`PLAY RAVEN ${kind}`}).click();
+    await request;
+  }
 });
 
 test('開発モードでは確定済みの信号調整を隠す', async ({ page })=>{
