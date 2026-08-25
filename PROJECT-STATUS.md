@@ -1063,3 +1063,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - `?debug=1`の`CHAMPION SCREEN`を再表示。FIGHTER／TITLE／SCORE／FORMをそれぞれX・Y・SIZEで再調整でき、`COPY CHAMPION SCREEN`で確定値だけを共有できる
 - `RANKING ENTRY`プレビューでは、`YOU ARE TODAY'S CHAMPION`と虹色の`154ms`、入力フォームを同時に表示したまま調整できる。信号・VSは本番どおり非表示
 - 専用Playwright 18件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-26 — Codex（本日の最強決定戦：ランキング登録画面の初期値）
+
+- ユーザー実機調整値を初期値へ反映: FIGHTER `(-24,-80,1.00)`、TITLE `(11,84,0.63)`、SCORE `(11,71,0.61)`、FORM `(0,45,1.22)`

@@ -143,7 +143,7 @@ Object.entries(playerSpriteTuning).forEach(([id,assets])=>Object.entries(assets)
 const DUEL_DESIGN={width:390,height:844,spriteWidth:226.2,spriteBottom:42.2,spriteMaxHeight:489.5};
 const SIGNAL_IMAGE={width:1280,height:720,anchorX:640,anchorY:79.2,referenceScale:844/720};
 const lampTuning={offset:{x:4,y:6},red:{x:1.5,y:8},yellow:{x:3.4,y:8},green:{x:4.3,y:8},scale:3.59},guideTuning={y:116},nameTuning={x:0,y:0,scale:1},resultScoreTuning={x:0,y:0,scale:1},speedTuning={speed:.2},CAUTION_DURATION=2200,START_VOICE_WINDOW=3000,BGM_FADE_DURATION=560;
-const championTuning={fighter:{x:-24,y:-80,scale:1},title:{x:11,y:84,scale:1.36},score:{x:11,y:71,scale:1.8},form:{x:19,y:45,scale:1.74}};
+const championTuning={fighter:{x:-24,y:-80,scale:1},title:{x:11,y:84,scale:.63},score:{x:11,y:71,scale:.61},form:{x:0,y:45,scale:1.22}};
 const resultButtonTuning={select:{x:76,y:-85,width:140,height:48,radius:0,fontSize:12,text:'FIGHTER SELECT'},retry:{x:-80,y:0,width:140,height:48,radius:0,fontSize:12,text:'RETRY DUEL'}};
 playbackSpeed=speedTuning.speed;
 // iPhone SafariはHTMLAudioElement.volumeを変更できないため、すべてGainNode経由で音量を制御する。
