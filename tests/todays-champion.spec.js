@@ -205,6 +205,10 @@ test('選択画面は選んだキャラだけを明るくし、ランキング�
   await expect(page.locator('#scoreForm')).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/is-registering/);
   await expect(page.locator('#championCrown')).toBeVisible();
+  await expect(page.locator('#championCrown')).toContainText("YOU ARE TODAY'S CHAMPION");
+  await expect(page.locator('#result')).toHaveText('154ms');
+  await expect(page.locator('.dev-tools h2',{hasText:'CHAMPION SCREEN'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'COPY CHAMPION SCREEN'})).toBeVisible();
   await expect(page.locator('#stage')).toHaveClass(/is-champion/);
   await expect(page.locator('#championExit')).toBeHidden();
   await expect(page.locator('#signal')).toBeHidden();

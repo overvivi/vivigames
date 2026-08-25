@@ -1057,3 +1057,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - キリ勝利ボイスを元録音から再処理。高域のジリつきを抑えるローパス、低域ノイズの整理、圧縮を強め、音量のピークも余裕を持たせた
 - CAUTIONは`3.0秒`から`2.2秒`へ短縮。戦闘画面の開始台詞後は、BGMのフェードを含め約`3.56秒`後に信号開始となるよう余韻を確保した
 - 専用Playwright 17件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-26 — Codex（本日の最強決定戦：ランキング登録画面の再調整）
+
+- `?debug=1`の`CHAMPION SCREEN`を再表示。FIGHTER／TITLE／SCORE／FORMをそれぞれX・Y・SIZEで再調整でき、`COPY CHAMPION SCREEN`で確定値だけを共有できる
+- `RANKING ENTRY`プレビューでは、`YOU ARE TODAY'S CHAMPION`と虹色の`154ms`、入力フォームを同時に表示したまま調整できる。信号・VSは本番どおり非表示
+- 専用Playwright 18件、`npm run verify`、`git diff --check`成功。未コミット
