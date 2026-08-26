@@ -12,6 +12,8 @@ type FighterDefinition = {
     combatScale: number;
 };
 
+type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
+
 const VIEW_WIDTH = 1280;
 const VIEW_HEIGHT = 720;
 const LAMP_OFF = 0x17202b;
@@ -102,6 +104,9 @@ export class Game extends Scene {
         const nameText = this.add.text(0, 132, fighterData.name, { fontFamily: 'Arial, sans-serif', fontSize: '28px', fontStyle: 'bold', color: `#${fighterData.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
         const subtitleText = this.add.text(0, 161, fighterData.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#9aa9b7', letterSpacing: 2 }).setOrigin(0.5);
         fighter.add([glow, shadow, art, nameText, subtitleText]);
+        fighter.setData('art', art);
+        fighter.setData('definition', fighterData);
+        fighter.setData('direction', direction);
         this.tweens.add({ targets: fighter, y: y - 8, duration: 1250, ease: 'Sine.easeInOut', yoyo: true, repeat: -1, delay: direction === 1 ? 140 : 0 });
         return fighter;
     }
@@ -169,6 +174,17 @@ export class Game extends Scene {
         if (this.state !== 'select') return;
         this.playerFighter = this.selectedFighter;
         this.npcFighter = FIGHTERS.find((fighter) => fighter.id !== this.playerFighter.id && fighter.id === 'mika') ?? FIGHTERS[0];
+        const fighters = [this.playerFighter, this.npcFighter];
+        if (fighters.some((fighter) => this.needsMotionLoad(fighter))) {
+            this.state = 'settling';
+            this.selectTitle?.setText(`PREPARING ${this.playerFighter.name}`);
+            this.loadFighterMotions(fighters, () => this.beginSelectedDuel());
+            return;
+        }
+        this.beginSelectedDuel();
+    }
+
+    private beginSelectedDuel() {
         this.tweens.killTweensOf(this.raven);
         this.tweens.killTweensOf(this.mika);
         this.raven.destroy();
@@ -184,6 +200,43 @@ export class Game extends Scene {
         this.startCountdown();
         // START DUELを押した同じタップをフライング判定へ流さない。
         this.lastActionAt = this.time.now;
+    }
+
+    private motionKey(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
+        return `motion-${fighter.id}-${pose}`;
+    }
+
+    private hasMotion(fighter: FighterDefinition) {
+        return fighter.id === 'vivi' || fighter.id === 'tomega9';
+    }
+
+    private needsMotionLoad(fighter: FighterDefinition) {
+        return this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack'));
+    }
+
+    private loadFighterMotions(fighters: FighterDefinition[], onComplete: () => void) {
+        const toLoad = fighters.filter((fighter, index) => this.hasMotion(fighter) && fighters.findIndex((other) => other.id === fighter.id) === index && this.needsMotionLoad(fighter));
+        if (!toLoad.length) {
+            onComplete();
+            return;
+        }
+        toLoad.forEach((fighter) => {
+            (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
+                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-v1.png`);
+            });
+        });
+        this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
+        this.load.start();
+    }
+
+    private setFighterPose(fighter: GameObjects.Container, pose: FighterPose) {
+        const art = fighter.getData('art') as GameObjects.Image;
+        const definition = fighter.getData('definition') as FighterDefinition;
+        const direction = fighter.getData('direction') as -1 | 1;
+        const texture = pose === 'guard' || !this.hasMotion(definition)
+            ? definition.combatKey
+            : this.motionKey(definition, pose);
+        art.setTexture(texture).setScale(definition.combatScale).setFlipX(direction === 1);
     }
 
     private createSignal() {
@@ -213,6 +266,8 @@ export class Game extends Scene {
         this.cameras.main.setZoom(1);
         this.raven.setPosition(314, 470).setScale(1).setAlpha(1);
         this.mika.setPosition(966, 470).setScale(1).setAlpha(1);
+        this.setFighterPose(this.raven, 'guard');
+        this.setFighterPose(this.mika, 'guard');
         this.scoreText.setVisible(false);
         this.setSignal(-1);
         this.promptText.setText('CLICK OR SPACE TO START');
@@ -253,6 +308,8 @@ export class Game extends Scene {
             this.state = 'reaction';
             this.reactionStartedAt = this.time.now;
             this.setSignal(2);
+            this.setFighterPose(this.raven, 'dash');
+            this.setFighterPose(this.mika, 'dash');
             this.promptText.setText('GO!');
             this.statusText.setText('CLICK / SPACE');
             this.flashArena(0x8dfff0, 0.38, 140);
@@ -291,7 +348,10 @@ export class Game extends Scene {
         this.promptText.setText(playerWins ? `${this.playerFighter.name} WINS` : `${this.npcFighter.name} WINS`);
         this.statusText.setText(falseStart ? 'フライング。緑になってから踏み込め。' : playerWins ? `${this.npcFighter.name}  ${npcMs}ms  /  記録更新圏内` : `${this.npcFighter.name}  ${npcMs}ms  /  もう一度、反応を研ぎ澄ませ`);
         const winner = playerWins ? this.raven : this.mika;
+        const loser = playerWins ? this.mika : this.raven;
         const winnerColor = playerWins ? this.playerFighter.color : this.npcFighter.color;
+        this.setFighterPose(this.raven, 'attack');
+        this.setFighterPose(this.mika, 'attack');
         if (falseStart) {
             this.flashArena(0xff405b, 0.3, 190);
         } else {
@@ -302,6 +362,11 @@ export class Game extends Scene {
         this.tweens.add({ targets: this.scoreText, scale: 1.14, duration: 120, yoyo: true, repeat: 1, ease: 'Quad.easeOut' });
         this.cameras.main.zoomTo(falseStart ? 1.035 : 1.09, 100, 'Quad.easeOut');
         this.cameras.main.shake(210, falseStart ? 0.006 : 0.012);
+        this.time.delayedCall(170, () => {
+            if (this.state !== 'settling') return;
+            this.setFighterPose(winner, 'win');
+            this.setFighterPose(loser, 'lose');
+        });
         this.time.delayedCall(620, () => this.showResult(playerWins, falseStart));
     }
 
