@@ -1,5 +1,29 @@
 const { test, expect } = require('@playwright/test');
 
+// 他のHR2テストは全て ?debug=1 で開くため、通常プレイの起動経路だけ誰も通っていなかった。
+// 開発者ツールは地点移動やビルド即完成を持ち、βのランキング（runner_scores_hell_runner_2_draft）
+// へ繋がっている。ゲートが外れた状態で公開しないよう、素のURLを1件で見張る。
+test('HELL RUNNER 2は通常URLでデバッグ機能を公開せず、そのまま遊べる', async ({ page })=>{
+  const pageErrors=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
+  // ランキング用CDNの成否で起動判定がぶれないよう、他のテストと同じ最小スタブに置き換える。
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    contentType:'text/javascript',
+    body:'window.supabase={createClient:()=>({from:()=>({select:async()=>({data:[],error:null})})})};'
+  }));
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/games/hell-runner-2.html');
+
+  expect(await page.evaluate(()=>typeof window.__hellRunnerDebug)).toBe('undefined');
+  await expect(page.locator('#debugPanel')).toBeHidden();
+
+  // 起動経路そのものの確認。debug無しで開始し、育成HUDまで出ることを見る。
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#rogueHud')).toBeVisible();
+  await expect(page.locator('#gameHud')).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
 test('HELL RUNNER 2の育成HUDと縦3択を390x844内へ表示できる', async ({ page })=>{
   const pageErrors=[];
   page.on('pageerror',error=>pageErrors.push(error.message));

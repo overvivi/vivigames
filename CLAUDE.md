@@ -9,7 +9,9 @@
 巨大HTMLを変更したら、**最後に必ず `npm run verify` を実行する。**
 構文・`<script>`の開閉と`</html>`終端・素材参照の実在を1コマンドで検査する
 (base64行を壊す編集と、素材の欠落を検出するため)。
-テストは変更した領域だけに絞る: `npm run test:runner` / `test:boss` / `test:portal` / `test:hex`。
+テストは変更した領域だけに絞る: `npm run test:runner` / `test:hr2` / `test:boss` /
+`test:portal` / `test:hex-ui` / `test:champion`。
+ブラウザ不要の `npm run verify` / `test:unit` / `test:hex` は3つで4秒なので、迷ったら全部通す。
 
 ## ファイル構成
 

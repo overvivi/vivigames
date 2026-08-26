@@ -270,22 +270,41 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 テストは**変更した領域だけ**に絞る。全件は複数領域にまたがる変更と公開前確認だけ。
 
+ブラウザを使わない検査（数秒で終わる）:
+
 | コマンド | 対象 | 件数 |
 |---|---|---:|
-| `npm run verify` | 構文・構造・素材参照 | — |
+| `npm run verify` | 構文・構造・素材参照（公開7ファイル＋HELL RUNNER 2＋tetris） | 9ファイル |
+| `npm run test:unit` | tools/の通知スクリプト、HELL RUNNER 2の地形生成、背景ゾーン | 36 |
+| `npm run test:hex` | HEXAMINEのソルバー | 108 |
+
+Playwright（1件あたり十数秒かかる）:
+
+| コマンド | 対象 | 件数 |
+|---|---|---:|
 | `npm run test:runner` | HELL RUNNER(debug-mode + 背景比較) | 25 |
+| `npm run test:hr2` | HELL RUNNER 2 | 14 |
 | `npm run test:boss` | 討伐2048 | 10 |
 | `npm run test:portal` | ポータル | 10 |
-| `npm run test:hex` | HEXAMINEのソルバー | 108 |
-| `npm run test:hex-ui` | HEXAMINEの携帯操作 | 2 |
-| `npm run test:rhythm` | RHYTHM LABの全モード試作 | 1 |
-| `npm test` | 全件（Playwright分） | **45** |
+| `npm run test:hex-ui` | HEXAMINEの操作 | 3 |
+| `npm run test:champion` | 本日の最強決定戦 | 18 |
+| `npm run test:ranking` | ランキング登録ボタンの状態遷移 | 5 |
+| `npm run test:rhythm` | RHYTHM LABの全モード試作 | 1（**現在失敗**） |
+| `npm test` | 全件（Playwright分） | **87** |
 
 - 背景の見た目を意図的に変えた場合のみ `npm run test:update-backgrounds`。通常は基準画像を更新しない
+- **背景の基準画像はOSごとに別ファイル**（`01-hell-win32.png` / `-linux.png`）。
+  同じ変更でも実行したOSの分しか更新されないため、別OSで走らせた結果をそのまま信じない
 - HELL RUNNER(無印)は凍結済みのため、`test:runner` と背景比較は**回帰確認としてのみ**必要。
   無印を変更していないなら実行しなくてよい
-- 2026-08-21時点で `verify` / `test:portal`(10) / `test:hex`(108) / `test:boss`(10) / `test:runner`(25) すべて成功
-- `test:hex` はPlaywrightではなくNode単体で動く（`tools/hex/solver.test.mjs`）
+- `test:hex` と `test:unit` はPlaywrightではなくNode単体で動く
+- **`npm run test:rhythm` は2026-08-23から失敗したまま。** 試作曲を削除した際に
+  `games/rhythm-game-test.html` の `<audio id="music">` が `src` の無い状態になり、
+  `music.play()` が失敗して START TEST を押しても画面が始まらない。
+  音ゲーは対象外のため直していない。曲を戻すか、テストを保留にするかはユーザー判断
+- push のたびに `.github/workflows/tests.yml` が `verify` / `test:unit` / `test:hex` を回す。
+  Playwrightを入れていないのは、背景の基準画像がOSごとに別で、CIのLinuxと手元のWindowsで
+  必ず食い違い、常に赤いCIになってしまうため
 
 ## 未完了・次にやること
 
@@ -1057,3 +1076,64 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - キリ勝利ボイスを元録音から再処理。高域のジリつきを抑えるローパス、低域ノイズの整理、圧縮を強め、音量のピークも余裕を持たせた
 - CAUTIONは`3.0秒`から`2.2秒`へ短縮。戦闘画面の開始台詞後は、BGMのフェードを含め約`3.56秒`後に信号開始となるよう余韻を確保した
 - 専用Playwright 17件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-26 — Claude Code（テスト基盤の穴を塞ぐ）
+
+**`npm run verify` が `games/hell-runner-2.html` を検査していなかった。**
+`tests/verify.cjs` の対象一覧に入っておらず、08-18〜08-21のHELL RUNNER 2作業で
+記録した「verify 成功」は、この4.0MBのファイルを一度も開いていない成功だった。
+`tetris.html` も同様。両方を対象へ追加した。
+
+追加しただけでは14件の誤検知で常に落ちるため、素材参照の判定を直した。
+
+- `icon:'ability-main-glide.png'` のように、コード側でフォルダと連結される素材名は
+  リポジトリ内に同名ファイルがあるかで確認する
+- `slot-frame-${def.rarity}.png` のような差し込み付きの参照は、候補が1つも無い時だけ落とす
+- `link.download` に渡す保存名（`hell-runner-${stamp}.png`）は素材ではないので対象外にする
+- 背景画像・能力アイコン・枠素材をそれぞれ退避させて、3経路とも実際に検出することを確認済み
+
+**ブラウザ不要の単体テストを追加**（`tests/unit/`、`npm run test:unit`、36件）。
+正本から関数を取り出して動かす方式で、`tools/hex/solver.test.mjs` と同じ考え方。
+`tools/` のスクリプトは import した時点で本番のDBへ繋ぐため、写しを持たずに取り出す。
+
+- `sanitizeName`：プレイヤー名をDiscordへ流す前の唯一の関門。制御文字・メンション・
+  装飾記法・20文字切り・NGワードを検証。5分ごとのcronで本番稼働しているのに無検証だった
+- `jstDay`：**HEXAMINE本体の `dailySeed()` と同じ日付になることを縛った。**
+  別実装が2箇所にあり、ズレると前日の王者を通知してしまう
+- `parseEntry` / `decodeEntities`：`&amp;` を最後に戻す順序（意図的なもの）を固定。
+  実際の `index.html` のパッチノート全件を解釈できることも確認する
+- `generateTerrain`：**跳べない奈落を生成しないこと**を検証。ゲーム側の見積りではなく、
+  `GRAVITY` と `JUMP_VELOCITY` から2段ジャンプの滞空時間を解いた物理上限で判定する。
+  速度4段階×乱数8種で5052件を検査し、最も余裕がない奈落でも限界の70%（幅を1.42倍に
+  すると破綻する）。ジャンプ力や重力を変えれば判定も自動で追随する
+- 背景ゾーン：境界の噛み合い、3000mのクロスフェード、どの距離でも合計が1になること、
+  同時に重なるのは2枚までを検証。**2本のランナーで区間が一致していることも確認する**
+  （HELL RUNNER 2には背景の自動確認が1件も無かった）
+
+**Playwrightテストを2つ追加。**
+
+- HELL RUNNER 2の通常URLでデバッグ機能を公開しないこと。無印と討伐2048にはあった検査で、
+  HR2だけ無く、14件すべてが `?debug=1` で開いていたため本番の起動経路を誰も通っていなかった。
+  `?debug=1` に変えると実際に落ちることも確認済み
+- `tests/ranking-submit.spec.js`：登録ボタンの状態遷移（5件）。既存テストは全て
+  「必ず成功するスタブ」だったため、失敗時に押し直せる道と二重送信の防止が未検証だった
+
+**運用まわり。**
+
+- `.github/workflows/tests.yml` を追加。push/PRのたびに `verify` / `test:unit` / `test:hex`
+  を回す。3つで4秒、依存インストールも不要。Playwrightを入れない理由は上のテスト環境を参照
+- `tools/hooks/pre-commit` も同じ3つを見るようにした（従来は verify のみ）
+- `npm run test:hr2` / `test:champion` / `test:ranking` / `test:unit` を追加。
+  HELL RUNNER 2(14件)と本日の最強決定戦(18件)は、どの絞り込みコマンドにも
+  `AGENTS.md` のコマンド一覧にも無く、全体の4割が引き継ぎから見えていなかった
+- `playwright.config.js` に `testMatch: '**/*.spec.js'` を明示。`tests/unit/` のNodeテストを
+  Playwrightが拾わないようにするため
+- テスト環境の表を実測値へ修正（`npm test` は45件ではなく87件、`test:hex-ui` は2件ではなく3件）
+
+**テスト結果。** `verify`(9ファイル) / `test:unit`(36) / `test:hex`(108) 成功。
+Playwright 87件のうち、Linuxコンテナで 74成功・8失敗。失敗の内訳は次のとおりで、
+**いずれも今回の変更が原因ではない**。
+
+- 背景比較6件：基準画像がOSごとに別ファイルで、Linux用が無い（生成されたものは削除した）
+- `デバッグ録画を停止するとWebMを保存する`：並行実行の負荷によるもの。単独では成功
+- `全4モードを切り替え…`（RHYTHM LAB）：単独でも失敗。原因は上のテスト環境に記載

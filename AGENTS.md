@@ -97,10 +97,22 @@ sed -n '1740,1810p' games/temple-run-clone.html
 繰り返すたびに、背景比較や別ゲームなど無関係なテストまで毎回実行しない。
 
 ```bash
-npm run test:runner   # HELL RUNNER(debug-mode + 背景比較)
-npm run test:boss     # 討伐2048
-npm run test:portal   # ポータル
-npm test              # 複数ゲームにまたがる変更・テスト設定変更・公開前確認だけ
+npm run test:runner    # HELL RUNNER(debug-mode + 背景比較)
+npm run test:hr2       # HELL RUNNER 2
+npm run test:boss      # 討伐2048
+npm run test:portal    # ポータル
+npm run test:hex-ui    # HEXAMINEの操作
+npm run test:champion  # 本日の最強決定戦
+npm run test:rhythm    # RHYTHM LAB
+npm test               # 複数ゲームにまたがる変更・テスト設定変更・公開前確認だけ
+```
+
+ブラウザを使わない検査は、上とは別に一瞬で終わる。巨大HTMLを触った直後の確認に向く。
+
+```bash
+npm run verify     # 構文・構造・素材参照（全公開ファイル）
+npm run test:unit  # tools/のスクリプトとHELL RUNNER 2の地形生成
+npm run test:hex   # HEXAMINEのソルバー
 ```
 
 **巨大HTMLを変更したら、必ず最後にこれを実行する。**
@@ -116,12 +128,16 @@ npm run verify
 1. インラインスクリプトの構文
 2. `<script>` の開閉数と `</html>` での終端（base64行を壊す編集の検出）
 3. 参照している素材が実在するか
+   - `../images/…/name.png` のような直接のパス
+   - `icon:'ability-main-glide.png'` のように、コード側でフォルダと連結される素材名
+   - `slot-frame-${def.rarity}.png` のような差し込み付きの参照（候補が1つも無ければ落とす）
 
 テスト選択の目安:
 
 - CSSやタイトル画面だけの変更: `tests/debug-mode.spec.js` の関連テスト
 - BGM・効果音の数値変更: BGM/音量を検証する関連テスト。背景画像6枚の比較は不要
 - 討伐2048だけの変更: `tests/boss-battle.spec.js` のみ
+- HELL RUNNER 2の数値バランス調整: `npm run test:unit`（地形が跳べる範囲に収まっているかを見る）と `npm run test:hr2`
 - テスト共通設定、ファイル配置、両ゲーム共通導線の変更: 全テスト
 - 同種の微調整を連続して行う場合も、前回通った無関係なテストは再実行しない
 
