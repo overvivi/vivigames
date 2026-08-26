@@ -1,6 +1,6 @@
 import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
-type DuelState = 'select' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
+type DuelState = 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
 
 type FighterDefinition = {
     id: string;
@@ -46,6 +46,8 @@ export class Game extends Scene {
     private reactionStartedAt = 0;
     private lastActionAt = -Infinity;
     private resultLayer?: GameObjects.Container;
+    private motionPreviewLayer?: GameObjects.Container;
+    private motionPreviewEnabled = false;
     private flash!: GameObjects.Rectangle;
 
     constructor() {
@@ -65,6 +67,7 @@ export class Game extends Scene {
     }
 
     create() {
+        this.motionPreviewEnabled = new URLSearchParams(window.location.search).has('motionPreview');
         this.createArena();
         this.createFighters();
         this.createSignal();
@@ -197,6 +200,10 @@ export class Game extends Scene {
         this.raven.setVisible(true);
         this.mika.setVisible(true);
         this.resetDuel();
+        if (this.motionPreviewEnabled && this.hasMotion(this.playerFighter)) {
+            this.showMotionPreview();
+            return;
+        }
         this.startCountdown();
         // START DUELを押した同じタップをフライング判定へ流さない。
         this.lastActionAt = this.time.now;
@@ -244,6 +251,42 @@ export class Game extends Scene {
         art.setTexture(texture).setScale(definition.combatScale).setFlipX(direction === 1);
     }
 
+    private showMotionPreview() {
+        this.state = 'preview';
+        this.setSignal(-1);
+        this.promptText.setText('MOTION CHECK');
+        this.statusText.setText('VIVI / TΩ9 の足元・大きさ・切替を確認');
+
+        const layer = this.add.container().setDepth(40);
+        const panel = this.add.rectangle(640, 644, 760, 108, 0x0a111c, 0.96).setStrokeStyle(2, 0x4d657b, 1);
+        const label = this.add.text(640, 607, 'DEV ONLY  /  SELECT A POSE', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#a9c5d8', letterSpacing: 2 }).setOrigin(0.5);
+        layer.add([panel, label]);
+
+        const poses: FighterPose[] = ['guard', 'dash', 'attack', 'win', 'lose'];
+        poses.forEach((pose, index) => {
+            const x = 390 + index * 125;
+            const frame = this.add.rectangle(x, 644, 108, 38, 0x162537, 0.98).setStrokeStyle(1, 0x6d8499, 1).setInteractive({ useHandCursor: true });
+            const text = this.add.text(x, 644, pose.toUpperCase(), { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#edf7ff', letterSpacing: 1 }).setOrigin(0.5);
+            frame.on('pointerdown', () => {
+                this.setFighterPose(this.raven, pose);
+                this.statusText.setText(`${this.playerFighter.name}  /  ${pose.toUpperCase()}`);
+            });
+            layer.add([frame, text]);
+        });
+
+        const playFrame = this.add.rectangle(1090, 644, 180, 38, 0x233221, 0.98).setStrokeStyle(2, 0x92f7bf, 1).setInteractive({ useHandCursor: true });
+        const playText = this.add.text(1090, 644, 'PLAY DUEL', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#c7ffe0', letterSpacing: 2 }).setOrigin(0.5);
+        playFrame.on('pointerdown', () => {
+            this.motionPreviewLayer?.destroy();
+            this.motionPreviewLayer = undefined;
+            this.resetDuel();
+            this.startCountdown();
+            this.lastActionAt = this.time.now;
+        });
+        layer.add([playFrame, playText]);
+        this.motionPreviewLayer = layer;
+    }
+
     private createSignal() {
         this.add.rectangle(640, 206, 410, 130, 0x0b1018, 0.96).setStrokeStyle(3, 0x496174, 1);
         this.add.rectangle(640, 270, 370, 5, 0x2d4958, 0.9);
@@ -282,7 +325,7 @@ export class Game extends Scene {
     private handleAction() {
         const now = this.time.now;
         // タップとSpaceの重なり、または連打が演出途中の状態を飛び越えないよう短く受け付けを止める。
-        if (now - this.lastActionAt < 160 || this.state === 'settling' || this.state === 'select') return;
+        if (now - this.lastActionAt < 160 || this.state === 'settling' || this.state === 'select' || this.state === 'preview') return;
         this.lastActionAt = now;
         if (this.state === 'idle' || this.state === 'result') {
             this.resetDuel();
