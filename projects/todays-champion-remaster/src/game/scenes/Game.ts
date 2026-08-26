@@ -214,6 +214,11 @@ export class Game extends Scene {
         return this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack'));
     }
 
+    private motionSourceVersion(pose: Exclude<FighterPose, 'guard'>) {
+        // 初回生成の背景が残った素材を残し、透過を検査済みのv2だけをゲームに使う。
+        return pose === 'lose' ? 'v1' : 'v2';
+    }
+
     private loadFighterMotions(fighters: FighterDefinition[], onComplete: () => void) {
         const toLoad = fighters.filter((fighter, index) => this.hasMotion(fighter) && fighters.findIndex((other) => other.id === fighter.id) === index && this.needsMotionLoad(fighter));
         if (!toLoad.length) {
@@ -222,7 +227,7 @@ export class Game extends Scene {
         }
         toLoad.forEach((fighter) => {
             (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
-                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-v1.png`);
+                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(pose)}.png`);
             });
         });
         this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
