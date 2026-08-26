@@ -23,9 +23,7 @@ const FILES = [
   // 制作中で最も編集が多い。base64を1行へ詰めている以上、ここが一番壊れやすい
   'games/hell-runner-2.html',
   'games/todays-champion-motion-preview.html',
-  'games/todays-champion.html',
-  // 未リンクの試作だが、壊れたまま残さないよう構文だけは見る
-  'tetris.html'
+  'games/todays-champion.html'
 ];
 
 // 相対パスの素材参照を拾う。HTMLの属性・CSSのurl()・JSの文字列リテラルをまとめて拾えるよう、

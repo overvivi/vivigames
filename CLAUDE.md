@@ -22,7 +22,6 @@
 | `games/boss-battle-demo.html` | **討伐2048** 本体(3.2MB) | 現役 |
 | `games/hexamine.html` | **HEXAMINE** 本体(0.1MB) | 現役 |
 | `games/hell-runner-2.html` | **HELL RUNNER 2** 本体(6.3MB) | 制作中・β掲載 |
-| `tetris.html` | テトリス。**未リンク** | 試作 |
 | `supabase-setup.sql` | ランキング用テーブル作成SQL | 参照用 |
 | `supabase-fix-permissions.sql` | GRANT修正SQL(下記の落とし穴を参照) | 参照用 |
 

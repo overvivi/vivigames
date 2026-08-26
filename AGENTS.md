@@ -284,7 +284,6 @@ HELL RUNNERは外部の背景・足場・BGMを参照するため、欠けると
 | `index.html` | ゲーム置き場(ポータル)。パッチノートもここ |
 | `games/temple-run-clone.html` | HELL RUNNER 本体。横スクロールランナー |
 | `games/boss-battle-demo.html` | 討伐2048 本体。2048+ボス撃破RPG |
-| `tetris.html` | テトリス。**土台のみ。ポータル未掲載**(まだ遊べる状態にしない) |
 | `images/` | 背景画像 |
 | `docs/画像素材の仕様.md` | 背景・足場の発注仕様と区間の割り当て |
 | `supabase-*.sql` | ランキング用テーブルのSQL |
