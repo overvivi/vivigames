@@ -1,11 +1,30 @@
-import { Container, GameObjects, Math as PhaserMath, Scene } from 'phaser';
+import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
-type DuelState = 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
+type DuelState = 'select' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
+
+type FighterDefinition = {
+    id: string;
+    name: string;
+    subtitle: string;
+    color: number;
+    portraitKey: string;
+    combatKey: string;
+    combatScale: number;
+};
 
 const VIEW_WIDTH = 1280;
 const VIEW_HEIGHT = 720;
 const LAMP_OFF = 0x17202b;
 const LAMP_COLORS = [0xff4e5f, 0xffc84f, 0x5fffd0];
+const FIGHTERS: FighterDefinition[] = [
+    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42 },
+    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42 },
+    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42 },
+    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42 },
+    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42 },
+    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19 },
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19 }
+];
 
 export class Game extends Scene {
     private state: DuelState = 'idle';
@@ -14,15 +33,33 @@ export class Game extends Scene {
     private promptText!: GameObjects.Text;
     private statusText!: GameObjects.Text;
     private scoreText!: GameObjects.Text;
-    private raven!: Container;
-    private mika!: Container;
+    private raven!: GameObjects.Container;
+    private mika!: GameObjects.Container;
+    private selectedFighter = FIGHTERS[0];
+    private playerFighter = FIGHTERS[0];
+    private npcFighter = FIGHTERS[1];
+    private selectTitle?: GameObjects.Text;
+    private selectionLayer?: GameObjects.Container;
+    private selectionFrames = new Map<string, GameObjects.Rectangle>();
     private reactionStartedAt = 0;
     private lastActionAt = -Infinity;
-    private resultLayer?: Container;
+    private resultLayer?: GameObjects.Container;
     private flash!: GameObjects.Rectangle;
 
     constructor() {
         super('Game');
+    }
+
+    preload() {
+        FIGHTERS.forEach((fighter) => {
+            if (fighter.id === 'vivi' || fighter.id === 'tomega9') {
+                this.load.image(fighter.portraitKey, `assets/fighters/${fighter.id}-select-v1.png`);
+                this.load.image(fighter.combatKey, `assets/fighters/${fighter.id}-select-v1.png`);
+                return;
+            }
+            this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}.webp`);
+            this.load.image(fighter.combatKey, `assets/fighters/guard/${fighter.id}.webp`);
+        });
     }
 
     create() {
@@ -30,7 +67,7 @@ export class Game extends Scene {
         this.createFighters();
         this.createSignal();
         this.createHud();
-        this.resetDuel();
+        this.showFighterSelect();
         this.input.on('pointerdown', () => this.handleAction());
         this.input.keyboard?.on('keydown-SPACE', () => this.handleAction());
     }
@@ -53,27 +90,100 @@ export class Game extends Scene {
     }
 
     private createFighters() {
-        this.raven = this.createFighter(314, 470, 'RAVEN', 'ZERO BLADE', 0x55dffc, -1);
-        this.mika = this.createFighter(966, 470, 'MIKA', 'PINK RIOT', 0xff5ca8, 1);
+        this.raven = this.createFighter(314, 470, this.playerFighter, -1);
+        this.mika = this.createFighter(966, 470, this.npcFighter, 1);
     }
 
-    private createFighter(x: number, y: number, name: string, subtitle: string, color: number, direction: -1 | 1) {
+    private createFighter(x: number, y: number, fighterData: FighterDefinition, direction: -1 | 1) {
         const fighter = this.add.container(x, y);
-        const glow = this.add.circle(0, 16, 98, color, 0.08);
+        const glow = this.add.circle(0, 16, 104, fighterData.color, 0.1);
         const shadow = this.add.ellipse(0, 101, 138, 22, 0x000000, 0.48);
-        const legBack = this.add.rectangle(-direction * 20, 55, 27, 86, 0x131d29).setOrigin(0.5);
-        const legFront = this.add.rectangle(direction * 22, 55, 30, 94, 0x202e3d).setOrigin(0.5);
-        const body = this.add.rectangle(0, -10, 92, 132, 0x162332).setStrokeStyle(3, color, 0.76).setOrigin(0.5);
-        const shoulder = this.add.rectangle(direction * 38, -34, 38, 86, 0x20394c).setAngle(direction * 16).setOrigin(0.5);
-        const arm = this.add.rectangle(direction * 62, 11, 25, 98, 0x182532).setAngle(direction * 25).setOrigin(0.5);
-        const head = this.add.circle(-direction * 7, -102, 39, 0x223244).setStrokeStyle(3, color, 0.86);
-        const visor = this.add.rectangle(-direction * 18, -106, 39, 10, color, 0.9).setOrigin(0.5);
-        const weapon = this.add.rectangle(direction * 79, 43, 8, 175, color, 0.76).setAngle(direction * 33).setOrigin(0.5);
-        const nameText = this.add.text(0, 132, name, { fontFamily: 'Arial, sans-serif', fontSize: '28px', fontStyle: 'bold', color: `#${color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
-        const subtitleText = this.add.text(0, 161, subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#9aa9b7', letterSpacing: 2 }).setOrigin(0.5);
-        fighter.add([glow, shadow, legBack, legFront, body, shoulder, arm, head, visor, weapon, nameText, subtitleText]);
+        const art = this.add.image(0, 82, fighterData.combatKey).setOrigin(0.5, 1).setScale(fighterData.combatScale).setFlipX(direction === 1);
+        const nameText = this.add.text(0, 132, fighterData.name, { fontFamily: 'Arial, sans-serif', fontSize: '28px', fontStyle: 'bold', color: `#${fighterData.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
+        const subtitleText = this.add.text(0, 161, fighterData.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#9aa9b7', letterSpacing: 2 }).setOrigin(0.5);
+        fighter.add([glow, shadow, art, nameText, subtitleText]);
         this.tweens.add({ targets: fighter, y: y - 8, duration: 1250, ease: 'Sine.easeInOut', yoyo: true, repeat: -1, delay: direction === 1 ? 140 : 0 });
         return fighter;
+    }
+
+    private showFighterSelect() {
+        this.state = 'select';
+        this.raven.setVisible(false);
+        this.mika.setVisible(false);
+        this.promptText.setVisible(false);
+        this.statusText.setVisible(false);
+        this.scoreText.setVisible(false);
+        this.setSignal(-1);
+
+        const layer = this.add.container().setDepth(100);
+        const shade = this.add.rectangle(640, 360, VIEW_WIDTH, VIEW_HEIGHT, 0x050912, 0.94);
+        const eyebrow = this.add.text(640, 54, 'TODAY\'S CHAMPION  /  REMASTER', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#8ea7bd', letterSpacing: 4 }).setOrigin(0.5);
+        const title = this.add.text(640, 88, 'FIGHTER SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '34px', fontStyle: 'bold', color: '#eff8ff', letterSpacing: 6 }).setOrigin(0.5);
+        this.selectTitle = this.add.text(640, 122, '', { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#f4d45e', letterSpacing: 3 }).setOrigin(0.5);
+        layer.add([shade, eyebrow, title, this.selectTitle]);
+        this.selectionLayer = layer;
+        this.selectionFrames.clear();
+
+        FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
+        this.selectFighter(this.selectedFighter);
+
+        const startFrame = this.add.rectangle(640, 668, 360, 48, 0x121c2b, 0.98).setStrokeStyle(2, 0xf5d24b, 1).setInteractive({ useHandCursor: true });
+        const startText = this.add.text(640, 668, 'START DUEL', { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#f9dd67', letterSpacing: 3 }).setOrigin(0.5);
+        startFrame.on('pointerdown', () => this.startSelectedDuel());
+        startFrame.on('pointerover', () => startFrame.setFillStyle(0x26344b));
+        startFrame.on('pointerout', () => startFrame.setFillStyle(0x121c2b));
+        layer.add([startFrame, startText]);
+    }
+
+    private createSelectionCard(fighter: FighterDefinition, index: number) {
+        const column = index % 4;
+        const row = Math.floor(index / 4);
+        const x = 210 + column * 285 + (row === 1 ? 142 : 0);
+        const y = row === 0 ? 278 : 500;
+        const frame = this.add.rectangle(x, y, 228, 192, 0x101927, 0.96).setStrokeStyle(2, 0x476074, 1).setInteractive({ useHandCursor: true });
+        const portrait = this.add.image(x, y - 28, fighter.portraitKey).setDisplaySize(212, 148);
+        const name = this.add.text(x, y + 63, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: '#eaf4ff', letterSpacing: 2 }).setOrigin(0.5);
+        const subtitle = this.add.text(x, y + 86, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: '#9eb3c6', letterSpacing: 1 }).setOrigin(0.5);
+        frame.on('pointerdown', () => this.selectFighter(fighter));
+        frame.on('pointerover', () => {
+            if (fighter !== this.selectedFighter) frame.setFillStyle(0x17253a);
+        });
+        frame.on('pointerout', () => {
+            if (fighter !== this.selectedFighter) frame.setFillStyle(0x101927);
+        });
+        this.selectionLayer?.add([frame, portrait, name, subtitle]);
+        this.selectionFrames.set(fighter.id, frame);
+    }
+
+    private selectFighter(fighter: FighterDefinition) {
+        this.selectedFighter = fighter;
+        this.selectTitle?.setText(`${fighter.name}  /  ${fighter.subtitle}`);
+        this.selectionFrames.forEach((frame, id) => {
+            const selected = id === fighter.id;
+            frame.setFillStyle(selected ? 0x23354b : 0x101927);
+            frame.setStrokeStyle(selected ? 3 : 2, selected ? fighter.color : 0x476074, selected ? 1 : 0.9);
+        });
+    }
+
+    private startSelectedDuel() {
+        if (this.state !== 'select') return;
+        this.playerFighter = this.selectedFighter;
+        this.npcFighter = FIGHTERS.find((fighter) => fighter.id !== this.playerFighter.id && fighter.id === 'mika') ?? FIGHTERS[0];
+        this.tweens.killTweensOf(this.raven);
+        this.tweens.killTweensOf(this.mika);
+        this.raven.destroy();
+        this.mika.destroy();
+        this.createFighters();
+        this.selectionLayer?.destroy();
+        this.selectionLayer = undefined;
+        this.promptText.setVisible(true);
+        this.statusText.setVisible(true);
+        this.raven.setVisible(true);
+        this.mika.setVisible(true);
+        this.resetDuel();
+        this.startCountdown();
+        // START DUELを押した同じタップをフライング判定へ流さない。
+        this.lastActionAt = this.time.now;
     }
 
     private createSignal() {
@@ -112,7 +222,7 @@ export class Game extends Scene {
     private handleAction() {
         const now = this.time.now;
         // タップとSpaceの重なり、または連打が演出途中の状態を飛び越えないよう短く受け付けを止める。
-        if (now - this.lastActionAt < 160 || this.state === 'settling') return;
+        if (now - this.lastActionAt < 160 || this.state === 'settling' || this.state === 'select') return;
         this.lastActionAt = now;
         if (this.state === 'idle' || this.state === 'result') {
             this.resetDuel();
@@ -178,10 +288,10 @@ export class Game extends Scene {
         const playerWins = !falseStart && playerMs !== undefined && playerMs < npcMs;
         this.scoreText.setText(falseStart ? 'FLYING' : `${playerMs}ms`);
         this.scoreText.setColor(falseStart ? '#ff6475' : playerWins ? '#8dfff0' : '#ffcc69');
-        this.promptText.setText(playerWins ? 'RAVEN WINS' : 'MIKA WINS');
-        this.statusText.setText(falseStart ? 'フライング。緑になってから踏み込め。' : playerWins ? `MIKA  ${npcMs}ms  /  記録更新圏内` : `MIKA  ${npcMs}ms  /  もう一度、反応を研ぎ澄ませ`);
+        this.promptText.setText(playerWins ? `${this.playerFighter.name} WINS` : `${this.npcFighter.name} WINS`);
+        this.statusText.setText(falseStart ? 'フライング。緑になってから踏み込め。' : playerWins ? `${this.npcFighter.name}  ${npcMs}ms  /  記録更新圏内` : `${this.npcFighter.name}  ${npcMs}ms  /  もう一度、反応を研ぎ澄ませ`);
         const winner = playerWins ? this.raven : this.mika;
-        const winnerColor = playerWins ? 0x55dffc : 0xff5ca8;
+        const winnerColor = playerWins ? this.playerFighter.color : this.npcFighter.color;
         if (falseStart) {
             this.flashArena(0xff405b, 0.3, 190);
         } else {
@@ -201,7 +311,7 @@ export class Game extends Scene {
         this.tweens.add({ targets: this.flash, alpha: 0, duration, ease: 'Sine.easeOut' });
     }
 
-    private createDashTrail(fighter: Container, color: number, direction: -1 | 1) {
+    private createDashTrail(fighter: GameObjects.Container, color: number, direction: -1 | 1) {
         for (let index = 0; index < 4; index++) {
             const trail = this.add.rectangle(fighter.x - direction * (20 + index * 34), fighter.y - 10, 86 - index * 10, 128 - index * 14, color, 0.22 - index * 0.035).setDepth(4);
             this.tweens.add({
