@@ -291,10 +291,10 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 | `npm run portal:images` | ポータル素材の縮小＋webp変換（`tools/portal-images.mjs`） |
 | `node tools/game-images.mjs <html>` | ゲームHTMLの埋め込みPNGをWebPへ。大きい絵は非可逆、ドット絵は可逆 |
 | `node tools/game-audio.mjs <html>` | 埋め込みBGMのビットレートを下げて入れ直す |
-| `tools/hooks/pre-commit` | コミット前に `npm run verify` を走らせる（`git config core.hooksPath tools/hooks`） |
+| `tools/hooks/pre-commit` | コミット前に `verify` / `test:unit` / `test:hex` を走らせる（下記の有効化が必要） |
 
 - 依存に `sharp`（画像）と `ffmpeg-static`（音声）を追加済み。どちらも devDependency
-- **PowerShellでは `npm` が実行ポリシーで弾かれる。`npm.cmd` を使う**
+- **PowerShellでは `npm` が実行ポリシーで弾かれる。`npm.cmd` を使う**（`git` はそのままで通る）
 - `docs/ダークネオンアーケード仕様書.md` は筐体方式の記録。現行仕様ではない
 
 ## テスト環境
@@ -337,6 +337,27 @@ Playwright（1件あたり十数秒かかる）:
 - push/PRのたびに `.github/workflows/tests.yml` が `verify` / `test:unit` / `test:hex` を回す。
   **CIのNodeは24に固定してある。** `test:unit` はグロブをNode自身に解釈させており
   （Windowsのnpmではシェルが展開しないため）、これはNode 22以降でしか効かない。下げないこと。
+
+### pre-commitフックの有効化（手元で1回だけ必要）
+
+**2026-08-26にユーザーの環境で有効化済み。** ただしこの設定は各クローンの `.git/config` に
+入るため、**別の場所へ取得し直すと消える**（PCを変えた、フォルダを作り直した、など）。
+
+ユーザーはgitの細かい用語には馴染みがないため、必要になったら手順ごと案内すること。
+リポジトリのフォルダでPowerShellを開いて、次の1行:
+
+```powershell
+git config core.hooksPath tools/hooks
+```
+
+確認は `git config core.hooksPath` で `tools/hooks` と出ればよい。
+
+**再設定が必要になったことの見分け方**（ユーザー向けの説明はこれで足りる）:
+コミット時に `7 ファイル / インラインスクリプト 20 件: ...OK` の行が出なくなったら、
+フックが効いていない。`pre-commit: node が見つからないため検査を飛ばす` と出る場合は
+PATHの問題で、フックは黙って素通りするので放置しないこと。
+
+一時worktreeでも追加設定なしで効く（`.git/config` を共有するため）。
   Playwrightを入れていないのは、背景の基準画像がOSごとに別で、CIのLinuxと手元のWindowsで
   必ず食い違い、常に赤いCIになってしまうため
 
