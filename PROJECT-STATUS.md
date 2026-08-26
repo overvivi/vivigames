@@ -334,7 +334,9 @@ Playwright（1件あたり十数秒かかる）:
   無印を変更していないなら実行しなくてよい
 - `test:hex` と `test:unit` はPlaywrightではなくNode単体で動く
 - RHYTHM LAB は制作中止。テストも検査対象も外してある（上のRHYTHM LABの項を参照）
-- push のたびに `.github/workflows/tests.yml` が `verify` / `test:unit` / `test:hex` を回す。
+- push/PRのたびに `.github/workflows/tests.yml` が `verify` / `test:unit` / `test:hex` を回す。
+  **CIのNodeは24に固定してある。** `test:unit` はグロブをNode自身に解釈させており
+  （Windowsのnpmではシェルが展開しないため）、これはNode 22以降でしか効かない。下げないこと。
   Playwrightを入れていないのは、背景の基準画像がOSごとに別で、CIのLinuxと手元のWindowsで
   必ず食い違い、常に赤いCIになってしまうため
 
@@ -1280,3 +1282,19 @@ GitHubへpushするまで分からない。CIを足した時は実際の実行�
   （最強決定戦 18→20、Playwright全体 86→88）
 - マージ後に `verify`(7ファイル) / `test:unit`(36) / `test:hex`(108) 成功。
   最強決定戦20件 + ランキング登録5件も成功
+
+### 2026-08-26 — Claude Code（CIを実際に緑にするまで）
+
+CIの追加は、pushしてGitHubで動かすまで2つの不具合が見つからなかった。
+
+1. **ジョブIDに日本語（`検査:`）** — ワークフローが起動できず、ジョブ0件のまま失敗。
+   4回とも同じ。英数字のID（`checks:`）にし、日本語は `name:` へ移した
+2. **`node-version: '20'`** — `npm run test:unit` は `node --test "tests/unit/*.test.mjs"` と
+   書いてグロブをNode自身に解釈させている（Windowsのnpmではシェルが展開しないため）。
+   **この解釈はNode 22以降でしか効かず**、20では `Could not find ...` で落ちた。
+   手元の環境に合わせて24へ変更
+
+いずれも手元では再現しない。`npm run verify` などが通ることと、ワークフローが
+正しく動くことは別問題で、**CIを足した時は実際の実行結果まで確認すること**。
+
+PR: https://github.com/overvivi/vivigames/pull/1

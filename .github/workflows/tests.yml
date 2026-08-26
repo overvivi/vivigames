@@ -24,9 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # npm run test:unit の `node --test "tests/unit/*.test.mjs"` は、
+      # グロブをNode自身に解釈させている（Windowsのnpmではシェルが展開しないため）。
+      # この解釈はNode 22以降でしか効かず、20だとファイルが見つからず落ちる。
+      # 手元の環境（Node 24 LTS）へ合わせておく。
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       # 依存はPlaywrightとsharp/ffmpegだけで、ここで動かす検査には要らない。
       # インストールを省くぶん、pushから結果が出るまでが速い。
