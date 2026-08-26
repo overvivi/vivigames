@@ -10,7 +10,6 @@ type FighterDefinition = {
     portraitKey: string;
     combatKey: string;
     combatScale: number;
-    backdropKey?: string;
 };
 
 const VIEW_WIDTH = 1280;
@@ -23,8 +22,8 @@ const FIGHTERS: FighterDefinition[] = [
     { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42 },
     { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42 },
     { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42 },
-    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, backdropKey: 'backdrop-vivi' },
-    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, backdropKey: 'backdrop-tomega9' }
+    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19 },
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19 }
 ];
 
 export class Game extends Scene {
@@ -54,9 +53,8 @@ export class Game extends Scene {
     preload() {
         FIGHTERS.forEach((fighter) => {
             if (fighter.id === 'vivi' || fighter.id === 'tomega9') {
-                this.load.image(fighter.portraitKey, `assets/fighters/${fighter.id}-select-v1.png`);
+                this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}-select-v2.png`);
                 this.load.image(fighter.combatKey, `assets/fighters/${fighter.id}-select-v1.png`);
-                this.load.image(fighter.backdropKey!, `assets/fighters/backdrops/${fighter.id}-v1.png`);
                 return;
             }
             this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}.webp`);
@@ -143,7 +141,6 @@ export class Game extends Scene {
         const x = 210 + column * 285 + (row === 1 ? 142 : 0);
         const y = row === 0 ? 278 : 500;
         const frame = this.add.rectangle(x, y, 228, 192, 0x101927, 0.96).setStrokeStyle(2, 0x476074, 1).setInteractive({ useHandCursor: true });
-        const backdrop = fighter.backdropKey ? this.add.image(x, y - 28, fighter.backdropKey).setDisplaySize(212, 148).setAlpha(0.78) : undefined;
         const portrait = this.add.image(x, y - 28, fighter.portraitKey).setDisplaySize(212, 148);
         const name = this.add.text(x, y + 63, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: '#eaf4ff', letterSpacing: 2 }).setOrigin(0.5);
         const subtitle = this.add.text(x, y + 86, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: '#9eb3c6', letterSpacing: 1 }).setOrigin(0.5);
@@ -154,7 +151,7 @@ export class Game extends Scene {
         frame.on('pointerout', () => {
             if (fighter !== this.selectedFighter) frame.setFillStyle(0x101927);
         });
-        this.selectionLayer?.add([frame, ...(backdrop ? [backdrop] : []), portrait, name, subtitle]);
+        this.selectionLayer?.add([frame, portrait, name, subtitle]);
         this.selectionFrames.set(fighter.id, frame);
     }
 
