@@ -237,7 +237,8 @@ export class Game extends Scene {
                 this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(pose)}.png`);
             });
         });
-        this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
+        // ESMビルドではグローバルのPhaser名前空間が無いため、文字列イベントで完了を受け取る。
+        this.load.once('complete', onComplete);
         this.load.start();
     }
 
