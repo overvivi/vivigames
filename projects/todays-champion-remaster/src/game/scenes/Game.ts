@@ -1,6 +1,6 @@
 import { Container, GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
-type DuelState = 'idle' | 'countdown' | 'reaction' | 'result';
+type DuelState = 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
 
 const VIEW_WIDTH = 1280;
 const VIEW_HEIGHT = 720;
@@ -10,13 +10,16 @@ const LAMP_COLORS = [0xff4e5f, 0xffc84f, 0x5fffd0];
 export class Game extends Scene {
     private state: DuelState = 'idle';
     private lamps: GameObjects.Arc[] = [];
+    private lampGlows: GameObjects.Arc[] = [];
     private promptText!: GameObjects.Text;
     private statusText!: GameObjects.Text;
     private scoreText!: GameObjects.Text;
     private raven!: Container;
     private mika!: Container;
     private reactionStartedAt = 0;
+    private lastActionAt = -Infinity;
     private resultLayer?: Container;
+    private flash!: GameObjects.Rectangle;
 
     constructor() {
         super('Game');
@@ -46,6 +49,7 @@ export class Game extends Scene {
         }
         this.add.text(640, 108, 'TODAY\'S CHAMPION  /  REMASTER', { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#7d93aa', letterSpacing: 5 }).setOrigin(0.5);
         this.add.text(640, 574, 'NEON DISTRICT  /  DUEL PLATFORM 07', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#5a7084', letterSpacing: 3 }).setOrigin(0.5);
+        this.flash = this.add.rectangle(640, 360, VIEW_WIDTH, VIEW_HEIGHT, 0xffffff, 0).setDepth(30);
     }
 
     private createFighters() {
@@ -77,6 +81,7 @@ export class Game extends Scene {
         this.add.rectangle(640, 270, 370, 5, 0x2d4958, 0.9);
         [530, 640, 750].forEach((x, index) => {
             this.add.circle(x, 205, 51, 0x000000, 0.56);
+            this.lampGlows.push(this.add.circle(x, 205, 68, LAMP_COLORS[index], 0));
             const lamp = this.add.circle(x, 205, 42, LAMP_OFF, 1).setStrokeStyle(3, 0x4e6070, 1);
             this.lamps.push(lamp);
             this.add.text(x, 288, ['01', '02', '03'][index], { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#6f8495', letterSpacing: 2 }).setOrigin(0.5);
@@ -91,8 +96,13 @@ export class Game extends Scene {
 
     private resetDuel() {
         this.state = 'idle';
+        this.lastActionAt = -Infinity;
         this.resultLayer?.destroy();
         this.resultLayer = undefined;
+        this.tweens.killTweensOf(this.cameras.main);
+        this.cameras.main.setZoom(1);
+        this.raven.setPosition(314, 470).setScale(1).setAlpha(1);
+        this.mika.setPosition(966, 470).setScale(1).setAlpha(1);
         this.scoreText.setVisible(false);
         this.setSignal(-1);
         this.promptText.setText('CLICK OR SPACE TO START');
@@ -100,6 +110,10 @@ export class Game extends Scene {
     }
 
     private handleAction() {
+        const now = this.time.now;
+        // タップとSpaceの重なり、または連打が演出途中の状態を飛び越えないよう短く受け付けを止める。
+        if (now - this.lastActionAt < 160 || this.state === 'settling') return;
+        this.lastActionAt = now;
         if (this.state === 'idle' || this.state === 'result') {
             this.resetDuel();
             this.startCountdown();
@@ -117,6 +131,7 @@ export class Game extends Scene {
         this.promptText.setText('READY');
         this.statusText.setText('信号が緑に変わるまで、待機。');
         this.setSignal(0);
+        this.cameras.main.zoomTo(1.025, 260, 'Sine.easeOut');
         this.time.delayedCall(700, () => {
             if (this.state !== 'countdown') return;
             this.setSignal(1);
@@ -130,6 +145,7 @@ export class Game extends Scene {
             this.setSignal(2);
             this.promptText.setText('GO!');
             this.statusText.setText('CLICK / SPACE');
+            this.flashArena(0x8dfff0, 0.38, 140);
             this.cameras.main.shake(110, 0.006);
         });
     }
@@ -137,14 +153,25 @@ export class Game extends Scene {
     private setSignal(activeIndex: number) {
         this.lamps.forEach((lamp, index) => {
             const active = index === activeIndex;
+            const glow = this.lampGlows[index];
             lamp.setFillStyle(active ? LAMP_COLORS[index] : LAMP_OFF, active ? 1 : 0.96);
             lamp.setStrokeStyle(active ? 4 : 3, active ? 0xffffff : 0x4e6070, active ? 0.75 : 1);
-            lamp.setScale(active ? 1.09 : 1);
+            this.tweens.killTweensOf(lamp);
+            this.tweens.killTweensOf(glow);
+            if (active) {
+                lamp.setScale(1.04);
+                glow.setFillStyle(LAMP_COLORS[index], 0.26).setScale(1);
+                this.tweens.add({ targets: [lamp, glow], scale: 1.14, duration: 180, ease: 'Sine.easeOut', yoyo: true });
+                this.tweens.add({ targets: glow, alpha: 0.05, duration: 430, ease: 'Sine.easeOut' });
+            } else {
+                lamp.setScale(1);
+                glow.setAlpha(0).setScale(1);
+            }
         });
     }
 
     private finishDuel(playerMs: number | undefined, falseStart: boolean) {
-        this.state = 'result';
+        this.state = 'settling';
         this.setSignal(falseStart ? 0 : 2);
         this.scoreText.setVisible(true);
         const npcMs = PhaserMath.Between(135, 230);
@@ -154,17 +181,50 @@ export class Game extends Scene {
         this.promptText.setText(playerWins ? 'RAVEN WINS' : 'MIKA WINS');
         this.statusText.setText(falseStart ? 'フライング。緑になってから踏み込め。' : playerWins ? `MIKA  ${npcMs}ms  /  記録更新圏内` : `MIKA  ${npcMs}ms  /  もう一度、反応を研ぎ澄ませ`);
         const winner = playerWins ? this.raven : this.mika;
-        this.tweens.add({ targets: winner, x: winner.x + (playerWins ? 70 : -70), duration: 140, yoyo: true, repeat: 2, ease: 'Quad.easeOut' });
+        const winnerColor = playerWins ? 0x55dffc : 0xff5ca8;
+        if (falseStart) {
+            this.flashArena(0xff405b, 0.3, 190);
+        } else {
+            this.flashArena(winnerColor, 0.28, 100);
+            this.createDashTrail(winner, winnerColor, playerWins ? 1 : -1);
+            this.tweens.add({ targets: winner, x: winner.x + (playerWins ? 150 : -150), duration: 190, ease: 'Quad.easeOut' });
+        }
+        this.tweens.add({ targets: this.scoreText, scale: 1.14, duration: 120, yoyo: true, repeat: 1, ease: 'Quad.easeOut' });
+        this.cameras.main.zoomTo(falseStart ? 1.035 : 1.09, 100, 'Quad.easeOut');
         this.cameras.main.shake(210, falseStart ? 0.006 : 0.012);
         this.time.delayedCall(620, () => this.showResult(playerWins, falseStart));
     }
 
+    private flashArena(color: number, alpha: number, duration: number) {
+        this.tweens.killTweensOf(this.flash);
+        this.flash.setFillStyle(color, alpha);
+        this.tweens.add({ targets: this.flash, alpha: 0, duration, ease: 'Sine.easeOut' });
+    }
+
+    private createDashTrail(fighter: Container, color: number, direction: -1 | 1) {
+        for (let index = 0; index < 4; index++) {
+            const trail = this.add.rectangle(fighter.x - direction * (20 + index * 34), fighter.y - 10, 86 - index * 10, 128 - index * 14, color, 0.22 - index * 0.035).setDepth(4);
+            this.tweens.add({
+                targets: trail,
+                x: trail.x - direction * 80,
+                alpha: 0,
+                scaleY: 0.74,
+                duration: 260 + index * 45,
+                ease: 'Quad.easeOut',
+                onComplete: () => trail.destroy()
+            });
+        }
+    }
+
     private showResult(playerWins: boolean, falseStart: boolean) {
+        this.state = 'result';
         const shade = this.add.rectangle(640, 360, VIEW_WIDTH, VIEW_HEIGHT, 0x04070c, 0.66);
         const panel = this.add.rectangle(640, 560, 490, 96, 0x101925, 0.96).setStrokeStyle(2, playerWins ? 0x65ffe2 : 0xffc15c, 0.9);
         const text = this.add.text(640, 540, falseStart ? 'CLICK / SPACE  TO RETRY' : playerWins ? 'CLICK / SPACE  TO CLAIM THE TITLE' : 'CLICK / SPACE  TO REMATCH', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#edf5fb', letterSpacing: 2 }).setOrigin(0.5);
         const detail = this.add.text(640, 575, playerWins ? 'NEXT: CHAMPION ENTRY' : 'NEXT: INSTANT REMATCH', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#94a9ba', letterSpacing: 2 }).setOrigin(0.5);
-        this.resultLayer = this.add.container(0, 0, [shade, panel, text, detail]);
-        this.resultLayer.setDepth(20);
+        this.resultLayer = this.add.container(0, 44, [shade, panel, text, detail]);
+        this.resultLayer.setDepth(20).setAlpha(0);
+        this.tweens.add({ targets: this.resultLayer, y: 0, alpha: 1, duration: 220, ease: 'Quad.easeOut' });
+        this.cameras.main.zoomTo(1, 360, 'Sine.easeOut');
     }
 }
