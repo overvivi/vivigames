@@ -23,6 +23,18 @@ test('当日最速の記録を王者として敵に出す', async ({ page })=>{
   await expect(page.locator('#result')).toHaveText('150ms');
 });
 
+test('ランキング登録の失敗理由を画面で確認できる', async ({ page })=>{
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    contentType:'application/javascript',
+    body:`window.supabase={createClient:()=>({from:()=>({select:()=>({eq:()=>({order:()=>({limit:async()=>({data:[],error:null})})})}),insert:async()=>({error:{code:'23514',message:'check constraint'}})})})};`
+  }));
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'RANKING ENTRY'}).click();
+  await page.getByPlaceholder('PLAYER NAME').fill('TEST');
+  await page.locator('#scoreForm').evaluate(form=>form.requestSubmit());
+  await expect(page.locator('#result')).toHaveText('登録できませんでした。記録の値がランキングの範囲外です。 [23514]');
+});
+
 test('開発モードで音源ごとの音量を調整できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   const tools=page.locator('.dev-tools');
