@@ -122,14 +122,16 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - デイリーチャレンジのHINTは3回まで。HUDの`HINT（残り 3）`で残数を示し、実際に確定手を示せた時だけ消費する。残数・ミス・経過時間は同じ日なら入り直しても引き継ぎ、0回でボタンを無効化する
 - Discordのランキング通知は共通の`tools/ranking-to-discord.mjs`へ登録済み。1時間ごとに当日の1位更新だけを通知し、最初の実行では既存記録を基準値として保存する。HELL RUNNER 2（β）も同じ仕組みで総合1位更新を通知する
 
-### RHYTHM LAB（`games/rhythm-game-test.html`）
+### RHYTHM LAB（`games/rhythm-game-test.html`）— **2026-08-26に制作中止**
 
-複合型音楽ゲームの**全モード比較用・未公開試作**。ポータルにはまだ載せない。
+複合型音楽ゲームの全モード比較用試作。ポータルには一度も載せていない。
+**ユーザー判断で制作を取りやめた**（現在の開発環境・プレイ環境では満足のいくものが
+作れる見込みが立たなかったため）。
 
-- 試作曲は未同梱。素材が決まるまで音源なしの未公開プロトタイプとして保持し、明示指示があるまで触らない
-- 同一の曲時間・BPM・判定・スコア・コンボを共有し、TAIKO（2入力）、POP（4レーン）、DDR（矢印4入力）、ORBIT（1入力）の4モードを切替可能
-- `DEV SYNC TUNER`でBPMとAUDIO OFFSETを実機調整し、`COPY TEST VALUES`で確定候補を共有できる。譜面を作り込む前に各操作感と曲同期を比較するため
-- 曲のBPMが不明でも試せるよう、再生中に拍へ4回合わせて押す`TAP BEAT`を追加。平均間隔からBPMを決め、最後のタップを拍の起点として2拍後から譜面を組み直す
+- `tests/rhythm-game.spec.js`、`npm run test:rhythm`、`npm run verify` の対象から外した
+- `games/rhythm-game-test.html` 本体は残してあるが、**触らない・テストしない・公開しない**。
+  不要になったら削除してよい（ポータルからのリンクも専用素材も無いため、消しても影響は無い）
+- 試作曲は同梱していない。`<audio id="music">` は `src` の無い状態で、START TESTを押しても始まらない
 
 ### 本日の最強決定戦（実装中）
 
@@ -198,7 +200,6 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 検証: `npm.cmd run champion:images`成功、`npm.cmd run verify`成功。390px幅の待機、攻撃エフェクト、勝利決着をスクリーンショットで確認。開始時の離れた対峙、攻撃時の青居合い／紫音波、決着後に逆側へ残る2人を確認済み
 - ユーザーの実機調整値を初期値へ反映: BPM 115、AUDIO OFFSET +0.14秒、BEAT START 2.40秒
 - 開始時は音声の`play()`成功後にだけノーツを進める。Safariがユーザー操作後の待機を自動再生として止めないよう、押下と同じ同期区間で再生を要求する。失敗時は`AUDIO ERROR`として画面に理由を出し、黙って無音のまま始めない
-- `npm run test:rhythm`（1件）で4モード切替と390px携帯時のステージ全面Canvasを確認
 
 
 ### ポータル (`index.html`)
@@ -274,7 +275,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 | コマンド | 対象 | 件数 |
 |---|---|---:|
-| `npm run verify` | 構文・構造・素材参照（公開7ファイル＋HELL RUNNER 2＋tetris） | 9ファイル |
+| `npm run verify` | 構文・構造・素材参照（公開6ファイル＋HELL RUNNER 2＋tetris） | 8ファイル |
 | `npm run test:unit` | tools/の通知スクリプト、HELL RUNNER 2の地形生成、背景ゾーン | 36 |
 | `npm run test:hex` | HEXAMINEのソルバー | 108 |
 
@@ -289,8 +290,7 @@ Playwright（1件あたり十数秒かかる）:
 | `npm run test:hex-ui` | HEXAMINEの操作 | 3 |
 | `npm run test:champion` | 本日の最強決定戦 | 18 |
 | `npm run test:ranking` | ランキング登録ボタンの状態遷移 | 5 |
-| `npm run test:rhythm` | RHYTHM LABの全モード試作 | 1（**現在失敗**） |
-| `npm test` | 全件（Playwright分） | **87** |
+| `npm test` | 全件（Playwright分） | **86** |
 
 - 背景の見た目を意図的に変えた場合のみ `npm run test:update-backgrounds`。通常は基準画像を更新しない
 - **背景の基準画像はOSごとに別ファイル**（`01-hell-win32.png` / `-linux.png`）。
@@ -298,10 +298,7 @@ Playwright（1件あたり十数秒かかる）:
 - HELL RUNNER(無印)は凍結済みのため、`test:runner` と背景比較は**回帰確認としてのみ**必要。
   無印を変更していないなら実行しなくてよい
 - `test:hex` と `test:unit` はPlaywrightではなくNode単体で動く
-- **`npm run test:rhythm` は2026-08-23から失敗したまま。** 試作曲を削除した際に
-  `games/rhythm-game-test.html` の `<audio id="music">` が `src` の無い状態になり、
-  `music.play()` が失敗して START TEST を押しても画面が始まらない。
-  音ゲーは対象外のため直していない。曲を戻すか、テストを保留にするかはユーザー判断
+- RHYTHM LAB は制作中止。テストも検査対象も外してある（上のRHYTHM LABの項を参照）
 - push のたびに `.github/workflows/tests.yml` が `verify` / `test:unit` / `test:hex` を回す。
   Playwrightを入れていないのは、背景の基準画像がOSごとに別で、CIのLinuxと手元のWindowsで
   必ず食い違い、常に赤いCIになってしまうため
@@ -1136,4 +1133,19 @@ Playwright 87件のうち、Linuxコンテナで 74成功・8失敗。失敗の�
 
 - 背景比較6件：基準画像がOSごとに別ファイルで、Linux用が無い（生成されたものは削除した）
 - `デバッグ録画を停止するとWebMを保存する`：並行実行の負荷によるもの。単独では成功
-- `全4モードを切り替え…`（RHYTHM LAB）：単独でも失敗。原因は上のテスト環境に記載
+
+### 2026-08-26 — Claude Code（RHYTHM LAB の制作中止に伴う除外）
+
+ユーザー判断で音ゲー（RHYTHM LAB）の制作を取りやめたため、テストと検査の対象から外した。
+現在の開発環境・プレイ環境では満足のいくものが作れる見込みが立たない、との理由による。
+
+- `tests/rhythm-game.spec.js` を削除
+- `package.json` から `test:rhythm` を削除
+- `tests/verify.cjs` の対象から `games/rhythm-game-test.html` を削除（検査は8ファイルへ）
+- `AGENTS.md` のコマンド一覧と、このファイルのテスト表から該当行を削除
+
+`games/rhythm-game-test.html` 本体は残してある。ポータルからのリンクも専用素材も無いので、
+不要になった時点で削除してよい。2026-08-21の作業履歴はそのまま残す（経緯の記録のため）。
+
+これで **Playwright 86件のうち、Linuxコンテナで失敗するのは背景比較6件のみ**になった。
+背景比較はOSごとに基準画像が別で、Linux用が無いことによるもの。

@@ -22,7 +22,6 @@ const FILES = [
   'games/hexamine.html',
   // 制作中で最も編集が多い。base64を1行へ詰めている以上、ここが一番壊れやすい
   'games/hell-runner-2.html',
-  'games/rhythm-game-test.html',
   'games/todays-champion-motion-preview.html',
   'games/todays-champion.html',
   // 未リンクの試作だが、壊れたまま残さないよう構文だけは見る

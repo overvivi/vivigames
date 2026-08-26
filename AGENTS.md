@@ -103,7 +103,6 @@ npm run test:boss      # 討伐2048
 npm run test:portal    # ポータル
 npm run test:hex-ui    # HEXAMINEの操作
 npm run test:champion  # 本日の最強決定戦
-npm run test:rhythm    # RHYTHM LAB
 npm test               # 複数ゲームにまたがる変更・テスト設定変更・公開前確認だけ
 ```
 

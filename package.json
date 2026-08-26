@@ -17,7 +17,6 @@
     "test:champion": "playwright test tests/todays-champion.spec.js",
     "test:ranking": "playwright test tests/ranking-submit.spec.js",
     "test:unit": "node --test \"tests/unit/*.test.mjs\"",
-    "test:rhythm": "playwright test tests/rhythm-game.spec.js",
     "serve": "node tests/static-server.cjs",
     "portal:images": "node tools/portal-images.mjs",
     "champion:images": "node tools/todays-champion-images.mjs"
