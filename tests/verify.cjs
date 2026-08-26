@@ -20,14 +20,31 @@ const FILES = [
   'games/temple-run-clone.html',
   'games/boss-battle-demo.html',
   'games/hexamine.html',
-  'games/rhythm-game-test.html',
+  // 制作中で最も編集が多い。base64を1行へ詰めている以上、ここが一番壊れやすい
+  'games/hell-runner-2.html',
   'games/todays-champion-motion-preview.html',
   'games/todays-champion.html'
 ];
 
 // 相対パスの素材参照を拾う。HTMLの属性・CSSのurl()・JSの文字列リテラルをまとめて拾えるよう、
 // 引用符か括弧に挟まれた「拡張子付きのパス」を対象にする。
-const ASSET_RE = /['"(]([^'"()\s]+\.(?:png|jpe?g|webp|gif|svg|ogg|mp3|wav|ico))['")]/gi;
+// バッククォートも含めるのは、HELL RUNNER 2 が `.../icons/${def.icon}` のような
+// テンプレートリテラルで素材を組み立てているため。
+const ASSET_RE = /['"`(]([^'"`()\s]+\.(?:png|jpe?g|webp|gif|svg|ogg|mp3|wav|ico))['"`)]/gi;
+
+// リポジトリ内の全ファイルを basename で引けるようにしておく。
+// 素材名だけを配列に持ち、表示時にディレクトリと連結する書き方（HELL RUNNER 2 の能力アイコン）は
+// 参照文字列だけでは場所が決まらないため、名前の実在で確認する。
+function indexFiles(dir, index){
+  for(const entry of fs.readdirSync(dir, { withFileTypes:true })){
+    if(entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'test-results') continue;
+    const full = path.join(dir, entry.name);
+    if(entry.isDirectory()) indexFiles(full, index);
+    else index.add(entry.name);
+  }
+  return index;
+}
+const fileNames = indexFiles('.', new Set());
 
 let scriptCount = 0;
 const problems = [];
@@ -64,7 +81,35 @@ for(const file of FILES){
     refs.add(ref);
   }
   for(const ref of refs){
-    const resolved = path.resolve(dir, ref.split('?')[0]);
+    const target = ref.split('?')[0];
+
+    // `${...}` を含む参照は、その場では1つに決まらない。差し込み部分を任意の1階層として扱い、
+    // 候補が1つも無い時だけ落とす（フォルダごと消えた・綴りを間違えた場合はここで出る）。
+    if(target.includes('${')){
+      // フォルダを伴わない差し込みは `link.download` に渡す保存名で、読み込む素材ではない。
+      const folder = path.posix.dirname(target);
+      if(folder === '.') continue;
+      // 先に差し込み部分を目印へ逃がしてからエスケープする。順序を逆にすると `$` のエスケープが
+      // 目印にも掛かり、出来上がった正規表現が何にも一致しなくなる。
+      const MARK = '\u0000';
+      const pattern = new RegExp('^' + target
+        .replace(/\$\{[^}]*\}/g, MARK)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .split(MARK).join('[^/]*') + '$');
+      const base = path.resolve(dir, folder);
+      const found = fs.existsSync(base) &&
+        fs.readdirSync(base).some(name => pattern.test(folder + '/' + name));
+      if(!found) problems.push(`${file}: 参照先の候補が1つも無い — ${ref}`);
+      continue;
+    }
+
+    // ディレクトリを含まない素材名は、コード側で連結される前提の断片。名前の実在だけを見る。
+    if(!target.includes('/')){
+      if(!fileNames.has(target)) problems.push(`${file}: その名前の素材がリポジトリに無い — ${ref}`);
+      continue;
+    }
+
+    const resolved = path.resolve(dir, target);
     if(!fs.existsSync(resolved)) problems.push(`${file}: 参照先が存在しない — ${ref}`);
   }
 }

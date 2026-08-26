@@ -9,7 +9,9 @@
 巨大HTMLを変更したら、**最後に必ず `npm run verify` を実行する。**
 構文・`<script>`の開閉と`</html>`終端・素材参照の実在を1コマンドで検査する
 (base64行を壊す編集と、素材の欠落を検出するため)。
-テストは変更した領域だけに絞る: `npm run test:runner` / `test:boss` / `test:portal` / `test:hex`。
+テストは変更した領域だけに絞る: `npm run test:runner` / `test:hr2` / `test:boss` /
+`test:portal` / `test:hex-ui` / `test:champion`。
+ブラウザ不要の `npm run verify` / `test:unit` / `test:hex` は3つで4秒なので、迷ったら全部通す。
 
 ## ファイル構成
 
@@ -19,8 +21,7 @@
 | `games/temple-run-clone.html` | **HELL RUNNER** 本体(1.8MB) | 現役・**凍結** |
 | `games/boss-battle-demo.html` | **討伐2048** 本体(3.2MB) | 現役 |
 | `games/hexamine.html` | **HEXAMINE** 本体(0.1MB) | 現役 |
-| `games/hell-runner-2.html` | **HELL RUNNER 2** 本体(6.3MB) | 制作中・β掲載 |
-| `tetris.html` | テトリス。**未リンク** | 試作 |
+| `games/hell-runner-2.html` | **HELL RUNNER 2** 本体(6.3MB) | 現役・β掲載・**開発終了** |
 | `supabase-setup.sql` | ランキング用テーブル作成SQL | 参照用 |
 | `supabase-fix-permissions.sql` | GRANT修正SQL(下記の落とし穴を参照) | 参照用 |
 

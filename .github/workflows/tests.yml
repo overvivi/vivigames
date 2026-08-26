@@ -1,0 +1,44 @@
+# push のたびに、公開ファイルが壊れていないかを機械的に確かめる。
+#
+# これまで CI はDiscord通知の2本だけで、テストは手元で叩いた時にしか走っていなかった。
+# base64を1行へ詰めた巨大HTMLは、行が壊れてもブラウザで開くまで気づけないため、
+# 少なくとも構文・構造・素材参照だけは main へ入る前に必ず通す。
+#
+# ここで走らせるのはブラウザ不要の検査だけにしてある。Playwrightの背景比較は
+# 基準画像がOSごとに別ファイルで、CIのLinuxと手元のWindowsで結果が食い違うため、
+# 実行環境を揃えられない状態で入れると常に赤いCIになり、見られなくなる。
+name: テスト
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # ジョブIDは英数字のみ。日本語にするとワークフロー自体が起動せず、
+  # ジョブが1つも無いまま失敗する（ワークフロー名とステップ名は日本語で問題ない）
+  checks:
+    name: 検査
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # npm run test:unit の `node --test "tests/unit/*.test.mjs"` は、
+      # グロブをNode自身に解釈させている（Windowsのnpmではシェルが展開しないため）。
+      # この解釈はNode 22以降でしか効かず、20だとファイルが見つからず落ちる。
+      # 手元の環境（Node 24 LTS）へ合わせておく。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # 依存はPlaywrightとsharp/ffmpegだけで、ここで動かす検査には要らない。
+      # インストールを省くぶん、pushから結果が出るまでが速い。
+      - name: 構文・構造・素材参照
+        run: npm run verify
+
+      - name: 通知スクリプトと地形生成の単体テスト
+        run: npm run test:unit
+
+      - name: HEXAMINEのソルバー
+        run: npm run test:hex

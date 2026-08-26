@@ -5,6 +5,10 @@
 # 不用意な編集や整形で行が壊れると、開くまで気づけない。
 # 壊れたものをコミットしてしまう事故を、ここで構造的に防ぐ。
 #
+# ここで走らせるのは、依存パッケージも実ブラウザも要らない検査だけ。
+# 3つ合わせて4秒ほどで終わるので、コミットのたびに待たされない。
+# Playwrightの各テストは変更した領域に絞って手で実行する（AGENTS.md 参照）。
+#
 # 有効化: git config core.hooksPath tools/hooks
 # 一時的に飛ばす場合のみ: git commit --no-verify
 
@@ -13,9 +17,24 @@ if ! command -v node >/dev/null 2>&1; then
   exit 0
 fi
 
-node tests/verify.cjs || {
+fail() {
   echo "" >&2
-  echo "pre-commit: 検査に失敗したためコミットを中止した。" >&2
+  echo "pre-commit: $1 に失敗したためコミットを中止した。" >&2
   echo "  直してから commit するか、意図的に飛ばす場合は --no-verify を付ける。" >&2
   exit 1
+}
+
+# 1. 構文・<script>の開閉・</html>終端・素材参照の実在
+node tests/verify.cjs || fail "構文・構造・素材参照の検査"
+
+# 2. tools/の通知スクリプトと HELL RUNNER 2 の地形生成
+node --test "tests/unit/*.test.mjs" >/dev/null 2>&1 || {
+  node --test "tests/unit/*.test.mjs" >&2
+  fail "単体テスト"
+}
+
+# 3. HEXAMINEのソルバー
+node tools/hex/solver.test.mjs >/dev/null 2>&1 || {
+  node tools/hex/solver.test.mjs >&2
+  fail "HEXAMINEソルバーの検査"
 }
