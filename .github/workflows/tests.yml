@@ -14,7 +14,10 @@ on:
   pull_request:
 
 jobs:
-  検査:
+  # ジョブIDは英数字のみ。日本語にするとワークフロー自体が起動せず、
+  # ジョブが1つも無いまま失敗する（ワークフロー名とステップ名は日本語で問題ない）
+  checks:
+    name: 検査
     runs-on: ubuntu-latest
     permissions:
       contents: read
