@@ -4,7 +4,7 @@ create table todays_champion_scores (
   day integer not null check (day between 20250101 and 21001231),
   name text not null check (char_length(name) between 1 and 20),
   character_id text not null check (character_id in ('raven','mika','brick','noise','kiri')),
-  ms integer not null check (ms between 90 and 3000),
+  ms integer not null check (ms between 0 and 3000),
   created_at timestamptz not null default now()
 );
 
@@ -20,7 +20,7 @@ create policy "Allow public insert (todays champion)" on todays_champion_scores
     char_length(name) between 1 and 20
     and character_id in ('raven','mika','brick','noise','kiri')
     and day between 20250101 and 21001231
-    and ms between 90 and 3000
+    and ms between 0 and 3000
   );
 
 grant select, insert on todays_champion_scores to anon, authenticated;

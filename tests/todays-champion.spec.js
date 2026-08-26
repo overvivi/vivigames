@@ -23,6 +23,18 @@ test('当日最速の記録を王者として敵に出す', async ({ page })=>{
   await expect(page.locator('#result')).toHaveText('150ms');
 });
 
+test('ランキング登録の失敗理由を画面で確認できる', async ({ page })=>{
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    contentType:'application/javascript',
+    body:`window.supabase={createClient:()=>({from:()=>({select:()=>({eq:()=>({order:()=>({limit:async()=>({data:[],error:null})})})}),insert:async()=>({error:{code:'23514',message:'check constraint'}})})})};`
+  }));
+  await page.goto('/games/todays-champion.html?debug=1');
+  await page.getByRole('button',{name:'RANKING ENTRY'}).click();
+  await page.getByPlaceholder('PLAYER NAME').fill('TEST');
+  await page.locator('#scoreForm').evaluate(form=>form.requestSubmit());
+  await expect(page.locator('#result')).toHaveText('登録できませんでした。記録の値がランキングの範囲外です。 [23514]');
+});
+
 test('開発モードで音源ごとの音量を調整できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
   const tools=page.locator('.dev-tools');
@@ -87,10 +99,10 @@ test('レイブンの3種類の台詞を開発モードで個別に試聴でき�
   }
 });
 
-test('開発モードでは確定済みの信号調整を隠す', async ({ page })=>{
+test('開発モードでは信号機を再調整できる', async ({ page })=>{
   await page.goto('/games/todays-champion.html?debug=1');
-  await expect(page.locator('#allLamps')).toBeHidden();
-  await expect(page.locator('.dev-tools h2',{hasText:'SIGNAL LAMPS'})).toBeHidden();
+  await expect(page.locator('.dev-tools h2',{hasText:'SIGNAL LAMPS'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'COPY SIGNAL'})).toBeVisible();
 });
 
 test('開発モードでは残した音声台詞の値を個別にコピーできる', async ({ page })=>{
@@ -100,7 +112,13 @@ test('開発モードでは残した音声台詞の値を個別にコピーで�
 });
 
 test('PCではSpaceで試合開始と合図への反応ができる', async ({ page })=>{
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    contentType:'application/javascript',
+    body:`window.supabase={createClient:()=>({from:()=>({select:()=>({eq:()=>({order:()=>({limit:async()=>({data:[],error:null})})})})})})};`
+  }));
   await page.goto('/games/todays-champion.html');
+  await expect(page.locator('.dev-tools')).toHaveCount(0);
+  await expect(page.locator('.debug-launch')).toHaveCount(0);
   await expect(page.getByRole('link',{name:'GAME BASE'})).toBeVisible();
   await page.keyboard.press('Space');
   await expect(page.locator('body')).toHaveClass(/in-duel/);
@@ -169,6 +187,21 @@ test('キャラ調整値は基準画面の比率でPCと携帯へ共通適用さ
   expect(desktop.bottom/desktop.unit).toBeCloseTo(42.2,3);
 });
 
+test('結果ボタンと音量はPC／携帯の別プロファイルを使う', async ({ page })=>{
+  const selectButtonY=()=>page.locator('body').evaluate(el=>parseFloat(el.style.getPropertyValue('--select-button-y')));
+  const lampScale=()=>page.locator('#trafficLamps').evaluate(el=>Number(el.style.transform.match(/scale\(([^)]+)/)?.[1]));
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/games/todays-champion.html?debug=1');
+  const pcY=await selectButtonY();
+  const pcLampScale=await lampScale();
+  await expect(page.locator('label').filter({hasText:'VOICE KIRI'}).locator('input[type=number]')).toHaveValue('0.74');
+  await page.setViewportSize({width:390,height:844});
+  await expect.poll(selectButtonY).toBeGreaterThan(pcY);
+  await expect.poll(lampScale).not.toBeCloseTo(pcLampScale,3);
+  await page.reload();
+  await expect(page.locator('label').filter({hasText:'VOICE KIRI'}).locator('input[type=number]')).toHaveValue('1.01');
+});
+
 test('キャラの立ち位置はPCと携帯で背景画像の同じ座標を指す', async ({ page })=>{
   const sourceX=()=>page.locator('.left-fighter').evaluate(el=>{
     const stage=document.querySelector('#stage').getBoundingClientRect(),fighter=el.getBoundingClientRect();
@@ -205,6 +238,10 @@ test('選択画面は選んだキャラだけを明るくし、ランキング�
   await expect(page.locator('#scoreForm')).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/is-registering/);
   await expect(page.locator('#championCrown')).toBeVisible();
+  await expect(page.locator('#championCrown')).toContainText("YOU ARE TODAY'S CHAMPION");
+  await expect(page.locator('#result')).toHaveText('154ms');
+  await expect(page.locator('.dev-tools h2',{hasText:'CHAMPION SCREEN'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'COPY CHAMPION SCREEN'})).toBeVisible();
   await expect(page.locator('#stage')).toHaveClass(/is-champion/);
   await expect(page.locator('#championExit')).toBeHidden();
   await expect(page.locator('#signal')).toBeHidden();

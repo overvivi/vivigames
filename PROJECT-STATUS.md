@@ -1,12 +1,44 @@
 # PROJECT STATUS — Codex / Claude Code共通引き継ぎ
 
-最終更新: 2026-08-21 / Codex
+最終更新: 2026-08-26 / Codex
 
 このファイルが作業状況の正本。Codex・Claude Codeとも、作業前に読み、作業後に更新する。
 詳細な制約は `AGENTS.md` を優先する。特に巨大HTMLの全体読み込み・全体整形は禁止。
 git操作は通常行わず、ユーザーから明示的に許可された場合のみ可能。
 
 ## 現在の状態
+
+## 作業停止中の現状サマリー（2026-08-26）
+
+ユーザー方針により、**既存ゲームは不具合報告が来るまで変更しない**。再開時は、報告されたゲームと症状だけを対象にする。見た目の改善・横展開・リファクタリングを自主的に始めない。
+
+### 共通の再開手順
+
+- 最初にこのファイルと`AGENTS.md`を読む。巨大HTMLは全読込せず、`rg`で場所を特定してから周辺だけを確認する
+- 変更後は対象ゲームのPlaywrightテスト、`npm run verify`、`git diff --check`を実行する
+- 公開はユーザーが明示的に`push`と言った時だけ。一時worktreeから対象ファイルだけを公開し、元フォルダで`git add .`／reset／checkoutをしない
+- 通常作業フォルダはGitHub最新版へ同期済み。`tools/ranking-state.json`はランキング通知のローカル履歴なので、通常の未保存変更表示から除外している
+
+### ゲーム別の到達点と保留事項
+
+| 対象 | 現在の状態 | 次に触る条件 |
+| --- | --- | --- |
+| `games/temple-run-clone.html`（HELL RUNNER） | **完成・凍結**。致命的に遊べない不具合以外は変更禁止 | 明示的な致命的不具合報告のみ |
+| `games/hell-runner-2.html`（HELL RUNNER 2） | ローグライト版。実装・実機調整は`docs/HELL-RUNNER-2引き継ぎ.md`が正本 | ユーザーの実機バグ報告または再開指示 |
+| `games/boss-battle-demo.html`（討伐2048） | ランキング、停止、音量、SIZE TUNERまで実装済み | 実機バグ報告のみ |
+| `games/hexamine.html`（HEXAMINE） | PCは左クリックだけで判定。右・ホイールクリックの誤答は防止済み | 実機バグ報告のみ |
+| `games/todays-champion.html`（本日の最強決定戦） | 下記の最新仕様まで実装済み。公開画面のDEV導線は削除済み | 登録成否、PC／携帯表示、音声の不具合報告 |
+| `games/rhythm-game-test.html`（音ゲー試作） | 未公開・保留。明示指示があるまで完全に対象外 | ユーザーから再開指示が来た時だけ |
+
+### 本日の最強決定戦：確定済みの最新仕様
+
+- 通常URLでは開発ツール・`OPEN DEV TUNER`リンクを出さない。調整は`games/todays-champion.html?debug=1`だけで行う
+- 信号、結果ボタン、AUDIO MIX、キャラ別VOICEはPC／携帯で別プロファイル。PCは結果SELECT`(76,-50)`・KIRI VOICE`0.74`・信号GROUP`(4,1)`／RED`(1.5,8)`／YELLOW`(2.2,8)`／GREEN`(3,8)`／SIZE`2.68`。携帯は既存の別値を維持する
+- ランキングは0〜3000msを許可。本番Supabaseでは、0ms対応の制約変更と`anon`／`authenticated`への公開INSERT権限・採番権限を**ユーザーがSQL Editorで実行済み**
+- 登録失敗時はコードを表示する。`23514`は記録値制限、`42501`は公開権限。次の王者撃破時に実プレイヤー登録で成否を確認する
+- 素材は対戦開始時にプレイヤーと相手の2キャラ分だけdecodeしてから開始するため、初回戦の縮小・反転崩れを防ぎつつ約4.6MBの一括先読みを避ける
+- 接続済みボイスはRAVEN（選択・開始・勝利）、KIRI（選択・開始・勝利）、BRICK（選択）。MIKA／NOISEは未到着。ブリックの現行選択ボイスは録り直し待ち、キリ勝利は元録音由来のジリつきが残る仮版
+- 専用確認コマンド: `npx playwright test tests/todays-champion.spec.js`（現行20件）、`npm run verify`
 
 ### HELL RUNNER 2（`games/hell-runner-2.html`）
 
@@ -291,9 +323,9 @@ Playwright（1件あたり十数秒かかる）:
 | `npm run test:boss` | 討伐2048 | 10 |
 | `npm run test:portal` | ポータル | 10 |
 | `npm run test:hex-ui` | HEXAMINEの操作 | 3 |
-| `npm run test:champion` | 本日の最強決定戦 | 18 |
+| `npm run test:champion` | 本日の最強決定戦 | 20 |
 | `npm run test:ranking` | ランキング登録ボタンの状態遷移 | 5 |
-| `npm test` | 全件（Playwright分） | **86** |
+| `npm test` | 全件（Playwright分） | **88** |
 
 - 背景の見た目を意図的に変えた場合のみ `npm run test:update-backgrounds`。通常は基準画像を更新しない
 - **背景の基準画像はOSごとに別ファイル**（`01-hell-win32.png` / `-linux.png`）。
@@ -1081,6 +1113,39 @@ Playwright（1件あたり十数秒かかる）:
 - CAUTIONは`3.0秒`から`2.2秒`へ短縮。戦闘画面の開始台詞後は、BGMのフェードを含め約`3.56秒`後に信号開始となるよう余韻を確保した
 - 専用Playwright 17件、`npm run verify`、`git diff --check`成功。未コミット
 
+### 2026-08-26 — Codex（本日の最強決定戦：ランキング登録画面の再調整）
+
+- `?debug=1`の`CHAMPION SCREEN`を再表示。FIGHTER／TITLE／SCORE／FORMをそれぞれX・Y・SIZEで再調整でき、`COPY CHAMPION SCREEN`で確定値だけを共有できる
+- `RANKING ENTRY`プレビューでは、`YOU ARE TODAY'S CHAMPION`と虹色の`154ms`、入力フォームを同時に表示したまま調整できる。信号・VSは本番どおり非表示
+- 専用Playwright 18件、`npm run verify`、`git diff --check`成功。未コミット
+
+### 2026-08-26 — Codex（本日の最強決定戦：ランキング登録画面の初期値）
+
+- ユーザー実機調整値を初期値へ反映: FIGHTER `(-24,-80,1.00)`、TITLE `(11,84,0.63)`、SCORE `(11,71,0.61)`、FORM `(0,45,1.22)`
+
+### 2026-08-26 — Codex（本日の最強決定戦：ランキング登録失敗の診断）
+
+- ゲームは0ms登録へ変更済みだったが、Supabase作成SQLは`ms between 90 and 3000`のまま残っていた。90ms未満の好記録がDB制約`23514`で拒否され、画面上では通信失敗と誤表示される不整合
+- 作成SQLの制約・RLSチェックを0〜3000msへ修正。本番DBにはユーザーが同等の`ALTER TABLE`を実行済み
+- 登録失敗時はDBの値制限・権限設定・通信などを区別し、エラー番号を表示する。続いて`42501`を確認し、公開INSERT権限・採番権限もユーザーが実行済み
+
+### 2026-08-26 — Codex（本日の最強決定戦：PC実機調整の再開）
+
+- 結果ボタンのSELECTを`(76,-50)`へ変更。RETRYは既存`(-80,0)`を維持
+- 個別VOICEのKIRIを`1.01`から`0.74`へ変更。その他の音量初期値は維持
+- PCで信号位置を再調整できるよう、DEBUGの`SIGNAL LAMPS`と`COPY SIGNAL`を再表示。GROUP X/Y、各灯X/Y、SIZEを利用可能
+
+### 2026-08-26 — Codex（本日の最強決定戦：PC／携帯別の調整値）
+
+- 信号、結果ボタン、AUDIO MIX、キャラ別VOICEをPC／携帯で別プロファイル化。片方でDEBUG調整しても、もう片方の確定値を上書きしない
+- PCは結果SELECT`(76,-50)`・KIRI VOICE`0.74`、携帯は従来のSELECT`(76,-85)`・KIRI VOICE`1.01`を初期値として保持。`COPY SIGNAL`／`COPY AUDIO`には現在の端末種別も含める
+- PC信号の確定値: GROUP `(4,1)`、RED `(1.5,8)`、YELLOW `(2.2,8)`、GREEN `(3,8)`、SIZE `2.68`。携帯信号値は従来のまま
+
+### 2026-08-26 — Codex（本日の最強決定戦：公開画面からDEV導線を除去）
+
+- キャラ選択画面にあった`OPEN DEV TUNER`の表示・リンクを削除。PC／携帯とも通常URLでは開発ツールを一切出さず、調整時だけ`?debug=1`を付けたURLを直接開く
+- 本章までの最強決定戦専用Playwrightは現行20件成功。PCのSpace操作テストは当日王者データへ依存しないよう固定済み
+
 ### 2026-08-26 — Claude Code（テスト基盤の穴を塞ぐ）
 
 **`npm run verify` が `games/hell-runner-2.html` を検査していなかった。**
@@ -1195,3 +1260,23 @@ Playwright 87件のうち、Linuxコンテナで 74成功・8失敗。失敗の�
 
 テスト構成に変更は無い。`npm run verify`(7ファイル) / `npm run test:unit`(36) /
 `npm run test:hex`(108) 成功。
+
+### 2026-08-26 — Claude Code（CIの起動失敗を修正し、mainを取り込む）
+
+**追加したCIは3回とも失敗していた。** ジョブIDに日本語（`検査:`）を使ったため、
+GitHub Actions がワークフローを起動できず、ジョブが1件も無いまま終わっていた。
+既存の2本と同じく英数字のID（`checks:`）にし、日本語は `name:` へ移した。
+**ワークフロー名とステップ名は日本語で問題ない。ジョブIDだけが英数字限定。**
+
+手元で `npm run verify` などが通っても、ワークフローYAML自体が妥当かは
+GitHubへpushするまで分からない。CIを足した時は実際の実行結果まで見ること。
+
+あわせて `origin/main` を取り込んだ。作業中にmainが10コミット進んでいた
+（最強決定戦のランキング登録画面調整・0ms登録のDB制約修正・DEV導線の除去など）。
+
+- 衝突したのは `PROJECT-STATUS.md` の末尾だけ。双方が作業履歴を追記したためで、
+  内容は競合しないので**両方残した**
+- `tests/todays-champion.spec.js` は18件から20件へ増えていた。テスト表を更新
+  （最強決定戦 18→20、Playwright全体 86→88）
+- マージ後に `verify`(7ファイル) / `test:unit`(36) / `test:hex`(108) 成功。
+  最強決定戦20件 + ランキング登録5件も成功
