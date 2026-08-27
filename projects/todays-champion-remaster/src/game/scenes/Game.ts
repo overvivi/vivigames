@@ -221,8 +221,10 @@ export class Game extends Scene {
         return this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack'));
     }
 
-    private motionSourceVersion(pose: Exclude<FighterPose, 'guard'>) {
+    private motionSourceVersion(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
         // 初回生成の背景が残った素材を残し、透過を検査済みのv2だけをゲームに使う。
+        if (fighter.id === 'vivi' && pose === 'win') return 'v3';
+        if (fighter.id === 'tomega9' && (pose === 'attack' || pose === 'win')) return 'v3';
         return pose === 'lose' ? 'v1' : 'v2';
     }
 
@@ -234,7 +236,7 @@ export class Game extends Scene {
         }
         toLoad.forEach((fighter) => {
             (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
-                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(pose)}.png`);
+                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
             });
         });
         // ESMビルドではグローバルのPhaser名前空間が無いため、文字列イベントで完了を受け取る。
