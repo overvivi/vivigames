@@ -28,11 +28,11 @@ const VIEW_HEIGHT = 720;
 const LAMP_OFF = 0x17202b;
 const LAMP_COLORS = [0xff4e5f, 0xffc84f, 0x5fffd0];
 const FIGHTERS: FighterDefinition[] = [
-    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left' },
-    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right' },
-    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right' },
-    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left' },
-    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right' },
+    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', attackEffect: { scale: 0.20, offsetX: 116, offsetY: -8, layer: 'behind' } },
+    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.22, offsetX: 122, offsetY: 20, layer: 'front' } },
+    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.27, offsetX: 112, offsetY: 34, layer: 'behind' } },
+    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left', attackEffect: { scale: 0.21, offsetX: 118, offsetY: -6, layer: 'behind' } },
+    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.22, offsetX: 118, offsetY: -2, layer: 'behind' } },
     { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.25, offsetX: 116, offsetY: -48, layer: 'front' } },
     { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.39, offsetX: 108, offsetY: 54, layer: 'behind' } }
 ];
@@ -209,7 +209,7 @@ export class Game extends Scene {
         this.raven.setVisible(true);
         this.mika.setVisible(true);
         this.resetDuel();
-        if (this.motionPreviewEnabled && this.hasMotion(this.playerFighter)) {
+        if (this.motionPreviewEnabled && this.playerFighter.attackEffect !== undefined) {
             this.showMotionPreview();
             return;
         }
@@ -231,7 +231,8 @@ export class Game extends Scene {
     }
 
     private needsMotionLoad(fighter: FighterDefinition) {
-        return this.hasMotion(fighter) && (!this.textures.exists(this.motionKey(fighter, 'attack')) || (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter))));
+        return (this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack')))
+            || (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter)));
     }
 
     private motionSourceVersion(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
@@ -242,18 +243,20 @@ export class Game extends Scene {
     }
 
     private loadFighterMotions(fighters: FighterDefinition[], onComplete: () => void) {
-        const toLoad = fighters.filter((fighter, index) => this.hasMotion(fighter) && fighters.findIndex((other) => other.id === fighter.id) === index && this.needsMotionLoad(fighter));
+        const toLoad = fighters.filter((fighter, index) => fighters.findIndex((other) => other.id === fighter.id) === index && this.needsMotionLoad(fighter));
         if (!toLoad.length) {
             onComplete();
             return;
         }
         toLoad.forEach((fighter) => {
-            (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
-                const key = this.motionKey(fighter, pose);
-                if (!this.textures.exists(key)) {
-                    this.load.image(key, `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
-                }
-            });
+            if (this.hasMotion(fighter)) {
+                (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
+                    const key = this.motionKey(fighter, pose);
+                    if (!this.textures.exists(key)) {
+                        this.load.image(key, `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
+                    }
+                });
+            }
             if (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter))) {
                 this.load.image(this.attackEffectKey(fighter), `assets/fighters/effects/${fighter.id}-attack-v1.png`);
             }
@@ -298,7 +301,7 @@ export class Game extends Scene {
         this.state = 'preview';
         this.setSignal(-1);
         this.promptText.setText('MOTION CHECK');
-        this.statusText.setText('VIVI / TΩ9 の足元・大きさ・切替を確認');
+        this.statusText.setText(`${this.playerFighter.name} の攻撃エフェクトと表示を確認`);
 
         const layer = this.add.container().setDepth(40);
         const panel = this.add.rectangle(640, 644, 760, 108, 0x0a111c, 0.96).setStrokeStyle(2, 0x4d657b, 1);
