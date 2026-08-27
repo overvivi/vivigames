@@ -251,17 +251,22 @@ export class Game extends Scene {
         const texture = pose === 'guard' || !this.hasMotion(definition)
             ? definition.combatKey
             : this.motionKey(definition, pose);
-        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setFlipX(direction === 1);
+        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(direction === 1);
     }
 
     private poseScale(fighter: FighterDefinition, pose: FighterPose) {
         if (fighter.id === 'tomega9') {
             // 横長と縦長で元の画像寸法が異なる。怪物らしい体格をどのポーズでも保つ。
             // WIN／LOSEの体格を基準に、横長の待機・ダッシュと縦長の攻撃を揃える。
-            const monsterScale: Record<FighterPose, number> = { guard: 0.36, dash: 0.36, attack: 0.24, win: 0.36, lose: 0.32 };
+            const monsterScale: Record<FighterPose, number> = { guard: 0.36, dash: 0.36, attack: 0.36, win: 0.36, lose: 0.32 };
             return monsterScale[pose];
         }
         return fighter.combatScale;
+    }
+
+    private poseOffsetY(fighter: FighterDefinition, pose: FighterPose) {
+        // 振り上げた腕で縦長になるTΩ9の攻撃だけ、頭の高さを待機・勝利へ合わせる。
+        return fighter.id === 'tomega9' && pose === 'attack' ? 30 : 0;
     }
 
     private showMotionPreview() {
