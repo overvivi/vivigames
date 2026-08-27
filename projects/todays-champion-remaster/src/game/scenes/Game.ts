@@ -258,7 +258,7 @@ export class Game extends Scene {
         if (fighter.id === 'tomega9') {
             // 横長と縦長で元の画像寸法が異なる。怪物らしい体格をどのポーズでも保つ。
             // WIN／LOSEの体格を基準に、横長の待機・ダッシュと縦長の攻撃を揃える。
-            const monsterScale: Record<FighterPose, number> = { guard: 0.36, dash: 0.36, attack: 0.36, win: 0.36, lose: 0.32 };
+            const monsterScale: Record<FighterPose, number> = { guard: 0.40, dash: 0.40, attack: 0.36, win: 0.36, lose: 0.32 };
             return monsterScale[pose];
         }
         return fighter.combatScale;
