@@ -20,6 +20,7 @@ type FighterDefinition = {
     naturalFacing: 'left' | 'right';
     poseFacing?: Partial<Record<FighterPose, 'left' | 'right'>>;
     poseScales?: Partial<Record<FighterPose, number>>;
+    poseOffsetXs?: Partial<Record<FighterPose, number>>;
     poseOffsetYs?: Partial<Record<FighterPose, number>>;
     attackEffect?: AttackEffectDefinition;
 };
@@ -60,6 +61,11 @@ export class Game extends Scene {
     private resultLayer?: GameObjects.Container;
     private motionPreviewLayer?: GameObjects.Container;
     private motionPreviewEnabled = false;
+    private debugEnabled = false;
+    private debugLayer?: GameObjects.Container;
+    private debugExpanded = true;
+    private debugAsset: 'attack' | 'effect' = 'attack';
+    private debugEffectPreview?: GameObjects.Image;
     private flash!: GameObjects.Rectangle;
 
     constructor() {
@@ -79,7 +85,9 @@ export class Game extends Scene {
     }
 
     create() {
-        this.motionPreviewEnabled = new URLSearchParams(window.location.search).has('motionPreview');
+        const params = new URLSearchParams(window.location.search);
+        this.debugEnabled = params.has('debug');
+        this.motionPreviewEnabled = params.has('motionPreview') || this.debugEnabled;
         this.createArena();
         this.createFighters();
         this.createSignal();
@@ -113,6 +121,7 @@ export class Game extends Scene {
 
     private createFighter(x: number, y: number, fighterData: FighterDefinition, direction: -1 | 1) {
         const fighter = this.add.container(x, y);
+        fighter.setDepth(5);
         const glow = this.add.circle(0, 16, 104, fighterData.color, 0.1);
         const shadow = this.add.ellipse(0, 101, 138, 22, 0x000000, 0.48);
         const art = this.add.image(0, 82, fighterData.combatKey).setOrigin(0.5, 1).setScale(fighterData.combatScale).setFlipX(this.shouldFlip(fighterData, direction));
@@ -285,7 +294,7 @@ export class Game extends Scene {
         const texture = pose === 'guard' || !hasPoseMotion
             ? definition.combatKey
             : this.motionKey(definition, pose);
-        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(this.shouldFlip(definition, direction, pose));
+        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setX(this.poseOffsetX(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(this.shouldFlip(definition, direction, pose));
     }
 
     private shouldFlip(fighter: FighterDefinition, direction: -1 | 1, pose: FighterPose = 'guard') {
@@ -315,6 +324,10 @@ export class Game extends Scene {
         return fighter.id === 'tomega9' && pose === 'attack' ? 30 : 0;
     }
 
+    private poseOffsetX(fighter: FighterDefinition, pose: FighterPose) {
+        return fighter.poseOffsetXs?.[pose] ?? 0;
+    }
+
     private showMotionPreview() {
         this.state = 'preview';
         this.setSignal(-1);
@@ -333,7 +346,10 @@ export class Game extends Scene {
             const text = this.add.text(x, 644, pose.toUpperCase(), { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#edf7ff', letterSpacing: 1 }).setOrigin(0.5);
             frame.on('pointerdown', () => {
                 this.setFighterPose(this.raven, pose);
-                if (pose === 'attack') this.playAttackEffect(this.raven);
+                if (pose === 'attack') {
+                    if (this.debugEnabled) this.updateDebugPreview();
+                    else this.playAttackEffect(this.raven);
+                }
                 this.statusText.setText(`${this.playerFighter.name}  /  ${pose.toUpperCase()}`);
             });
             layer.add([frame, text]);
@@ -344,12 +360,184 @@ export class Game extends Scene {
         playFrame.on('pointerdown', () => {
             this.motionPreviewLayer?.destroy();
             this.motionPreviewLayer = undefined;
+            this.debugLayer?.destroy();
+            this.debugLayer = undefined;
+            this.debugEffectPreview?.destroy();
+            this.debugEffectPreview = undefined;
             this.resetDuel();
             this.startCountdown();
             this.lastActionAt = this.time.now;
         });
         layer.add([playFrame, playText]);
         this.motionPreviewLayer = layer;
+        if (this.debugEnabled) {
+            this.createDebugTuner();
+            this.updateDebugPreview();
+        }
+    }
+
+    private createDebugTuner() {
+        this.debugLayer?.destroy();
+        const layer = this.add.container().setDepth(90);
+        const toggle = this.add.rectangle(1100, 104, 174, 38, 0x14243a, 0.98).setStrokeStyle(2, 0x75f4ea, 0.9).setInteractive({ useHandCursor: true });
+        const toggleText = this.add.text(1100, 104, this.debugExpanded ? 'TUNER  −' : 'TUNER  +', { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#b9fff7', letterSpacing: 2 }).setOrigin(0.5);
+        toggle.on('pointerdown', () => {
+            this.debugExpanded = !this.debugExpanded;
+            this.createDebugTuner();
+        });
+        layer.add([toggle, toggleText]);
+        this.debugLayer = layer;
+        if (!this.debugExpanded) return;
+
+        const panel = this.add.rectangle(1020, 370, 470, 486, 0x07101c, 0.97).setStrokeStyle(2, 0x5f7890, 1);
+        const heading = this.add.text(802, 150, 'ATTACK TUNER  /  DEBUG ONLY', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffdc57', letterSpacing: 2 });
+        const hint = this.add.text(802, 171, '選択したキャラをその場で切替。タップで値を変更。', { fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#a8bdcf' });
+        layer.add([panel, heading, hint]);
+
+        FIGHTERS.forEach((fighter, index) => {
+            const x = 850 + (index % 4) * 110;
+            const y = 204 + Math.floor(index / 4) * 34;
+            this.addDebugButton(layer, x, y, 100, 27, fighter.name, fighter.id === this.playerFighter.id, () => this.switchDebugFighter(fighter));
+        });
+
+        const attackActive = this.debugAsset === 'attack';
+        this.addDebugButton(layer, 885, 274, 150, 32, 'ATTACK POSE', attackActive, () => {
+            this.debugAsset = 'attack';
+            this.createDebugTuner();
+            this.updateDebugPreview();
+        });
+        this.addDebugButton(layer, 1050, 274, 150, 32, 'ATTACK EFFECT', !attackActive, () => {
+            this.debugAsset = 'effect';
+            this.createDebugTuner();
+            this.updateDebugPreview();
+        });
+
+        const fighter = this.playerFighter;
+        const isAttack = this.debugAsset === 'attack';
+        const xValue = isAttack ? this.poseOffsetX(fighter, 'attack') : fighter.attackEffect!.offsetX;
+        const yValue = isAttack ? this.poseOffsetY(fighter, 'attack') : fighter.attackEffect!.offsetY;
+        const scaleValue = isAttack ? this.poseScale(fighter, 'attack') : fighter.attackEffect!.scale;
+        const xRange: [number, number] = isAttack ? [-140, 140] : [-60, 240];
+        const yRange: [number, number] = [-180, 150];
+        const scaleRange: [number, number] = isAttack ? [0.20, 1.10] : [0.08, 0.90];
+        this.addDebugSlider(layer, 329, 'X', xRange[0], xRange[1], xValue, (value) => {
+            if (isAttack) {
+                fighter.poseOffsetXs ??= {};
+                fighter.poseOffsetXs.attack = Math.round(value);
+            } else {
+                fighter.attackEffect!.offsetX = Math.round(value);
+            }
+        }, false);
+        this.addDebugSlider(layer, 382, 'Y', yRange[0], yRange[1], yValue, (value) => {
+            if (isAttack) {
+                fighter.poseOffsetYs ??= {};
+                fighter.poseOffsetYs.attack = Math.round(value);
+            } else {
+                fighter.attackEffect!.offsetY = Math.round(value);
+            }
+        }, false);
+        this.addDebugSlider(layer, 435, 'SIZE', scaleRange[0], scaleRange[1], scaleValue, (value) => {
+            if (isAttack) {
+                fighter.poseScales ??= {};
+                fighter.poseScales.attack = Math.round(value * 100) / 100;
+            } else {
+                fighter.attackEffect!.scale = Math.round(value * 100) / 100;
+            }
+        }, true);
+
+        const copy = this.add.rectangle(935, 514, 180, 36, 0x203324, 0.98).setStrokeStyle(2, 0x9cf2be, 0.9).setInteractive({ useHandCursor: true });
+        const copyText = this.add.text(935, 514, 'COPY THIS FIGHTER', { fontFamily: 'Arial, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#d3ffe4', letterSpacing: 1 }).setOrigin(0.5);
+        copy.on('pointerdown', () => this.copyDebugTuning());
+        const allCopy = this.add.rectangle(1110, 514, 145, 36, 0x1a2638, 0.98).setStrokeStyle(2, 0x9bbce8, 0.9).setInteractive({ useHandCursor: true });
+        const allCopyText = this.add.text(1110, 514, 'COPY ALL', { fontFamily: 'Arial, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#d7e7ff', letterSpacing: 1 }).setOrigin(0.5);
+        allCopy.on('pointerdown', () => this.copyDebugTuning(true));
+        layer.add([copy, copyText, allCopy, allCopyText]);
+    }
+
+    private addDebugButton(layer: GameObjects.Container, x: number, y: number, width: number, height: number, label: string, active: boolean, onClick: () => void) {
+        const frame = this.add.rectangle(x, y, width, height, active ? 0x263a52 : 0x121d2d, 1).setStrokeStyle(active ? 2 : 1, active ? this.playerFighter.color : 0x607b97, 1).setInteractive({ useHandCursor: true });
+        const text = this.add.text(x, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '10px', fontStyle: 'bold', color: active ? '#ffffff' : '#b9c9d8', letterSpacing: 1 }).setOrigin(0.5);
+        frame.on('pointerdown', onClick);
+        layer.add([frame, text]);
+    }
+
+    private addDebugSlider(layer: GameObjects.Container, y: number, label: string, min: number, max: number, value: number, setValue: (value: number) => void, decimal: boolean) {
+        const startX = 872;
+        const width = 224;
+        const display = this.add.text(1184, y, decimal ? value.toFixed(2) : `${Math.round(value)}`, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#eef8ff' }).setOrigin(1, 0.5);
+        const caption = this.add.text(807, y, label, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#c8dae8', letterSpacing: 1 }).setOrigin(0, 0.5);
+        const track = this.add.rectangle(startX + width / 2, y, width, 9, 0x25384c, 1).setInteractive({ useHandCursor: true });
+        const currentX = () => startX + ((value - min) / (max - min)) * width;
+        const knob = this.add.circle(currentX(), y, 11, 0x75f4ea, 1).setStrokeStyle(2, 0xffffff, 0.95);
+        const applyAt = (worldX: number) => {
+            const progress = PhaserMath.Clamp((worldX - startX) / width, 0, 1);
+            value = min + (max - min) * progress;
+            setValue(value);
+            display.setText(decimal ? value.toFixed(2) : `${Math.round(value)}`);
+            knob.setX(startX + progress * width);
+            this.updateDebugPreview();
+        };
+        track.on('pointerdown', (pointer: Phaser.Input.Pointer) => applyAt(pointer.worldX));
+        track.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (pointer.isDown) applyAt(pointer.worldX);
+        });
+        layer.add([caption, track, knob, display]);
+    }
+
+    private switchDebugFighter(fighter: FighterDefinition) {
+        if (fighter.id === this.playerFighter.id || this.state !== 'preview') return;
+        const npc = FIGHTERS.find((other) => other.id !== fighter.id && other.id === 'mika') ?? FIGHTERS[0];
+        const apply = () => {
+            this.tweens.killTweensOf(this.raven);
+            this.tweens.killTweensOf(this.mika);
+            this.raven.destroy();
+            this.mika.destroy();
+            this.playerFighter = fighter;
+            this.npcFighter = npc;
+            this.createFighters();
+            this.promptText.setText('MOTION CHECK');
+            this.statusText.setText(`${fighter.name} の攻撃位置を調整中`);
+            this.createDebugTuner();
+            this.updateDebugPreview();
+        };
+        if (this.needsMotionLoad(fighter) || this.needsMotionLoad(npc)) {
+            this.statusText.setText(`PREPARING ${fighter.name}`);
+            this.loadFighterMotions([fighter, npc], apply);
+            return;
+        }
+        apply();
+    }
+
+    private updateDebugPreview() {
+        if (!this.debugEnabled || this.state !== 'preview') return;
+        this.setFighterPose(this.raven, 'attack');
+        this.setFighterPose(this.mika, 'guard');
+        this.debugEffectPreview?.destroy();
+        this.debugEffectPreview = undefined;
+        if (this.debugAsset !== 'effect') return;
+        const definition = this.playerFighter;
+        const effectDefinition = definition.attackEffect;
+        if (effectDefinition === undefined || !this.textures.exists(this.attackEffectKey(definition))) return;
+        const direction = this.raven.getData('direction') as -1 | 1;
+        const towardCenter = direction === -1 ? 1 : -1;
+        this.debugEffectPreview = this.add.image(
+            this.raven.x + towardCenter * effectDefinition.offsetX,
+            this.raven.y + effectDefinition.offsetY,
+            this.attackEffectKey(definition)
+        ).setOrigin(0.5).setScale(effectDefinition.scale).setFlipX(this.shouldFlipNatural('right', direction)).setAlpha(0.96).setDepth(effectDefinition.layer === 'front' ? 7 : 3);
+    }
+
+    private copyDebugTuning(all = false) {
+        const serialize = (fighter: FighterDefinition) => ({
+            attack: { x: this.poseOffsetX(fighter, 'attack'), y: this.poseOffsetY(fighter, 'attack'), scale: this.poseScale(fighter, 'attack') },
+            effect: { x: fighter.attackEffect?.offsetX, y: fighter.attackEffect?.offsetY, scale: fighter.attackEffect?.scale }
+        });
+        const value = all
+            ? Object.fromEntries(FIGHTERS.map((fighter) => [fighter.id, serialize(fighter)]))
+            : { [this.playerFighter.id]: serialize(this.playerFighter) };
+        const copied = JSON.stringify(value);
+        void navigator.clipboard?.writeText(copied);
+        this.statusText.setText(`COPIED: ${copied}`);
     }
 
     private createSignal() {
