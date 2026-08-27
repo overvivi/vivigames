@@ -251,7 +251,16 @@ export class Game extends Scene {
         const texture = pose === 'guard' || !this.hasMotion(definition)
             ? definition.combatKey
             : this.motionKey(definition, pose);
-        art.setTexture(texture).setScale(definition.combatScale).setFlipX(direction === 1);
+        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setFlipX(direction === 1);
+    }
+
+    private poseScale(fighter: FighterDefinition, pose: FighterPose) {
+        if (fighter.id === 'tomega9') {
+            // 横長と縦長で元の画像寸法が異なる。怪物らしい体格をどのポーズでも保つ。
+            const monsterScale: Record<FighterPose, number> = { guard: 0.30, dash: 0.28, attack: 0.26, win: 0.36, lose: 0.32 };
+            return monsterScale[pose];
+        }
+        return fighter.combatScale;
     }
 
     private showMotionPreview() {
