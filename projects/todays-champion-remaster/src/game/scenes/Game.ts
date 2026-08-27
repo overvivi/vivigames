@@ -2,6 +2,13 @@ import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
 type DuelState = 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
 
+type AttackEffectDefinition = {
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+    layer: 'behind' | 'front';
+};
+
 type FighterDefinition = {
     id: string;
     name: string;
@@ -11,6 +18,7 @@ type FighterDefinition = {
     combatKey: string;
     combatScale: number;
     naturalFacing: 'left' | 'right';
+    attackEffect?: AttackEffectDefinition;
 };
 
 type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
@@ -25,8 +33,8 @@ const FIGHTERS: FighterDefinition[] = [
     { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right' },
     { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left' },
     { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right' },
-    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right' },
-    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right' }
+    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.25, offsetX: 116, offsetY: -8, layer: 'front' } },
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.31, offsetX: 108, offsetY: 54, layer: 'behind' } }
 ];
 
 export class Game extends Scene {
@@ -214,12 +222,16 @@ export class Game extends Scene {
         return `motion-${fighter.id}-${pose}`;
     }
 
+    private attackEffectKey(fighter: FighterDefinition) {
+        return `effect-${fighter.id}-attack`;
+    }
+
     private hasMotion(fighter: FighterDefinition) {
         return fighter.id === 'vivi' || fighter.id === 'tomega9';
     }
 
     private needsMotionLoad(fighter: FighterDefinition) {
-        return this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack'));
+        return this.hasMotion(fighter) && (!this.textures.exists(this.motionKey(fighter, 'attack')) || (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter))));
     }
 
     private motionSourceVersion(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
@@ -237,8 +249,14 @@ export class Game extends Scene {
         }
         toLoad.forEach((fighter) => {
             (['dash', 'attack', 'win', 'lose'] as const).forEach((pose) => {
-                this.load.image(this.motionKey(fighter, pose), `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
+                const key = this.motionKey(fighter, pose);
+                if (!this.textures.exists(key)) {
+                    this.load.image(key, `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
+                }
             });
+            if (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter))) {
+                this.load.image(this.attackEffectKey(fighter), `assets/fighters/effects/${fighter.id}-attack-v1.png`);
+            }
         });
         // ESMビルドではグローバルのPhaser名前空間が無いため、文字列イベントで完了を受け取る。
         this.load.once('complete', onComplete);
@@ -294,6 +312,7 @@ export class Game extends Scene {
             const text = this.add.text(x, 644, pose.toUpperCase(), { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#edf7ff', letterSpacing: 1 }).setOrigin(0.5);
             frame.on('pointerdown', () => {
                 this.setFighterPose(this.raven, pose);
+                if (pose === 'attack') this.playAttackEffect(this.raven);
                 this.statusText.setText(`${this.playerFighter.name}  /  ${pose.toUpperCase()}`);
             });
             layer.add([frame, text]);
@@ -427,9 +446,12 @@ export class Game extends Scene {
         this.setFighterPose(this.mika, 'attack');
         if (falseStart) {
             this.flashArena(0xff405b, 0.3, 190);
+            this.playAttackEffect(this.raven);
         } else {
             this.flashArena(winnerColor, 0.28, 100);
             this.createDashTrail(winner, winnerColor, playerWins ? 1 : -1);
+            this.createImpactBurst(winner, winnerColor);
+            this.playAttackEffect(winner);
             this.tweens.add({ targets: winner, x: winner.x + (playerWins ? 150 : -150), duration: 190, ease: 'Quad.easeOut' });
         }
         this.tweens.add({ targets: this.scoreText, scale: 1.14, duration: 120, yoyo: true, repeat: 1, ease: 'Quad.easeOut' });
@@ -462,6 +484,59 @@ export class Game extends Scene {
                 onComplete: () => trail.destroy()
             });
         }
+    }
+
+    private createImpactBurst(fighter: GameObjects.Container, color: number) {
+        const direction = fighter.getData('direction') as -1 | 1;
+        const towardCenter = direction === -1 ? 1 : -1;
+        const x = fighter.x + towardCenter * 116;
+        const y = fighter.y + 42;
+        const ring = this.add.circle(x, y, 13).setStrokeStyle(4, color, 0.95).setDepth(6);
+        this.tweens.add({ targets: ring, scale: 3.8, alpha: 0, duration: 250, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
+        for (let index = 0; index < 9; index++) {
+            const spark = this.add.rectangle(x, y, 5, 5, color, 0.9).setDepth(6).setRotation(PhaserMath.FloatBetween(-0.8, 0.8));
+            this.tweens.add({
+                targets: spark,
+                x: x + towardCenter * PhaserMath.Between(44, 155),
+                y: y + PhaserMath.Between(-92, 72),
+                alpha: 0,
+                scale: PhaserMath.FloatBetween(0.35, 0.8),
+                duration: PhaserMath.Between(180, 330),
+                ease: 'Quad.easeOut',
+                onComplete: () => spark.destroy()
+            });
+        }
+    }
+
+    private playAttackEffect(fighter: GameObjects.Container) {
+        const definition = fighter.getData('definition') as FighterDefinition;
+        const effectDefinition = definition.attackEffect;
+        if (effectDefinition === undefined || !this.textures.exists(this.attackEffectKey(definition))) return;
+        const direction = fighter.getData('direction') as -1 | 1;
+        const towardCenter = direction === -1 ? 1 : -1;
+        const effect = this.add.image(
+            fighter.x + towardCenter * effectDefinition.offsetX,
+            fighter.y + effectDefinition.offsetY,
+            this.attackEffectKey(definition)
+        ).setOrigin(0.5).setScale(effectDefinition.scale * 0.76).setFlipX(this.shouldFlip(definition, direction)).setAlpha(0).setDepth(effectDefinition.layer === 'front' ? 7 : 3);
+
+        this.tweens.add({
+            targets: effect,
+            alpha: 1,
+            scale: effectDefinition.scale,
+            duration: 65,
+            ease: 'Quad.easeOut'
+        });
+        this.tweens.add({
+            targets: effect,
+            x: effect.x + towardCenter * 88,
+            alpha: 0,
+            scale: effectDefinition.scale * 1.09,
+            duration: 340,
+            delay: 55,
+            ease: 'Sine.easeOut',
+            onComplete: () => effect.destroy()
+        });
     }
 
     private showResult(playerWins: boolean, falseStart: boolean) {
