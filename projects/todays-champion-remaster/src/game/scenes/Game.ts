@@ -10,6 +10,7 @@ type FighterDefinition = {
     portraitKey: string;
     combatKey: string;
     combatScale: number;
+    naturalFacing: 'left' | 'right';
 };
 
 type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
@@ -19,13 +20,13 @@ const VIEW_HEIGHT = 720;
 const LAMP_OFF = 0x17202b;
 const LAMP_COLORS = [0xff4e5f, 0xffc84f, 0x5fffd0];
 const FIGHTERS: FighterDefinition[] = [
-    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42 },
-    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42 },
-    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42 },
-    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42 },
-    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42 },
-    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19 },
-    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19 }
+    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left' },
+    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right' },
+    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right' },
+    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left' },
+    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right' },
+    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right' },
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right' }
 ];
 
 export class Game extends Scene {
@@ -103,7 +104,7 @@ export class Game extends Scene {
         const fighter = this.add.container(x, y);
         const glow = this.add.circle(0, 16, 104, fighterData.color, 0.1);
         const shadow = this.add.ellipse(0, 101, 138, 22, 0x000000, 0.48);
-        const art = this.add.image(0, 82, fighterData.combatKey).setOrigin(0.5, 1).setScale(fighterData.combatScale).setFlipX(direction === 1);
+        const art = this.add.image(0, 82, fighterData.combatKey).setOrigin(0.5, 1).setScale(fighterData.combatScale).setFlipX(this.shouldFlip(fighterData, direction));
         const nameText = this.add.text(0, 132, fighterData.name, { fontFamily: 'Arial, sans-serif', fontSize: '28px', fontStyle: 'bold', color: `#${fighterData.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
         const subtitleText = this.add.text(0, 161, fighterData.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '13px', color: '#9aa9b7', letterSpacing: 2 }).setOrigin(0.5);
         fighter.add([glow, shadow, art, nameText, subtitleText]);
@@ -251,7 +252,13 @@ export class Game extends Scene {
         const texture = pose === 'guard' || !this.hasMotion(definition)
             ? definition.combatKey
             : this.motionKey(definition, pose);
-        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(direction === 1);
+        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(this.shouldFlip(definition, direction));
+    }
+
+    private shouldFlip(fighter: FighterDefinition, direction: -1 | 1) {
+        // 素材ごとの素の向きを固定し、プレイヤー／NPCの配置が変わっても必ず中央を向ける。
+        const desiredFacing = direction === -1 ? 'right' : 'left';
+        return fighter.naturalFacing !== desiredFacing;
     }
 
     private poseScale(fighter: FighterDefinition, pose: FighterPose) {
