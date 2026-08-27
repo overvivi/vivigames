@@ -18,6 +18,9 @@ type FighterDefinition = {
     combatKey: string;
     combatScale: number;
     naturalFacing: 'left' | 'right';
+    poseFacing?: Partial<Record<FighterPose, 'left' | 'right'>>;
+    poseScales?: Partial<Record<FighterPose, number>>;
+    poseOffsetYs?: Partial<Record<FighterPose, number>>;
     attackEffect?: AttackEffectDefinition;
 };
 
@@ -28,11 +31,11 @@ const VIEW_HEIGHT = 720;
 const LAMP_OFF = 0x17202b;
 const LAMP_COLORS = [0xff4e5f, 0xffc84f, 0x5fffd0];
 const FIGHTERS: FighterDefinition[] = [
-    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', attackEffect: { scale: 0.20, offsetX: 116, offsetY: -8, layer: 'behind' } },
-    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.22, offsetX: 122, offsetY: 20, layer: 'front' } },
-    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.27, offsetX: 112, offsetY: 34, layer: 'behind' } },
-    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left', attackEffect: { scale: 0.21, offsetX: 118, offsetY: -6, layer: 'behind' } },
-    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', attackEffect: { scale: 0.22, offsetX: 118, offsetY: -2, layer: 'behind' } },
+    { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { attack: 'right' }, poseScales: { attack: 0.43 }, attackEffect: { scale: 0.20, offsetX: 116, offsetY: -8, layer: 'behind' } },
+    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseScales: { attack: 0.43 }, attackEffect: { scale: 0.22, offsetX: 122, offsetY: 20, layer: 'front' } },
+    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseScales: { attack: 0.43 }, attackEffect: { scale: 0.27, offsetX: 112, offsetY: 34, layer: 'behind' } },
+    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'left', poseFacing: { attack: 'right' }, poseScales: { attack: 0.45 }, attackEffect: { scale: 0.21, offsetX: 118, offsetY: -6, layer: 'behind' } },
+    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseScales: { attack: 0.63 }, poseOffsetYs: { attack: -18 }, attackEffect: { scale: 0.22, offsetX: 118, offsetY: -2, layer: 'behind' } },
     { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.25, offsetX: 116, offsetY: -48, layer: 'front' } },
     { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', attackEffect: { scale: 0.39, offsetX: 108, offsetY: 54, layer: 'behind' } }
 ];
@@ -230,8 +233,14 @@ export class Game extends Scene {
         return fighter.id === 'vivi' || fighter.id === 'tomega9';
     }
 
+    private hasAttackMotion(_fighter: FighterDefinition) {
+        // 現在の7人は全員に攻撃ポーズを用意する。既存5人は攻撃だけを遅延読込にする。
+        return true;
+    }
+
     private needsMotionLoad(fighter: FighterDefinition) {
-        return (this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack')))
+        return (this.hasMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'dash')))
+            || (this.hasAttackMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack')))
             || (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter)));
     }
 
@@ -256,6 +265,8 @@ export class Game extends Scene {
                         this.load.image(key, `assets/fighters/motions/${fighter.id}-${pose}-${this.motionSourceVersion(fighter, pose)}.png`);
                     }
                 });
+            } else if (this.hasAttackMotion(fighter) && !this.textures.exists(this.motionKey(fighter, 'attack'))) {
+                this.load.image(this.motionKey(fighter, 'attack'), `assets/fighters/motions/${fighter.id}-attack.webp`);
             }
             if (fighter.attackEffect !== undefined && !this.textures.exists(this.attackEffectKey(fighter))) {
                 this.load.image(this.attackEffectKey(fighter), `assets/fighters/effects/${fighter.id}-attack-v1.png`);
@@ -270,19 +281,25 @@ export class Game extends Scene {
         const art = fighter.getData('art') as GameObjects.Image;
         const definition = fighter.getData('definition') as FighterDefinition;
         const direction = fighter.getData('direction') as -1 | 1;
-        const texture = pose === 'guard' || !this.hasMotion(definition)
+        const hasPoseMotion = this.hasMotion(definition) || (pose === 'attack' && this.hasAttackMotion(definition));
+        const texture = pose === 'guard' || !hasPoseMotion
             ? definition.combatKey
             : this.motionKey(definition, pose);
-        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(this.shouldFlip(definition, direction));
+        art.setTexture(texture).setScale(this.poseScale(definition, pose)).setY(82 + this.poseOffsetY(definition, pose)).setFlipX(this.shouldFlip(definition, direction, pose));
     }
 
-    private shouldFlip(fighter: FighterDefinition, direction: -1 | 1) {
+    private shouldFlip(fighter: FighterDefinition, direction: -1 | 1, pose: FighterPose = 'guard') {
         // 素材ごとの素の向きを固定し、プレイヤー／NPCの配置が変わっても必ず中央を向ける。
+        return this.shouldFlipNatural(fighter.poseFacing?.[pose] ?? fighter.naturalFacing, direction);
+    }
+
+    private shouldFlipNatural(naturalFacing: 'left' | 'right', direction: -1 | 1) {
         const desiredFacing = direction === -1 ? 'right' : 'left';
-        return fighter.naturalFacing !== desiredFacing;
+        return naturalFacing !== desiredFacing;
     }
 
     private poseScale(fighter: FighterDefinition, pose: FighterPose) {
+        if (fighter.poseScales?.[pose] !== undefined) return fighter.poseScales[pose];
         if (fighter.id === 'tomega9') {
             // 横長と縦長で元の画像寸法が異なる。怪物らしい体格をどのポーズでも保つ。
             // WIN／LOSEの体格を基準に、横長の待機・ダッシュと縦長の攻撃を揃える。
@@ -293,6 +310,7 @@ export class Game extends Scene {
     }
 
     private poseOffsetY(fighter: FighterDefinition, pose: FighterPose) {
+        if (fighter.poseOffsetYs?.[pose] !== undefined) return fighter.poseOffsetYs[pose];
         // 振り上げた腕で縦長になるTΩ9の攻撃だけ、頭の高さを待機・勝利へ合わせる。
         return fighter.id === 'tomega9' && pose === 'attack' ? 30 : 0;
     }
@@ -521,7 +539,7 @@ export class Game extends Scene {
             fighter.x + towardCenter * effectDefinition.offsetX,
             fighter.y + effectDefinition.offsetY,
             this.attackEffectKey(definition)
-        ).setOrigin(0.5).setScale(effectDefinition.scale * 0.76).setFlipX(this.shouldFlip(definition, direction)).setAlpha(0).setDepth(effectDefinition.layer === 'front' ? 7 : 3);
+        ).setOrigin(0.5).setScale(effectDefinition.scale * 0.76).setFlipX(this.shouldFlipNatural('right', direction)).setAlpha(0).setDepth(effectDefinition.layer === 'front' ? 7 : 3);
 
         this.tweens.add({
             targets: effect,
