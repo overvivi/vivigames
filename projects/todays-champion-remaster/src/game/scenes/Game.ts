@@ -58,7 +58,7 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => {
             if (fighter.id === 'vivi' || fighter.id === 'tomega9') {
                 this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}-select-v2.png`);
-                this.load.image(fighter.combatKey, `assets/fighters/${fighter.id}-select-v1.png`);
+                this.load.image(fighter.combatKey, `assets/fighters/guard/${fighter.id}-v3.png`);
                 return;
             }
             this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}.webp`);
