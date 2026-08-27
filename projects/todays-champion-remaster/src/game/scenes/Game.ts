@@ -54,6 +54,11 @@ export class Game extends Scene {
     private playerFighter = FIGHTERS[0];
     private npcFighter = FIGHTERS[1];
     private selectTitle?: GameObjects.Text;
+    private selectedPortrait?: GameObjects.Image;
+    private selectedName?: GameObjects.Text;
+    private selectedSubtitle?: GameObjects.Text;
+    private selectedFrame?: GameObjects.Rectangle;
+    private selectedAccent?: GameObjects.Rectangle;
     private selectionLayer?: GameObjects.Container;
     private selectionFrames = new Map<string, GameObjects.Rectangle>();
     private reactionStartedAt = 0;
@@ -145,19 +150,43 @@ export class Game extends Scene {
         this.setSignal(-1);
 
         const layer = this.add.container().setDepth(100);
-        const shade = this.add.rectangle(640, 360, VIEW_WIDTH, VIEW_HEIGHT, 0x050912, 0.94);
-        const eyebrow = this.add.text(640, 54, 'TODAY\'S CHAMPION  /  REMASTER', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#8ea7bd', letterSpacing: 4 }).setOrigin(0.5);
-        const title = this.add.text(640, 88, 'FIGHTER SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '34px', fontStyle: 'bold', color: '#eff8ff', letterSpacing: 6 }).setOrigin(0.5);
-        this.selectTitle = this.add.text(640, 122, '', { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#f4d45e', letterSpacing: 3 }).setOrigin(0.5);
-        layer.add([shade, eyebrow, title, this.selectTitle]);
+        const shade = this.add.rectangle(640, 360, VIEW_WIDTH, VIEW_HEIGHT, 0x050912, 1);
+        const leftWash = this.add.rectangle(302, 360, 604, VIEW_HEIGHT, 0x0a1421, 0.82);
+        const rosterWash = this.add.rectangle(960, 360, 640, VIEW_HEIGHT, 0x080f19, 0.94);
+        const divider = this.add.rectangle(640, 360, 2, VIEW_HEIGHT - 92, 0x5d88a4, 0.34);
+        const topRule = this.add.rectangle(640, 88, VIEW_WIDTH - 144, 1, 0x678ba2, 0.22);
+        const bottomRule = this.add.rectangle(640, 638, VIEW_WIDTH - 144, 1, 0x678ba2, 0.22);
+        layer.add([shade, leftWash, rosterWash, divider, topRule, bottomRule]);
+        for (let index = 0; index < 19; index++) {
+            const x = 76 + ((index * 157) % 1120);
+            const y = 124 + ((index * 71) % 470);
+            layer.add(this.add.rectangle(x, y, 1, 36 + (index % 4) * 18, index % 2 ? 0x4ed7ff : 0xf64ab9, 0.1));
+        }
+
+        const eyebrow = this.add.text(84, 42, 'TODAY\'S CHAMPION  /  REMASTER', { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#91abc0', letterSpacing: 4 });
+        const title = this.add.text(84, 66, 'SELECT YOUR FIGHTER', { fontFamily: 'Arial, sans-serif', fontSize: '25px', fontStyle: 'bold', color: '#f1f7ff', letterSpacing: 3 });
+        this.selectTitle = this.add.text(1196, 50, '', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 2 }).setOrigin(1, 0.5);
+        const focusLabel = this.add.text(104, 132, 'MAIN CONTENDER', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#728ba0', letterSpacing: 3 });
+        const rosterLabel = this.add.text(704, 132, 'ROSTER  //  07 FIGHTERS', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#728ba0', letterSpacing: 3 });
+        layer.add([eyebrow, title, this.selectTitle, focusLabel, rosterLabel]);
+
+        const focusPanel = this.add.rectangle(348, 390, 488, 486, 0x0a1421, 0.92).setStrokeStyle(2, 0x416174, 1);
+        this.selectedAccent = this.add.rectangle(112, 184, 8, 90, this.selectedFighter.color, 0.96);
+        this.selectedFrame = this.add.rectangle(348, 390, 454, 452, 0x000000, 0).setStrokeStyle(2, this.selectedFighter.color, 1);
+        this.selectedPortrait = this.add.image(348, 345, this.selectedFighter.portraitKey).setDisplaySize(368, 368);
+        const portraitMask = this.add.rectangle(348, 536, 454, 114, 0x07101a, 0.84);
+        this.selectedName = this.add.text(126, 552, this.selectedFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '34px', fontStyle: 'bold', color: '#f3f8ff', letterSpacing: 4 });
+        this.selectedSubtitle = this.add.text(128, 592, this.selectedFighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: '#a9bed0', letterSpacing: 3 });
+        const selectedHint = this.add.text(126, 618, 'READY FOR THE SIGNAL', { fontFamily: 'Arial, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#728ba0', letterSpacing: 2 });
+        layer.add([focusPanel, this.selectedAccent, this.selectedPortrait, portraitMask, this.selectedFrame, this.selectedName, this.selectedSubtitle, selectedHint]);
         this.selectionLayer = layer;
         this.selectionFrames.clear();
 
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter);
 
-        const startFrame = this.add.rectangle(640, 668, 360, 48, 0x121c2b, 0.98).setStrokeStyle(2, 0xf5d24b, 1).setInteractive({ useHandCursor: true });
-        const startText = this.add.text(640, 668, 'START DUEL', { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#f9dd67', letterSpacing: 3 }).setOrigin(0.5);
+        const startFrame = this.add.rectangle(348, 668, 408, 50, 0x192236, 0.98).setStrokeStyle(2, 0xf5d24b, 1).setInteractive({ useHandCursor: true });
+        const startText = this.add.text(348, 668, 'ENTER THE DUEL', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#f9dd67', letterSpacing: 3 }).setOrigin(0.5);
         startFrame.on('pointerdown', () => this.startSelectedDuel());
         startFrame.on('pointerover', () => startFrame.setFillStyle(0x26344b));
         startFrame.on('pointerout', () => startFrame.setFillStyle(0x121c2b));
@@ -165,14 +194,15 @@ export class Game extends Scene {
     }
 
     private createSelectionCard(fighter: FighterDefinition, index: number) {
-        const column = index % 4;
-        const row = Math.floor(index / 4);
-        const x = 210 + column * 285 + (row === 1 ? 142 : 0);
-        const y = row === 0 ? 278 : 500;
-        const frame = this.add.rectangle(x, y, 228, 192, 0x101927, 0.96).setStrokeStyle(2, 0x476074, 1).setInteractive({ useHandCursor: true });
-        const portrait = this.add.image(x, y - 28, fighter.portraitKey).setDisplaySize(212, 148);
-        const name = this.add.text(x, y + 63, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: '#eaf4ff', letterSpacing: 2 }).setOrigin(0.5);
-        const subtitle = this.add.text(x, y + 86, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: '#9eb3c6', letterSpacing: 1 }).setOrigin(0.5);
+        const column = index % 3;
+        const row = Math.floor(index / 3);
+        const x = 792 + column * 142;
+        const y = 244 + row * 145;
+        const frame = this.add.rectangle(x, y, 126, 130, 0x111c2a, 0.98).setStrokeStyle(1, 0x476074, 1).setInteractive({ useHandCursor: true });
+        const portrait = this.add.image(x, y - 17, fighter.portraitKey).setDisplaySize(108, 108);
+        const labelShade = this.add.rectangle(x, y + 45, 122, 34, 0x07101a, 0.84);
+        const name = this.add.text(x, y + 36, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#eaf4ff', letterSpacing: 1 }).setOrigin(0.5);
+        const subtitle = this.add.text(x, y + 54, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', color: '#9eb3c6', letterSpacing: 1 }).setOrigin(0.5);
         frame.on('pointerdown', () => this.selectFighter(fighter));
         frame.on('pointerover', () => {
             if (fighter !== this.selectedFighter) frame.setFillStyle(0x17253a);
@@ -180,17 +210,23 @@ export class Game extends Scene {
         frame.on('pointerout', () => {
             if (fighter !== this.selectedFighter) frame.setFillStyle(0x101927);
         });
-        this.selectionLayer?.add([frame, portrait, name, subtitle]);
+        this.selectionLayer?.add([frame, portrait, labelShade, name, subtitle]);
         this.selectionFrames.set(fighter.id, frame);
     }
 
     private selectFighter(fighter: FighterDefinition) {
         this.selectedFighter = fighter;
         this.selectTitle?.setText(`${fighter.name}  /  ${fighter.subtitle}`);
+        this.selectedPortrait?.setTexture(fighter.portraitKey).setAlpha(0.3);
+        this.tweens.add({ targets: this.selectedPortrait, alpha: 1, duration: 150, ease: 'Sine.easeOut' });
+        this.selectedName?.setText(fighter.name);
+        this.selectedSubtitle?.setText(fighter.subtitle);
+        this.selectedFrame?.setStrokeStyle(2, fighter.color, 1);
+        this.selectedAccent?.setFillStyle(fighter.color, 0.96);
         this.selectionFrames.forEach((frame, id) => {
             const selected = id === fighter.id;
-            frame.setFillStyle(selected ? 0x23354b : 0x101927);
-            frame.setStrokeStyle(selected ? 3 : 2, selected ? fighter.color : 0x476074, selected ? 1 : 0.9);
+            frame.setFillStyle(selected ? 0x20364b : 0x111c2a);
+            frame.setStrokeStyle(selected ? 2 : 1, selected ? fighter.color : 0x476074, selected ? 1 : 0.9);
         });
     }
 
