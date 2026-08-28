@@ -36,18 +36,18 @@ type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
 const VIEW_WIDTH = 941;
 const VIEW_HEIGHT = 1672;
 const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterScale: 1 };
-// 選択中でも7人の並びは動かさない。採用モックどおり、誰が選べるかを常に見せる。
-// iPhoneのSafariは縦基準のCanvasを左右だけ少し切る。端の選択枠まで残る安全域へ収める。
-const SELECT_GATE_SLOTS = [170, 270, 370, 470, 570, 670, 770];
-const SELECT_GATE_Y = 900;
+// 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
+const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
+// 背景の道路境界Y=1226へ下端を合わせ、ゲートが濡れた地面へ立って見えるようにする。
+const SELECT_GATE_Y = 801;
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
-    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
-    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.50, dash: 0.48, attack: 0.50, win: 0.72, lose: 0.34 }, poseOffsetYs: { guard: 7, win: 20 }, attackEffect: { scale: 0.31, offsetX: 47, offsetY: -160, layer: 'behind' } },
-    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BREAKER', color: 0xa776ff, portraitKey: 'portrait-noise', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseFlipOverrides: { guard: true, lose: true }, poseScales: { guard: 0.45, dash: 0.41, attack: 0.46, win: 0.52, lose: 0.33 }, poseOffsetYs: { win: 17 }, attackEffect: { scale: 0.31, offsetX: 123, offsetY: -113, layer: 'behind' } },
-    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIGNAL', color: 0xb1c4f6, portraitKey: 'portrait-kiri', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', win: 'left', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.41, dash: 0.41, attack: 0.63, win: 0.58, lose: 0.31 }, poseOffsetYs: { attack: 60, win: 20, lose: -7 }, attackEffect: { scale: 0.32, offsetX: 70, offsetY: -17, layer: 'behind' } },
+    { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
+    { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', gateLineupKey: 'gate-brick-lineup', gateSelectedKey: 'gate-brick-selected', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.50, dash: 0.48, attack: 0.50, win: 0.72, lose: 0.34 }, poseOffsetYs: { guard: 7, win: 20 }, attackEffect: { scale: 0.31, offsetX: 47, offsetY: -160, layer: 'behind' } },
+    { id: 'noise', name: 'NOISE', subtitle: 'BEAT BRKR', color: 0xa776ff, portraitKey: 'portrait-noise', gateLineupKey: 'gate-noise-lineup', gateSelectedKey: 'gate-noise-selected', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseFlipOverrides: { guard: true, lose: true }, poseScales: { guard: 0.45, dash: 0.41, attack: 0.46, win: 0.52, lose: 0.33 }, poseOffsetYs: { win: 17 }, attackEffect: { scale: 0.31, offsetX: 123, offsetY: -113, layer: 'behind' } },
+    { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIG', color: 0xb1c4f6, portraitKey: 'portrait-kiri', gateLineupKey: 'gate-kiri-lineup', gateSelectedKey: 'gate-kiri-selected', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', win: 'left', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.41, dash: 0.41, attack: 0.63, win: 0.58, lose: 0.31 }, poseOffsetYs: { attack: 60, win: 20, lose: -7 }, attackEffect: { scale: 0.32, offsetX: 70, offsetY: -17, layer: 'behind' } },
     { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', gateLineupKey: 'gate-vivi-lineup', gateSelectedKey: 'gate-vivi-selected', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.25, dash: 0.25, attack: 0.25, win: 0.23, lose: 0.19 }, poseOffsetYs: { guard: 27, dash: -7, attack: 40, win: 3 }, attackEffect: { scale: 0.39, offsetX: 240, offsetY: -70, layer: 'behind' } },
-    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.35, dash: 0.34, attack: 0.33, win: 0.34, lose: 0.31 }, poseOffsetYs: { attack: 20 }, attackEffect: { scale: 0.49, offsetX: 147, offsetY: -90, layer: 'behind' } }
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', gateLineupKey: 'gate-tomega9-lineup', gateSelectedKey: 'gate-tomega9-selected', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.35, dash: 0.34, attack: 0.33, win: 0.34, lose: 0.31 }, poseOffsetYs: { attack: 20 }, attackEffect: { scale: 0.49, offsetX: 147, offsetY: -90, layer: 'behind' } }
 ];
 
 // 背景へ文字を焼かず、端末差で見た目が崩れない同一キャンバス内の画像演出にする。
@@ -102,19 +102,20 @@ export class Game extends Scene {
 
     preload() {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
-        this.load.image('select-bg-mobile', 'assets/select/select-bg-mobile-v1.webp');
-        this.load.image('select-title-logo', 'assets/select/ui/title-logo-v1.webp');
-        this.load.image('gate-frame-lineup', 'assets/select/frames/gate-frame-lineup-v1.webp');
-        this.load.image('gate-frame-selected', 'assets/select/frames/gate-frame-selected-v1.webp');
+        this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v1.webp');
+        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v1.webp');
+        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
+        this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v1.webp');
+        this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v1.webp');
+        FIGHTERS.forEach((fighter) => {
+            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/gate-${fighter.id}-lineup-final-v1.webp`);
+            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/gate-${fighter.id}-selected-final-v1.webp`);
+        });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');
         this.load.image('countdown-1', 'assets/ui/countdown-1-v1.webp');
         this.load.image('countdown-fight', 'assets/ui/countdown-fight-v1.webp');
         FIGHTERS.forEach((fighter) => {
-            if (fighter.gateLineupKey && fighter.gateSelectedKey) {
-                this.load.image(fighter.gateLineupKey, `assets/select/gates/${fighter.id}-lineup-v2.webp`);
-                this.load.image(fighter.gateSelectedKey, `assets/select/gates/${fighter.id}-selected-v2.webp`);
-            }
             if (fighter.id === 'vivi' || fighter.id === 'tomega9') {
                 this.load.image(fighter.portraitKey, `assets/fighters/portraits/${fighter.id}-select-v2.png`);
                 this.load.image(fighter.combatKey, `assets/fighters/guard/${fighter.id}-v3.png`);
@@ -185,21 +186,20 @@ export class Game extends Scene {
         // 選択画面は戦闘背景を暗く覆うのではなく、カードを置く専用舞台へ丸ごと差し替える。
         // 枠・キャラ・文字はこの上へ同じPhaser座標で積むので、端末別のズレを作らない。
         const selectBackground = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'select-bg-mobile').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
-        const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x02060d, 0.12);
-        const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 262, VIEW_WIDTH, 474, 0x050a13, 0.46);
-        const sectionRule = this.add.rectangle(VIEW_WIDTH / 2, 382, VIEW_WIDTH - 76, 1, 0xcda95d, 0.38);
-        const startRule = this.add.rectangle(VIEW_WIDTH / 2, 1478, VIEW_WIDTH - 76, 1, 0x75cde2, 0.22);
-        layer.add([selectBackground, shade, upperShade, sectionRule, startRule]);
+        const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x02060d, 0.08);
+        const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 180, VIEW_WIDTH, 360, 0x050a13, 0.24);
+        layer.add([selectBackground, shade, upperShade]);
 
-        const gameBase = this.add.text(110, 42, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1 }).setInteractive({ useHandCursor: true });
+        const gameBase = this.add.text(110, 60, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
         gameBase.on('pointerdown', () => { window.location.href = '../..'; });
-        const titleLogo = this.add.image(VIEW_WIDTH / 2, 182, 'select-title-logo').setDisplaySize(714, 199);
-        const eyebrow = this.add.text(VIEW_WIDTH / 2, 320, 'FIGHTER SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#b7cbd7', letterSpacing: 5 }).setOrigin(0.5);
-        this.selectTitle = this.add.text(VIEW_WIDTH / 2, 354, '', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 3 }).setOrigin(0.5);
-        layer.add([gameBase, titleLogo, eyebrow, this.selectTitle]);
+        // PCでも主題として読める横幅を取る。選択情報は各ゲート内へ集約する。
+        const titleLogo = this.add.image(VIEW_WIDTH / 2, 245, 'championship-re-title').setDisplaySize(820, 205);
+        this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
+        layer.add([gameBase, titleLogo, this.selectTitle]);
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
-        const selectedHint = this.add.text(VIEW_WIDTH / 2, 1400, 'TAP A GATE  /  SWIPE OR ARROW KEYS TO SWITCH', { fontFamily: 'Arial, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#a5b9c5', letterSpacing: 1 }).setOrigin(0.5);
+        // 選択操作の案内はゲート群から切り離し、開始CTAの直前で次の行動として読ませる。
+        const selectedHint = this.add.text(VIEW_WIDTH / 2, 1360, 'TAP A GATE   |   SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         layer.add([selectedHint]);
         this.selectionLayer = layer;
         this.selectionFrames.clear();
@@ -208,35 +208,46 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter, true);
 
-        const startFrame = this.add.rectangle(VIEW_WIDTH / 2, 1574, 660, 68, 0x152234, 0.96).setStrokeStyle(2, 0xf5d24b, 1).setInteractive({ useHandCursor: true });
-        const startText = this.add.text(VIEW_WIDTH / 2, 1574, 'START DUEL', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#f9dd67', letterSpacing: 4 }).setOrigin(0.5);
-        startFrame.on('pointerdown', () => this.startSelectedDuel());
-        startFrame.on('pointerover', () => startFrame.setFillStyle(0x26344b));
-        startFrame.on('pointerout', () => startFrame.setFillStyle(0x121c2b));
-        layer.add([startFrame, startText]);
+        // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
+        const startButton = this.add.image(VIEW_WIDTH / 2, 1460, 'championship-re-start-duel').setDisplaySize(680, 170).setInteractive({ useHandCursor: true });
+        startButton.on('pointerdown', () => this.startSelectedDuel());
+        startButton.on('pointerover', () => startButton.setAlpha(0.92));
+        startButton.on('pointerout', () => startButton.setAlpha(1));
+        layer.add(startButton);
     }
 
     private createSelectionCard(fighter: FighterDefinition, index: number) {
         const x = SELECT_GATE_SLOTS[index];
         const y = SELECT_GATE_Y;
         const card = this.add.container(x, y);
-        // 枠は共通の透過素材。内側の規格が固定されるため、7人のアートを同じ基準で作れる。
-        const fighterArt = this.add.image(0, 0, fighter.gateLineupKey ?? fighter.portraitKey).setOrigin(0.5);
-        const frame = this.add.image(0, 0, 'gate-frame-lineup').setOrigin(0.5);
-        const selectedFrame = this.add.image(0, 0, 'gate-frame-selected').setOrigin(0.5).setVisible(false);
-        const number = this.add.text(0, -326, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#8faabc', letterSpacing: 1 }).setOrigin(0.5);
-        const name = this.add.text(0, 332, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#eaf4ff', letterSpacing: 1 }).setOrigin(0.5);
-        const subtitle = this.add.text(0, 355, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '6px', color: '#9eb3c6', letterSpacing: 1, align: 'center', wordWrap: { width: 106 } }).setOrigin(0.5);
-        const hit = this.add.rectangle(0, 0, 118, 700, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        // 完成アートは枠の透明窓370×3137と同じ比率で作る。ここでは同倍率だけを掛け、人物を変形しない。
+        const gateArtScale = 767 / 3137;
+        const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(gateArtScale);
+        const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(gateArtScale).setVisible(false);
+        const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
+        const accent = this.add.rectangle(0, 0, 96, 814, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
+        const leftAccentRail = this.add.rectangle(-46, 0, 3, 802, fighter.color, 0.68);
+        const rightAccentRail = this.add.rectangle(46, 0, 3, 802, fighter.color, 0.68);
+        const frame = this.add.image(0, 0, 'championship-re-frame-normal').setOrigin(0.5).setDisplaySize(110, 850);
+        // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
+        const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(110, 850).setVisible(false);
+        const number = this.add.text(0, -340, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
+        const name = this.add.text(0, -304, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
+        const subtitle = this.add.text(0, -278, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
+        const hit = this.add.rectangle(0, 0, 110, 850, 0xffffff, 0).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.selectFighter(fighter));
         card.setData('fighter', fighter);
-        card.setData('art', fighterArt);
+        card.setData('lineupArt', lineupArt);
+        card.setData('selectedArt', selectedArt);
+        card.setData('windowShade', windowShade);
         card.setData('lineupFrame', frame);
         card.setData('selectedFrame', selectedFrame);
+        card.setData('accent', accent);
         card.setData('number', number);
         card.setData('name', name);
         card.setData('subtitle', subtitle);
-        card.add([fighterArt, frame, selectedFrame, number, name, subtitle, hit]);
+        card.setData('hit', hit);
+        card.add([lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
         this.selectionLayer?.add(card);
         this.selectionFrames.set(fighter.id, frame);
         this.selectionCards.set(fighter.id, card);
@@ -254,53 +265,32 @@ export class Game extends Scene {
             const targetY = SELECT_GATE_Y;
             const frame = card.getData('lineupFrame') as GameObjects.Image;
             const selectedFrame = card.getData('selectedFrame') as GameObjects.Image;
-            const art = card.getData('art') as GameObjects.Image;
-            const cardFighter = card.getData('fighter') as FighterDefinition;
+            const lineupArt = card.getData('lineupArt') as GameObjects.Image;
+            const selectedArt = card.getData('selectedArt') as GameObjects.Image;
+            const windowShade = card.getData('windowShade') as GameObjects.Rectangle;
+            const accent = card.getData('accent') as GameObjects.Rectangle;
             const number = card.getData('number') as GameObjects.Text;
             const name = card.getData('name') as GameObjects.Text;
             const subtitle = card.getData('subtitle') as GameObjects.Text;
-            frame.setVisible(!selected).setAlpha(selected ? 0 : 0.82);
+            const hit = card.getData('hit') as GameObjects.Rectangle;
+            frame.setVisible(!selected).setAlpha(selected ? 0 : 0.86);
             selectedFrame.setVisible(selected).setAlpha(1);
-            this.fitPortraitToGate(art, cardFighter, selected);
-            number.setPosition(0, selected ? -332 : -326).setAlpha(selected ? 1 : 0.76);
-            name.setPosition(0, selected ? 342 : 332).setAlpha(selected ? 1 : 0.76);
-            subtitle.setPosition(0, selected ? 366 : 355).setAlpha(selected ? 1 : 0.66);
+            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.72);
+            selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
+            windowShade.setAlpha(selected ? 0.04 : 0.42);
+            accent.setAlpha(selected ? 0.34 : 0.16);
+            number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
+            name.setPosition(0, -304).setAlpha(selected ? 1 : 0.88);
+            subtitle.setPosition(0, -278).setAlpha(selected ? 1 : 0.82);
+            hit.setScale(selected ? 1 / 1.04 : 1);
             this.tweens.killTweensOf(card);
             if (selected && changed) {
                 card.setAlpha(1).setDepth(4);
-                this.tweens.add({ targets: card, x: targetX, y: targetY, scaleX: 1.04, scaleY: 1.04, duration: 180, ease: 'Back.easeOut' });
+                this.tweens.add({ targets: card, x: targetX, y: targetY - 13, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
             } else {
-                card.setAlpha(selected ? 1 : 0.66).setPosition(targetX, targetY).setScale(selected ? 1.04 : 1).setDepth(selected ? 4 : 1);
+                card.setAlpha(selected ? 1 : 0.74).setPosition(targetX, selected ? targetY - 13 : targetY).setScale(selected ? 1.04 : 1).setDepth(selected ? 4 : 1);
             }
         });
-    }
-
-    private fitPortraitToGate(art: GameObjects.Image, fighter: FighterDefinition, selected: boolean) {
-        // 現在は既存の選択絵を仮投入する。変形せず横だけを切ることで、
-        // 新しい縦長アートが揃うまでキャラの顔・衣装を別物にしない。
-        const outerWidth = selected ? 128 : 102;
-        const outerHeight = selected ? 630 : 612;
-        const innerWidth = outerWidth * (selected ? 1140 / 1400 : 700 / 900);
-        const innerHeight = outerHeight * (4740 / 5400);
-        const gateKey = selected ? fighter.gateSelectedKey : fighter.gateLineupKey;
-        if (gateKey) {
-            art.setTexture(gateKey).setCrop().setDisplaySize(innerWidth, innerHeight).setPosition(0, 0);
-            const frame = art.parentContainer?.getData('lineupFrame') as GameObjects.Image | undefined;
-            const selectedFrame = art.parentContainer?.getData('selectedFrame') as GameObjects.Image | undefined;
-            frame?.setDisplaySize(outerWidth, outerHeight);
-            selectedFrame?.setDisplaySize(outerWidth, outerHeight);
-            return;
-        }
-        const source = this.textures.get(art.texture.key).getSourceImage() as HTMLImageElement;
-        const sourceWidth = source.naturalWidth || source.width;
-        const sourceHeight = source.naturalHeight || source.height;
-        const scale = innerHeight / sourceHeight;
-        const cropWidth = Math.min(sourceWidth, innerWidth / scale);
-        art.setCrop((sourceWidth - cropWidth) / 2, 0, cropWidth, sourceHeight).setScale(scale).setPosition(0, 0);
-        const frame = art.parentContainer?.getData('lineupFrame') as GameObjects.Image | undefined;
-        const selectedFrame = art.parentContainer?.getData('selectedFrame') as GameObjects.Image | undefined;
-        frame?.setDisplaySize(outerWidth, outerHeight);
-        selectedFrame?.setDisplaySize(outerWidth, outerHeight);
     }
 
     private captureSelectSwipe(pointer: Phaser.Input.Pointer) {
