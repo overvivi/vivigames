@@ -36,6 +36,14 @@ type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
 const VIEW_WIDTH = 941;
 const VIEW_HEIGHT = 1672;
 const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterScale: 1 };
+// 見出しはキャラ制作前に全員共通で決める。個別のゲートで位置を変えると、
+// 立ち絵を同じ距離感・同じ安全領域へ揃えられなくなるため、ここでは共通値だけを持つ。
+const DEFAULT_GATE_HEADER_LAYOUT = {
+    numberY: -380, numberSize: 18,
+    markY: -321, markSize: 62,
+    nameY: -255, nameSize: 16,
+    subtitleY: -232, subtitleSize: 10
+};
 // 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
 // 境界線より少しだけ路面へ入れる。線上で止めるより、ゲートが濡れた地面に立って見える。
@@ -100,6 +108,11 @@ export class Game extends Scene {
     private desktopStagePanel?: HTMLElement;
     private desktopMotionPanel?: HTMLElement;
     private desktopDebugStyle?: HTMLStyleElement;
+    private gateHeaderLayout = { ...DEFAULT_GATE_HEADER_LAYOUT };
+    private gateHeaderTuner?: HTMLElement;
+    private gateHeaderTunerStyle?: HTMLStyleElement;
+    private gateHeaderTunerOpen = false;
+    private gateHeaderTunerPosition: 'top' | 'bottom' = 'bottom';
     private flash!: GameObjects.Rectangle;
 
     constructor() {
@@ -138,7 +151,10 @@ export class Game extends Scene {
         const params = new URLSearchParams(window.location.search);
         this.debugEnabled = params.has('debug');
         this.desktopDebugEnabled = this.debugEnabled && this.hasDesktopDebugSpace();
-        this.events.once('shutdown', () => this.destroyDesktopDebugPanels());
+        this.events.once('shutdown', () => {
+            this.destroyDesktopDebugPanels();
+            this.destroyGateHeaderTuner();
+        });
         this.motionPreviewEnabled = params.has('motionPreview') || this.debugEnabled;
         this.createArena();
         this.createFighters();
@@ -215,6 +231,7 @@ export class Game extends Scene {
 
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter, true);
+        this.createGateHeaderTuner();
 
         // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
         const startButton = this.add.image(VIEW_WIDTH / 2, 1460, 'championship-re-start-duel').setDisplaySize(680, 170).setInteractive({ useHandCursor: true });
@@ -244,10 +261,11 @@ export class Game extends Scene {
         // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
         const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT).setVisible(false);
         // 番号→マーク→名前→肩書きを先に固定する。立ち絵はこの見出しブロックの下から描く。
-        const number = this.add.text(0, -360, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
-        const mark = this.add.image(0, -306, `gate-icon-${fighter.id}`).setOrigin(0.5).setDisplaySize(50, 50).setTint(fighter.color);
-        const name = this.add.text(0, -253, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
-        const subtitle = this.add.text(0, -230, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
+        const number = this.add.text(0, this.gateHeaderLayout.numberY, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.numberSize}px`, fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
+        // 固有色はレールと背景で担う。高密度マークは白のまま残すことで、暗いゲート内でも形を読ませる。
+        const mark = this.add.image(0, this.gateHeaderLayout.markY, `gate-icon-${fighter.id}`).setOrigin(0.5).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize);
+        const name = this.add.text(0, this.gateHeaderLayout.nameY, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.nameSize}px`, fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
+        const subtitle = this.add.text(0, this.gateHeaderLayout.subtitleY, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.subtitleSize}px`, fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
         const hit = this.add.rectangle(0, 0, GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT, 0xffffff, 0).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.selectFighter(fighter));
         card.setData('fighter', fighter);
@@ -303,10 +321,10 @@ export class Game extends Scene {
             // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
             leftAccentRail.setAlpha(selected ? 1 : 0.34);
             rightAccentRail.setAlpha(selected ? 1 : 0.34);
-            number.setPosition(0, -360).setAlpha(selected ? 1 : 0.86);
-            mark.setPosition(0, -306).setAlpha(selected ? 1 : 0.72);
-            name.setPosition(0, -253).setAlpha(selected ? 1 : 0.88);
-            subtitle.setPosition(0, -230).setAlpha(selected ? 1 : 0.82);
+            number.setPosition(0, this.gateHeaderLayout.numberY).setAlpha(selected ? 1 : 0.86);
+            mark.setPosition(0, this.gateHeaderLayout.markY).setAlpha(selected ? 1 : 0.72);
+            name.setPosition(0, this.gateHeaderLayout.nameY).setAlpha(selected ? 1 : 0.88);
+            subtitle.setPosition(0, this.gateHeaderLayout.subtitleY).setAlpha(selected ? 1 : 0.82);
             hit.setScale(selected ? 1 / 1.04 : 1);
             this.tweens.killTweensOf(card);
             if (selected && changed) {
@@ -361,6 +379,7 @@ export class Game extends Scene {
         this.createFighters();
         this.selectionLayer?.destroy();
         this.selectionLayer = undefined;
+        this.destroyGateHeaderTuner();
         this.promptText.setVisible(true);
         this.statusText.setVisible(true);
         this.raven.setVisible(true);
@@ -527,6 +546,7 @@ export class Game extends Scene {
             this.stageTunerLayer?.destroy();
             this.stageTunerLayer = undefined;
             this.destroyDesktopDebugPanels();
+            this.destroyGateHeaderTuner();
             this.debugEffectPreview?.destroy();
             this.debugEffectPreview = undefined;
             this.resetDuel();
@@ -547,6 +567,134 @@ export class Game extends Scene {
         const gameWidth = Math.min(window.innerWidth, window.innerHeight * (VIEW_WIDTH / VIEW_HEIGHT));
         const sideMargin = (window.innerWidth - gameWidth) / 2;
         return window.innerWidth > window.innerHeight && sideMargin >= 350;
+    }
+
+    private createGateHeaderTuner() {
+        if (!this.debugEnabled || this.state !== 'select') return;
+        if (!this.gateHeaderTuner) {
+            const style = document.createElement('style');
+            style.textContent = `
+                .tc-remaster-gate-tuner { position:fixed; z-index:1100; left:8px; right:8px; bottom:8px; box-sizing:border-box; max-height:43vh; overflow:auto; color:#d9e9f4; background:linear-gradient(160deg,rgba(8,17,29,.98),rgba(4,10,19,.97)); border:1px solid rgba(113,198,223,.82); box-shadow:0 12px 36px rgba(0,0,0,.58), inset 0 0 28px rgba(45,137,173,.08); font-family:Arial,sans-serif; }
+                .tc-remaster-gate-tuner.is-top { top:8px; bottom:auto; }
+                .tc-remaster-gate-tuner summary { min-height:38px; box-sizing:border-box; padding:12px; color:#b9fff7; font-size:11px; font-weight:700; letter-spacing:1.4px; cursor:pointer; }
+                .tc-remaster-gate-tuner__body { padding:0 12px 12px; }
+                .tc-remaster-gate-tuner__hint { margin:0 0 10px; color:#9cb7c9; font-size:10px; line-height:1.4; }
+                .tc-remaster-gate-tuner__row { display:grid; grid-template-columns:90px 1fr 58px; gap:7px; align-items:center; margin:8px 0; color:#c8dae8; font-size:10px; font-weight:700; letter-spacing:.5px; }
+                .tc-remaster-gate-tuner input[type=range] { width:100%; margin:0; accent-color:#75f4ea; }
+                .tc-remaster-gate-tuner input[type=number] { box-sizing:border-box; width:100%; min-width:0; padding:7px 5px; color:#eef8ff; background:#101d2d; border:1px solid #5c7894; border-radius:0; font:700 12px Arial,sans-serif; }
+                .tc-remaster-gate-tuner__actions { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:12px; }
+                .tc-remaster-gate-tuner button { min-height:34px; padding:7px; color:#d7ffe5; background:#162b29; border:1px solid #8ee9b6; border-radius:0; font:700 10px Arial,sans-serif; letter-spacing:.8px; }
+                .tc-remaster-gate-tuner button + button { color:#c8dae8; background:#111f31; border-color:#5d7892; }
+                .tc-remaster-gate-tuner__status { min-height:13px; margin:8px 0 0; color:#8fe5c0; font-size:10px; letter-spacing:.4px; }
+                @media (min-width:1101px) { .tc-remaster-gate-tuner { left:50%; right:auto; width:360px; transform:translateX(-50%); bottom:18px; max-height:58vh; } .tc-remaster-gate-tuner.is-top { top:18px; bottom:auto; } }
+            `;
+            document.head.appendChild(style);
+            this.gateHeaderTunerStyle = style;
+            const tuner = document.createElement('details');
+            tuner.className = 'tc-remaster-gate-tuner';
+            tuner.open = this.gateHeaderTunerOpen;
+            tuner.addEventListener('toggle', () => { this.gateHeaderTunerOpen = tuner.open; });
+            document.body.appendChild(tuner);
+            this.gateHeaderTuner = tuner;
+        }
+
+        const tuner = this.gateHeaderTuner;
+        tuner.classList.toggle('is-top', this.gateHeaderTunerPosition === 'top');
+        tuner.replaceChildren();
+        const summary = document.createElement('summary');
+        summary.textContent = 'GATE HEADER TUNER  /  TAP TO OPEN';
+        const body = document.createElement('div');
+        body.className = 'tc-remaster-gate-tuner__body';
+        const hint = document.createElement('p');
+        hint.className = 'tc-remaster-gate-tuner__hint';
+        hint.textContent = '全7ゲート共通。スライダーか右の数値入力で、番号・マーク・名前・肩書きを個別調整できる。';
+        body.appendChild(hint);
+        this.addGateHeaderField(body, 'NUMBER Y', -410, -320, this.gateHeaderLayout.numberY, 1, (value) => { this.gateHeaderLayout.numberY = value; });
+        this.addGateHeaderField(body, 'NUMBER SIZE', 12, 28, this.gateHeaderLayout.numberSize, 1, (value) => { this.gateHeaderLayout.numberSize = value; });
+        this.addGateHeaderField(body, 'MARK Y', -360, -260, this.gateHeaderLayout.markY, 1, (value) => { this.gateHeaderLayout.markY = value; });
+        this.addGateHeaderField(body, 'MARK SIZE', 36, 86, this.gateHeaderLayout.markSize, 1, (value) => { this.gateHeaderLayout.markSize = value; });
+        this.addGateHeaderField(body, 'NAME Y', -300, -210, this.gateHeaderLayout.nameY, 1, (value) => { this.gateHeaderLayout.nameY = value; });
+        this.addGateHeaderField(body, 'NAME SIZE', 10, 24, this.gateHeaderLayout.nameSize, 1, (value) => { this.gateHeaderLayout.nameSize = value; });
+        this.addGateHeaderField(body, 'TITLE Y', -270, -190, this.gateHeaderLayout.subtitleY, 1, (value) => { this.gateHeaderLayout.subtitleY = value; });
+        this.addGateHeaderField(body, 'TITLE SIZE', 7, 16, this.gateHeaderLayout.subtitleSize, 1, (value) => { this.gateHeaderLayout.subtitleSize = value; });
+        const actions = document.createElement('div');
+        actions.className = 'tc-remaster-gate-tuner__actions';
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.textContent = 'COPY HEADER VALUES';
+        copy.addEventListener('click', () => {
+            const values = JSON.stringify({ gateHeader: this.gateHeaderLayout });
+            void navigator.clipboard?.writeText(values);
+            const status = body.querySelector<HTMLElement>('.tc-remaster-gate-tuner__status');
+            if (status) status.textContent = `COPIED: ${values}`;
+        });
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.textContent = 'RESET HEADER';
+        reset.addEventListener('click', () => {
+            this.gateHeaderLayout = { ...DEFAULT_GATE_HEADER_LAYOUT };
+            this.applyGateHeaderLayout();
+            this.createGateHeaderTuner();
+        });
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.textContent = this.gateHeaderTunerPosition === 'bottom' ? 'MOVE TO TOP' : 'MOVE TO BOTTOM';
+        move.addEventListener('click', () => {
+            this.gateHeaderTunerPosition = this.gateHeaderTunerPosition === 'bottom' ? 'top' : 'bottom';
+            this.createGateHeaderTuner();
+        });
+        actions.append(copy, reset, move);
+        const status = document.createElement('p');
+        status.className = 'tc-remaster-gate-tuner__status';
+        body.append(actions, status);
+        tuner.append(summary, body);
+    }
+
+    private addGateHeaderField(host: HTMLElement, label: string, min: number, max: number, value: number, step: number, setValue: (value: number) => void) {
+        const row = document.createElement('label');
+        row.className = 'tc-remaster-gate-tuner__row';
+        const caption = document.createElement('span');
+        caption.textContent = label;
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = `${min}`;
+        range.max = `${max}`;
+        range.step = `${step}`;
+        range.value = `${value}`;
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = `${min}`;
+        number.max = `${max}`;
+        number.step = `${step}`;
+        number.value = `${Math.round(value)}`;
+        const commit = (next: number) => {
+            if (!Number.isFinite(next)) return;
+            const normalized = Math.round(PhaserMath.Clamp(next, min, max));
+            range.value = `${normalized}`;
+            number.value = `${normalized}`;
+            setValue(normalized);
+            this.applyGateHeaderLayout();
+        };
+        range.addEventListener('input', () => commit(Number(range.value)));
+        number.addEventListener('change', () => commit(Number(number.value)));
+        row.append(caption, range, number);
+        host.appendChild(row);
+    }
+
+    private applyGateHeaderLayout() {
+        this.selectionCards.forEach((card) => {
+            (card.getData('number') as GameObjects.Text).setY(this.gateHeaderLayout.numberY).setFontSize(this.gateHeaderLayout.numberSize);
+            (card.getData('mark') as GameObjects.Image).setY(this.gateHeaderLayout.markY).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize).clearTint();
+            (card.getData('name') as GameObjects.Text).setY(this.gateHeaderLayout.nameY).setFontSize(this.gateHeaderLayout.nameSize);
+            (card.getData('subtitle') as GameObjects.Text).setY(this.gateHeaderLayout.subtitleY).setFontSize(this.gateHeaderLayout.subtitleSize);
+        });
+    }
+
+    private destroyGateHeaderTuner() {
+        this.gateHeaderTuner?.remove();
+        this.gateHeaderTunerStyle?.remove();
+        this.gateHeaderTuner = undefined;
+        this.gateHeaderTunerStyle = undefined;
     }
 
     private destroyDesktopDebugPanels() {
