@@ -46,7 +46,7 @@ const FIGHTERS: FighterDefinition[] = [
     { id: 'brick', name: 'BRICK', subtitle: 'IRON FIST', color: 0xffb14f, portraitKey: 'portrait-brick', gateLineupKey: 'gate-brick-lineup', gateSelectedKey: 'gate-brick-selected', combatKey: 'guard-brick', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.50, dash: 0.48, attack: 0.50, win: 0.72, lose: 0.34 }, poseOffsetYs: { guard: 7, win: 20 }, attackEffect: { scale: 0.31, offsetX: 47, offsetY: -160, layer: 'behind' } },
     { id: 'noise', name: 'NOISE', subtitle: 'BEAT BRKR', color: 0xa776ff, portraitKey: 'portrait-noise', gateLineupKey: 'gate-noise-lineup', gateSelectedKey: 'gate-noise-selected', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseFlipOverrides: { guard: true, lose: true }, poseScales: { guard: 0.45, dash: 0.41, attack: 0.46, win: 0.52, lose: 0.33 }, poseOffsetYs: { win: 17 }, attackEffect: { scale: 0.31, offsetX: 123, offsetY: -113, layer: 'behind' } },
     { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIG', color: 0xb1c4f6, portraitKey: 'portrait-kiri', gateLineupKey: 'gate-kiri-lineup', gateSelectedKey: 'gate-kiri-selected', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', win: 'left', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.41, dash: 0.41, attack: 0.63, win: 0.58, lose: 0.31 }, poseOffsetYs: { attack: 60, win: 20, lose: -7 }, attackEffect: { scale: 0.32, offsetX: 70, offsetY: -17, layer: 'behind' } },
-    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xe8f2ff, portraitKey: 'portrait-vivi', gateLineupKey: 'gate-vivi-lineup', gateSelectedKey: 'gate-vivi-selected', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.25, dash: 0.25, attack: 0.25, win: 0.23, lose: 0.19 }, poseOffsetYs: { guard: 27, dash: -7, attack: 40, win: 3 }, attackEffect: { scale: 0.39, offsetX: 240, offsetY: -70, layer: 'behind' } },
+    { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xf0d59b, portraitKey: 'portrait-vivi', gateLineupKey: 'gate-vivi-lineup', gateSelectedKey: 'gate-vivi-selected', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.25, dash: 0.25, attack: 0.25, win: 0.23, lose: 0.19 }, poseOffsetYs: { guard: 27, dash: -7, attack: 40, win: 3 }, attackEffect: { scale: 0.39, offsetX: 240, offsetY: -70, layer: 'behind' } },
     { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', gateLineupKey: 'gate-tomega9-lineup', gateSelectedKey: 'gate-tomega9-selected', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.35, dash: 0.34, attack: 0.33, win: 0.34, lose: 0.31 }, poseOffsetYs: { attack: 20 }, attackEffect: { scale: 0.49, offsetX: 147, offsetY: -90, layer: 'behind' } }
 ];
 
@@ -108,8 +108,9 @@ export class Game extends Scene {
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v2.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v2.webp');
         FIGHTERS.forEach((fighter) => {
-            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/gate-${fighter.id}-lineup-final-v2.webp`);
-            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/gate-${fighter.id}-selected-final-v2.webp`);
+            this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
+            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v1.webp`);
+            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v1.webp`);
         });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');
@@ -220,8 +221,9 @@ export class Game extends Scene {
         const x = SELECT_GATE_SLOTS[index];
         const y = SELECT_GATE_Y;
         const card = this.add.container(x, y);
-        // 完成アートは枠の透明窓370×3137と同じ比率で作る。ここでは同倍率だけを掛け、人物を変形しない。
+        // 背景と人物は分ける。非選択で人物だけを落としても、街が異次元ゲート内へ漏れない。
         const gateArtScale = 767 / 3137;
+        const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(gateArtScale);
         const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(gateArtScale);
         const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(gateArtScale).setVisible(false);
         const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
@@ -249,7 +251,7 @@ export class Game extends Scene {
         card.setData('name', name);
         card.setData('subtitle', subtitle);
         card.setData('hit', hit);
-        card.add([lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
+        card.add([interiorArt, lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
         this.selectionLayer?.add(card);
         this.selectionFrames.set(fighter.id, frame);
         this.selectionCards.set(fighter.id, card);

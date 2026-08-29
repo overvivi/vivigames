@@ -19,7 +19,8 @@ const fighters = [
     { id: 'brick', color: '#ffb14f' },
     { id: 'noise', color: '#a776ff' },
     { id: 'kiri', color: '#b1c4f6' },
-    { id: 'vivi', color: '#e8f2ff' },
+    // KIRIの冷たい銀青と近づかないよう、二面性の金具を拾った淡い琥珀に寄せる。
+    { id: 'vivi', color: '#f0d59b' },
     { id: 'tomega9', color: '#ff534c' }
 ];
 
