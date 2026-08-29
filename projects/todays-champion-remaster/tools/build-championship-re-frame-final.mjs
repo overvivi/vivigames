@@ -17,13 +17,21 @@ const normalWindowRect = { left: 40, top: 120, width: 370, height: 3300 };
 const variants = {
     // 下端を路面へ溶かすため、余白や旧ブラケットを含めず新規原画の枠本体だけを切り出す。
     normal: { left: 48, top: 18, width: 414, height: 1464, windowRect: normalWindowRect },
-    // 選択枠だけ中央装飾が内側へ深く張り出す。下端と同様に内側を抜き、背景を途中で止めない。
-    select: { left: 562, top: 18, width: 414, height: 1464, windowRect: { left: 40, top: 48, width: 370, height: 3372 } }
+    // 選択枠は下端の簡素な敷居を反転して上端にも使う。中央の張り出しを残すと黒帯の原因になるため。
+    select: { left: 562, top: 18, width: 414, height: 1464, windowRect: { left: 40, top: 60, width: 370, height: 3360 }, mirrorLowerCap: true }
 };
 
 async function makeFrame(crop) {
+    const source = await sharp(sheetPath).extract({ left: crop.left, top: crop.top, width: crop.width, height: crop.height }).png().toBuffer();
+    const frameSource = crop.mirrorLowerCap
+        ? await sharp(source)
+            // 選択中だけ、足元で採用した控えめな意匠をそのまま反転して上端を作る。
+            .composite([{ input: await sharp(source).extract({ left: 0, top: 1364, width: 414, height: 100 }).flip().png().toBuffer(), left: 0, top: 0 }])
+            .png()
+            .toBuffer()
+        : source;
     // 上下・左右を別パーツに分けると縮尺境界に隙間が出るため、原画を一枚のまま規格化する。
-    const combined = await sharp(sheetPath).extract(crop).resize({ width, height, fit: 'fill' })
+    const combined = await sharp(frameSource).resize({ width, height, fit: 'fill' })
         .ensureAlpha()
         .raw()
         .toBuffer({ resolveWithObject: true });
