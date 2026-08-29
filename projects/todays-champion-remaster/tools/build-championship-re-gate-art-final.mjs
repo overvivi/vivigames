@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const cutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts');
+const cutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts/v2');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/characters');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/characters');
 
@@ -14,13 +14,16 @@ const publicDir = path.join(root, 'public/assets/championship-re/gates/character
 const artWidth = 370;
 const artHeight = 3137;
 const fighterIds = ['raven', 'mika', 'brick', 'noise', 'kiri', 'vivi', 'tomega9'];
-const scales = { raven: 1, mika: 1, brick: 1.08, noise: 1, kiri: 1, vivi: 0.94, tomega9: 1.16 };
+// 身長差を見せるためだけの差。顔の寄りやカメラ距離で大きく見せ分けない。
+// 同じ足元へ等比配置し、最小～最大でも枠外へ飛び出さない範囲に留める。
+const characterHeights = { raven: 2400, mika: 2250, brick: 2550, noise: 2250, kiri: 2400, vivi: 2250, tomega9: 2625 };
 
 async function makeGateArt(id, state) {
-    const cutoutPath = path.join(cutoutDir, `${id}-${state}-cutout-v1.png`);
-    const characterHeight = Math.round((state === 'lineup' ? 2500 : 2700) * scales[id]);
-    // resizeは高さだけを指定し、アスペクト比を保持する。横幅は縦長ゲートの構図として中央で自然に切る。
-    const resized = await sharp(cutoutPath).resize({ height: characterHeight, fit: 'contain' }).png().toBuffer();
+    const cutoutPath = path.join(cutoutDir, `${id}-${state}-master-v2.png`);
+    const characterHeight = characterHeights[id];
+    // 原画周辺の透明余白だけを除き、高さだけで規格化する。縦横別の引き伸ばしは絶対にしない。
+    const trimmed = await sharp(cutoutPath).trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 12 }).png().toBuffer();
+    const resized = await sharp(trimmed).resize({ height: characterHeight, fit: 'contain' }).png().toBuffer();
     const resizedMeta = await sharp(resized).metadata();
     // 細い通常ゲートでは腕・コートの横端だけを構図として切る。全身を縮小して遠ざけない。
     const character = (resizedMeta.width ?? 0) > artWidth
@@ -35,7 +38,7 @@ async function makeGateArt(id, state) {
         .composite([{ input: character, left: Math.round((artWidth - (meta.width ?? 0)) / 2), top: baseline - (meta.height ?? 0) }])
         .png()
         .toBuffer();
-    const stem = `gate-character-${id}-${state}-v1`;
+    const stem = `gate-character-${id}-${state}-v2`;
     await Promise.all([
         sharp(art).png().toFile(path.join(sourceDir, `${stem}.png`)),
         sharp(art).webp({ quality: 93, effort: 6 }).toFile(path.join(publicDir, `${stem}.webp`))
@@ -45,7 +48,7 @@ async function makeGateArt(id, state) {
 async function build() {
     await Promise.all([mkdir(sourceDir, { recursive: true }), mkdir(publicDir, { recursive: true })]);
     await Promise.all(fighterIds.flatMap((id) => [makeGateArt(id, 'lineup'), makeGateArt(id, 'selected')]));
-    console.log('14枚の透明キャラアートを枠の透明窓370×3137と同じ比率で出力した。人物の縦横比は保持している。');
+    console.log('14枚の透明キャラアートを同じ足元へ等比配置した。人物の縦横比は保持している。');
 }
 
 build().catch((error) => {
