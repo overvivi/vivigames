@@ -224,6 +224,15 @@ export class Game extends Scene {
         const gateArtScale = 767 / 3137;
         const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(gateArtScale);
         const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(gateArtScale).setVisible(false);
+        // 選択絵の足元だけを反転して濡れた路面へ落とす。全身鏡像にせず、地面へ近い部分だけを短く残す。
+        const reflection = this.add.image(0, 750, fighter.gateSelectedKey!)
+            .setOrigin(0.5)
+            .setScale(gateArtScale)
+            .setFlipY(true)
+            .setCrop(0, 2450, 370, 687)
+            .setTint(fighter.color)
+            .setAlpha(0)
+            .setVisible(false);
         const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
         const accent = this.add.rectangle(0, 0, 96, 814, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
         const leftAccentRail = this.add.rectangle(-46, 0, 3, 802, fighter.color, 0.68);
@@ -239,6 +248,7 @@ export class Game extends Scene {
         card.setData('fighter', fighter);
         card.setData('lineupArt', lineupArt);
         card.setData('selectedArt', selectedArt);
+        card.setData('reflection', reflection);
         card.setData('windowShade', windowShade);
         card.setData('lineupFrame', frame);
         card.setData('selectedFrame', selectedFrame);
@@ -247,7 +257,7 @@ export class Game extends Scene {
         card.setData('name', name);
         card.setData('subtitle', subtitle);
         card.setData('hit', hit);
-        card.add([lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
+        card.add([reflection, lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
         this.selectionLayer?.add(card);
         this.selectionFrames.set(fighter.id, frame);
         this.selectionCards.set(fighter.id, card);
@@ -267,6 +277,7 @@ export class Game extends Scene {
             const selectedFrame = card.getData('selectedFrame') as GameObjects.Image;
             const lineupArt = card.getData('lineupArt') as GameObjects.Image;
             const selectedArt = card.getData('selectedArt') as GameObjects.Image;
+            const reflection = card.getData('reflection') as GameObjects.Image;
             const windowShade = card.getData('windowShade') as GameObjects.Rectangle;
             const accent = card.getData('accent') as GameObjects.Rectangle;
             const number = card.getData('number') as GameObjects.Text;
@@ -278,6 +289,7 @@ export class Game extends Scene {
             // 非選択もカード全体を透過させず、立ち絵だけを抑える。背景が枠内へ透けると空のゲートに見えるため。
             lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.58);
             selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
+            reflection.setVisible(selected).setAlpha(selected ? 0.2 : 0);
             windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
             number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
