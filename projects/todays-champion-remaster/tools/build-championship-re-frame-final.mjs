@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const sheetPath = path.join(root, 'source/assets/championship-re/references/championship-re-frame-layout-master-v1.png');
+const sheetPath = path.join(root, 'source/assets/championship-re/references/championship-re-frame-layout-master-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/frames');
 const publicDir = path.join(root, 'public/assets/championship-re/frames');
 // モバイルGPUの4096px上限を越えない原画寸法にする。表示時の100×640規格は変えない。
@@ -13,8 +13,9 @@ const width = 450;
 const height = 3477;
 const windowRect = { left: 40, top: 170, width: 370, height: 3137 };
 const variants = {
-    normal: { left: 34, top: 0, width: 458, height: 1536 },
-    select: { left: 532, top: 0, width: 458, height: 1536 }
+    // 下端を路面へ溶かすため、余白や旧ブラケットを含めず新規原画の枠本体だけを切り出す。
+    normal: { left: 48, top: 18, width: 414, height: 1464 },
+    select: { left: 562, top: 18, width: 414, height: 1464 }
 };
 
 async function makeFrame(crop) {
@@ -41,10 +42,10 @@ async function build() {
     await Promise.all([mkdir(sourceDir, { recursive: true }), mkdir(publicDir, { recursive: true })]);
     const [normal, select] = await Promise.all([makeFrame(variants.normal), makeFrame(variants.select)]);
     await Promise.all([
-        sharp(normal).png().toFile(path.join(sourceDir, 'championship-re-frame-normal-final-v1.png')),
-        sharp(normal).webp({ quality: 92, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-frame-normal-final-v1.webp')),
-        sharp(select).png().toFile(path.join(sourceDir, 'championship-re-frame-select-final-v1.png')),
-        sharp(select).webp({ quality: 92, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-frame-select-final-v1.webp'))
+        sharp(normal).png().toFile(path.join(sourceDir, 'championship-re-frame-normal-final-v2.png')),
+        sharp(normal).webp({ quality: 92, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-frame-normal-final-v2.webp')),
+        sharp(select).png().toFile(path.join(sourceDir, 'championship-re-frame-select-final-v2.png')),
+        sharp(select).webp({ quality: 92, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-frame-select-final-v2.webp'))
     ]);
     console.log('新規枠を連続したGPU安全原図へ規格化: 450×3477 / 表示110×850');
 }

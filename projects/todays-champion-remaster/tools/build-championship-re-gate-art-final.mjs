@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const cutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts');
-const backgroundPath = path.join(root, 'source/assets/championship-re/select/select-bg-final-v1.png');
+const backgroundPath = path.join(root, 'source/assets/championship-re/select/select-bg-final-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates');
 const publicDir = path.join(root, 'public/assets/championship-re/gates');
 
@@ -47,7 +47,7 @@ async function makeGateArt(id, state, index) {
         .composite([{ input: character, left: Math.round((artWidth - (meta.width ?? 0)) / 2), top: baseline - (meta.height ?? 0) }])
         .png()
         .toBuffer();
-    const stem = `gate-${id}-${state}-final-v1`;
+    const stem = `gate-${id}-${state}-final-v2`;
     await Promise.all([
         sharp(art).png().toFile(path.join(sourceDir, `${stem}.png`)),
         sharp(art).webp({ quality: 93, effort: 6 }).toFile(path.join(publicDir, `${stem}.webp`))
