@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const cutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts');
-const backgroundPath = path.join(root, 'source/assets/championship-re/select/select-bg-final-v2.png');
+const interiorDir = path.join(root, 'source/assets/championship-re/gates/interiors');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates');
 const publicDir = path.join(root, 'public/assets/championship-re/gates');
 
@@ -14,21 +14,12 @@ const publicDir = path.join(root, 'public/assets/championship-re/gates');
 // この比率で完成絵を作るため、ゲーム側で人物画像を縦横別に拡縮しない。
 const artWidth = 370;
 const artHeight = 3137;
-const slots = [140, 250, 360, 470, 580, 690, 800];
 const fighterIds = ['raven', 'mika', 'brick', 'noise', 'kiri', 'vivi', 'tomega9'];
 const scales = { raven: 1, mika: 1, brick: 1.08, noise: 1, kiri: 1, vivi: 0.94, tomega9: 1.16 };
 
-async function backgroundPatch(index) {
-    // 窓の背後にも同じ選択背景の該当箇所を置く。境目で別の世界に見えないようにする。
-    const height = 767;
-    const width = 92;
-    const left = Math.max(0, Math.min(941 - width, Math.round(slots[index] - width / 2)));
-    const top = 417;
-    return sharp(backgroundPath)
-        .extract({ left, top, width, height })
-        .resize({ width: artWidth, height: artHeight, fit: 'cover', position: 'centre' })
-        .png()
-        .toBuffer();
+async function interiorBackground(id) {
+    // 街はゲートの外だけに残す。内側は全員同じ床位置の独立空間へ差し替える。
+    return sharp(path.join(interiorDir, `gate-interior-${id}-v1.png`)).png().toBuffer();
 }
 
 async function makeGateArt(id, state, index) {
@@ -43,7 +34,7 @@ async function makeGateArt(id, state, index) {
         : resized;
     const meta = await sharp(character).metadata();
     const baseline = 3070;
-    const art = await sharp(await backgroundPatch(index))
+    const art = await sharp(await interiorBackground(id))
         .composite([{ input: character, left: Math.round((artWidth - (meta.width ?? 0)) / 2), top: baseline - (meta.height ?? 0) }])
         .png()
         .toBuffer();
