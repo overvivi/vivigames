@@ -1448,5 +1448,5 @@ PR: https://github.com/overvivi/vivigames/pull/1
 ### 2026-08-29 — Codex（Remaster：ゲート内マークと見出し順、未公開）
 
 - キャラ制作より先に、ゲート内の見出しを`番号 → マーク → 名前 → 肩書き`へ確定。マークと文字ブロックを上部へ固定し、その下を今後の立ち絵の安全領域とする
-- `RAVEN`（分割翼刃）、`MIKA`（星と車輪）、`BRICK`（工業拳）、`NOISE`（破断波形）、`KIRI`（信号眼）、`VIVI`（左右非対称の二枚羽）、`TΩ9`（破壊爪）の7種を、透明・単色SVGとして作成。ゲーム側で各キャラ固有色を適用するため、色違い素材を増やさない
-- 小サイズに耐えない複雑な生成案は採用せず、プロジェクトにも保存していない。型チェック、Remaster公開用ビルド、ルート`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+- `RAVEN`（分割翼刃）、`MIKA`（星と車輪）、`BRICK`（工業拳）、`NOISE`（破断波形）、`KIRI`（信号眼）、`VIVI`（左右非対称の二枚羽）、`TΩ9`（破壊爪）の7種は、生成した高密度の透明原画を正式採用。余白だけをトリミングして等比のPNG／WebPへ規格化し、ゲーム側で各キャラ固有色を適用する。原画は`source/assets/championship-re/references/icons/`、変換手順は`tools/build-championship-re-gate-icons.mjs`に保存
+- 一時的に入れた単純SVGは、ユーザー確認で不採用として削除。型チェック、Remaster公開用ビルド、ルート`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
