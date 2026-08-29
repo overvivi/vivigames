@@ -243,6 +243,8 @@ export class Game extends Scene {
         card.setData('lineupFrame', frame);
         card.setData('selectedFrame', selectedFrame);
         card.setData('accent', accent);
+        card.setData('leftAccentRail', leftAccentRail);
+        card.setData('rightAccentRail', rightAccentRail);
         card.setData('number', number);
         card.setData('name', name);
         card.setData('subtitle', subtitle);
@@ -269,6 +271,8 @@ export class Game extends Scene {
             const selectedArt = card.getData('selectedArt') as GameObjects.Image;
             const windowShade = card.getData('windowShade') as GameObjects.Rectangle;
             const accent = card.getData('accent') as GameObjects.Rectangle;
+            const leftAccentRail = card.getData('leftAccentRail') as GameObjects.Rectangle;
+            const rightAccentRail = card.getData('rightAccentRail') as GameObjects.Rectangle;
             const number = card.getData('number') as GameObjects.Text;
             const name = card.getData('name') as GameObjects.Text;
             const subtitle = card.getData('subtitle') as GameObjects.Text;
@@ -280,6 +284,9 @@ export class Game extends Scene {
             selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
             windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
+            // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
+            leftAccentRail.setAlpha(selected ? 0.96 : 0.34);
+            rightAccentRail.setAlpha(selected ? 0.96 : 0.34);
             number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
             name.setPosition(0, -304).setAlpha(selected ? 1 : 0.88);
             subtitle.setPosition(0, -278).setAlpha(selected ? 1 : 0.82);
