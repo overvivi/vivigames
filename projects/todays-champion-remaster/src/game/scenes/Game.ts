@@ -105,8 +105,8 @@ export class Game extends Scene {
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v1.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
-        this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v2.webp');
-        this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v2.webp');
+        this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
+        this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
             this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v1.webp`);
@@ -229,8 +229,10 @@ export class Game extends Scene {
         const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale).setVisible(false);
         const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
         const accent = this.add.rectangle(0, 0, 96, 814, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
-        const leftAccentRail = this.add.rectangle(-46, 0, 3, 802, fighter.color, 0.68);
-        const rightAccentRail = this.add.rectangle(46, 0, 3, 802, fighter.color, 0.68);
+        // 枠v3の上下キャップ直前まで届く長さに揃える。選択だけ別寸にすると、
+        // 点灯が上端で途切れたように見えるため、通常・選択で同じレールを使う。
+        const leftAccentRail = this.add.rectangle(-46, 0, 3, 820, fighter.color, 0.68);
+        const rightAccentRail = this.add.rectangle(46, 0, 3, 820, fighter.color, 0.68);
         const frame = this.add.image(0, 0, 'championship-re-frame-normal').setOrigin(0.5).setDisplaySize(110, 850);
         // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
         const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(110, 850).setVisible(false);

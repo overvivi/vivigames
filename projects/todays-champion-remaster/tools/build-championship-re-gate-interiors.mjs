@@ -5,14 +5,16 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-aura-well-master-v3.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-signal-floor-master-v4.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/interiors');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/interiors');
 
 // 背景は透明窓だけでなく枠の上下端まで敷く。枠と同じ比率なら、上端・下端に黒い抜けを作らない。
 const width = 450;
 const height = 3477;
-const sourceCrop = { left: 314, top: 0, width: 236, height: 1822 };
+// 原画の中央パネルを、完成規格とほぼ同じ比率(199:1536)で切り出す。
+// coverは余る左右数pxだけを切るため、縦横を別倍率で引き伸ばさない。
+const sourceCrop = { left: 413, top: 0, width: 199, height: 1536 };
 const fighters = [
     { id: 'raven', color: '#55dffc' },
     { id: 'mika', color: '#ff5ca8' },
@@ -25,10 +27,11 @@ const fighters = [
 ];
 
 async function makeInterior({ id, color }) {
-    // この原画は床が最下部に来るよう構図から作っている。中央の縦長領域を等倍比率で切り出す。
+    // この原画は床が最下部に来る細長いパネルとして描いている。完成規格と同じ比率で切り、
+    // リサイズ時はcoverで余る端だけを落とす。背景を縦横別倍率で伸ばさない。
     const interior = await sharp(masterPath)
         .extract(sourceCrop)
-        .resize({ width, height, fit: 'fill' })
+        .resize({ width, height, fit: 'cover', position: 'centre' })
         // 同じ無彩色マスターを色相だけ変える。個別生成で床・オーラ・ノイズの位置がずれるのを防ぐ。
         .tint(color)
         .png()
