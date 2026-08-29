@@ -40,6 +40,12 @@ const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterS
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
 // 境界線より少しだけ路面へ入れる。線上で止めるより、ゲートが濡れた地面に立って見える。
 const SELECT_GATE_Y = 822;
+const GATE_DISPLAY_WIDTH = 110;
+const GATE_DISPLAY_HEIGHT = 850;
+// 枠v3の透明開口(370×3369 / 450×3477)と同じ表示寸法。暗幕だけ旧キャラ窓の
+// 高さにすると、その始終端が背景の横線に見えるため、内側へ重ねる全要素で共用する。
+const GATE_OPENING_WIDTH = GATE_DISPLAY_WIDTH * 370 / 450;
+const GATE_OPENING_HEIGHT = GATE_DISPLAY_HEIGHT * 3369 / 3477;
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
@@ -227,19 +233,19 @@ export class Game extends Scene {
         const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(interiorArtScale);
         const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(characterArtScale);
         const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale).setVisible(false);
-        const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
-        const accent = this.add.rectangle(0, 0, 96, 814, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
+        const windowShade = this.add.rectangle(0, 0, GATE_OPENING_WIDTH, GATE_OPENING_HEIGHT, 0x02070e, 0.42);
+        const accent = this.add.rectangle(0, 0, 96, GATE_OPENING_HEIGHT, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
         // 枠v3の上下キャップ直前まで届く長さに揃える。選択だけ別寸にすると、
         // 点灯が上端で途切れたように見えるため、通常・選択で同じレールを使う。
-        const leftAccentRail = this.add.rectangle(-46, 0, 3, 820, fighter.color, 0.68);
-        const rightAccentRail = this.add.rectangle(46, 0, 3, 820, fighter.color, 0.68);
-        const frame = this.add.image(0, 0, 'championship-re-frame-normal').setOrigin(0.5).setDisplaySize(110, 850);
+        const leftAccentRail = this.add.rectangle(-46, 0, 3, GATE_OPENING_HEIGHT, fighter.color, 0.68);
+        const rightAccentRail = this.add.rectangle(46, 0, 3, GATE_OPENING_HEIGHT, fighter.color, 0.68);
+        const frame = this.add.image(0, 0, 'championship-re-frame-normal').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT);
         // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
-        const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(110, 850).setVisible(false);
+        const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT).setVisible(false);
         const number = this.add.text(0, -340, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
         const name = this.add.text(0, -304, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
         const subtitle = this.add.text(0, -278, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
-        const hit = this.add.rectangle(0, 0, 110, 850, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        const hit = this.add.rectangle(0, 0, GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT, 0xffffff, 0).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.selectFighter(fighter));
         card.setData('fighter', fighter);
         card.setData('lineupArt', lineupArt);
