@@ -39,7 +39,7 @@ const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterS
 // 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
 // 境界線より少しだけ路面へ入れる。線上で止めるより、ゲートが濡れた地面に立って見える。
-const SELECT_GATE_Y = 808;
+const SELECT_GATE_Y = 822;
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
@@ -285,8 +285,8 @@ export class Game extends Scene {
             windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
             // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
-            leftAccentRail.setAlpha(selected ? 0.96 : 0.34);
-            rightAccentRail.setAlpha(selected ? 0.96 : 0.34);
+            leftAccentRail.setAlpha(selected ? 1 : 0.34);
+            rightAccentRail.setAlpha(selected ? 1 : 0.34);
             number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
             name.setPosition(0, -304).setAlpha(selected ? 1 : 0.88);
             subtitle.setPosition(0, -278).setAlpha(selected ? 1 : 0.82);
