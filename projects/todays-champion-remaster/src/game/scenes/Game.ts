@@ -110,6 +110,7 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => {
             this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/gate-${fighter.id}-lineup-final-v1.webp`);
             this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/gate-${fighter.id}-selected-final-v1.webp`);
+            this.load.image(`gate-${fighter.id}-reflection`, `assets/championship-re/gates/cutouts/${fighter.id}-selected-cutout-v1.webp`);
         });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');
@@ -224,12 +225,11 @@ export class Game extends Scene {
         const gateArtScale = 767 / 3137;
         const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(gateArtScale);
         const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(gateArtScale).setVisible(false);
-        // 選択絵の足元だけを反転して濡れた路面へ落とす。全身鏡像にせず、地面へ近い部分だけを短く残す。
-        const reflection = this.add.image(0, 750, fighter.gateSelectedKey!)
-            .setOrigin(0.5)
-            .setScale(gateArtScale)
+        // 背景込みカードは反転せず、透明なキャラ切り抜きだけを遠近で圧縮して濡れた路面へ落とす。
+        const reflection = this.add.image(0, 367, `gate-${fighter.id}-reflection`)
+            .setOrigin(0.5, 0)
+            .setDisplaySize(96, 184)
             .setFlipY(true)
-            .setCrop(0, 2450, 370, 687)
             .setTint(fighter.color)
             .setAlpha(0)
             .setVisible(false);
@@ -289,7 +289,7 @@ export class Game extends Scene {
             // 非選択もカード全体を透過させず、立ち絵だけを抑える。背景が枠内へ透けると空のゲートに見えるため。
             lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.58);
             selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
-            reflection.setVisible(selected).setAlpha(selected ? 0.2 : 0);
+            reflection.setVisible(selected).setAlpha(selected ? 0.7 : 0);
             windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
             number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
