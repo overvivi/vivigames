@@ -45,7 +45,7 @@ const GATE_DISPLAY_HEIGHT = 850;
 // 枠v3の透明開口(370×3369 / 450×3477)と同じ表示寸法。暗幕だけ旧キャラ窓の
 // 高さにすると、その始終端が背景の横線に見えるため、内側へ重ねる全要素で共用する。
 const GATE_OPENING_WIDTH = GATE_DISPLAY_WIDTH * 370 / 450;
-const GATE_OPENING_HEIGHT = GATE_DISPLAY_HEIGHT * 3369 / 3477;
+const GATE_OPENING_HEIGHT = GATE_DISPLAY_HEIGHT * 3385 / 3477;
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
