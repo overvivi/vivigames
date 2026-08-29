@@ -11,7 +11,9 @@ const publicDir = path.join(root, 'public/assets/championship-re/frames');
 // モバイルGPUの4096px上限を越えない原画寸法にする。表示時の100×640規格は変えない。
 const width = 450;
 const height = 3477;
-const windowRect = { left: 40, top: 170, width: 370, height: 3137 };
+// 原画中心列の金属が終わる位置（50〜1440px）まで窓を広げる。
+// 旧170〜3307は黒い内張りを上下に残しており、背景が10〜90%に見えていた。
+const windowRect = { left: 40, top: 120, width: 370, height: 3300 };
 const variants = {
     // 下端を路面へ溶かすため、余白や旧ブラケットを含めず新規原画の枠本体だけを切り出す。
     normal: { left: 48, top: 18, width: 414, height: 1464 },

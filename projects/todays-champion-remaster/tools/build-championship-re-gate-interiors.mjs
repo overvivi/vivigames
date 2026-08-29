@@ -5,14 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-aura-well-master-v2.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-aura-well-master-v3.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/interiors');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/interiors');
 
 // 背景は透明窓だけでなく枠の上下端まで敷く。枠と同じ比率なら、上端・下端に黒い抜けを作らない。
 const width = 450;
 const height = 3477;
-const sourceCrop = { left: 314, top: 0, width: 236, height: 1821 };
+const sourceCrop = { left: 314, top: 0, width: 236, height: 1822 };
 const fighters = [
     { id: 'raven', color: '#55dffc' },
     { id: 'mika', color: '#ff5ca8' },

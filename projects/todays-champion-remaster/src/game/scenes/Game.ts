@@ -282,8 +282,8 @@ export class Game extends Scene {
             const hit = card.getData('hit') as GameObjects.Rectangle;
             frame.setVisible(!selected).setAlpha(selected ? 0 : 0.86);
             selectedFrame.setVisible(selected).setAlpha(1);
-            // 非選択もカード全体を透過させず、立ち絵だけを抑える。背景が枠内へ透けると空のゲートに見えるため。
-            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.58);
+            // 非選択キャラは透明にせず暗くする。alphaを下げると床の線が体を貫通して見えるため。
+            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 1).setTint(selected ? 0xffffff : 0x666666);
             selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
             windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
