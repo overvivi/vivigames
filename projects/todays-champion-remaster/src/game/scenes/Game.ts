@@ -114,6 +114,7 @@ export class Game extends Scene {
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         FIGHTERS.forEach((fighter) => {
+            this.load.svg(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-v1.svg`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
             this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v1.webp`);
             this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v1.webp`);
@@ -242,9 +243,11 @@ export class Game extends Scene {
         const frame = this.add.image(0, 0, 'championship-re-frame-normal').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT);
         // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
         const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT).setVisible(false);
-        const number = this.add.text(0, -340, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
-        const name = this.add.text(0, -304, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
-        const subtitle = this.add.text(0, -278, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
+        // 番号→マーク→名前→肩書きを先に固定する。立ち絵はこの見出しブロックの下から描く。
+        const number = this.add.text(0, -360, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
+        const mark = this.add.image(0, -314, `gate-icon-${fighter.id}`).setOrigin(0.5).setDisplaySize(42, 42).setTint(fighter.color);
+        const name = this.add.text(0, -264, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
+        const subtitle = this.add.text(0, -240, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '9px', fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
         const hit = this.add.rectangle(0, 0, GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT, 0xffffff, 0).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.selectFighter(fighter));
         card.setData('fighter', fighter);
@@ -256,11 +259,12 @@ export class Game extends Scene {
         card.setData('accent', accent);
         card.setData('leftAccentRail', leftAccentRail);
         card.setData('rightAccentRail', rightAccentRail);
+        card.setData('mark', mark);
         card.setData('number', number);
         card.setData('name', name);
         card.setData('subtitle', subtitle);
         card.setData('hit', hit);
-        card.add([interiorArt, lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, name, subtitle, hit]);
+        card.add([interiorArt, lineupArt, selectedArt, windowShade, accent, frame, selectedFrame, leftAccentRail, rightAccentRail, number, mark, name, subtitle, hit]);
         this.selectionLayer?.add(card);
         this.selectionFrames.set(fighter.id, frame);
         this.selectionCards.set(fighter.id, card);
@@ -284,6 +288,7 @@ export class Game extends Scene {
             const accent = card.getData('accent') as GameObjects.Rectangle;
             const leftAccentRail = card.getData('leftAccentRail') as GameObjects.Rectangle;
             const rightAccentRail = card.getData('rightAccentRail') as GameObjects.Rectangle;
+            const mark = card.getData('mark') as GameObjects.Image;
             const number = card.getData('number') as GameObjects.Text;
             const name = card.getData('name') as GameObjects.Text;
             const subtitle = card.getData('subtitle') as GameObjects.Text;
@@ -298,9 +303,10 @@ export class Game extends Scene {
             // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
             leftAccentRail.setAlpha(selected ? 1 : 0.34);
             rightAccentRail.setAlpha(selected ? 1 : 0.34);
-            number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
-            name.setPosition(0, -304).setAlpha(selected ? 1 : 0.88);
-            subtitle.setPosition(0, -278).setAlpha(selected ? 1 : 0.82);
+            number.setPosition(0, -360).setAlpha(selected ? 1 : 0.86);
+            mark.setPosition(0, -314).setAlpha(selected ? 1 : 0.72);
+            name.setPosition(0, -264).setAlpha(selected ? 1 : 0.88);
+            subtitle.setPosition(0, -240).setAlpha(selected ? 1 : 0.82);
             hit.setScale(selected ? 1 / 1.04 : 1);
             this.tweens.killTweensOf(card);
             if (selected && changed) {
