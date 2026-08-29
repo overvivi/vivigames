@@ -275,9 +275,10 @@ export class Game extends Scene {
             const hit = card.getData('hit') as GameObjects.Rectangle;
             frame.setVisible(!selected).setAlpha(selected ? 0 : 0.86);
             selectedFrame.setVisible(selected).setAlpha(1);
-            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.72);
+            // 非選択もカード全体を透過させず、立ち絵だけを抑える。背景が枠内へ透けると空のゲートに見えるため。
+            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 0.58);
             selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
-            windowShade.setAlpha(selected ? 0.04 : 0.42);
+            windowShade.setAlpha(selected ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
             number.setPosition(0, -340).setAlpha(selected ? 1 : 0.86);
             name.setPosition(0, -304).setAlpha(selected ? 1 : 0.88);
@@ -288,7 +289,7 @@ export class Game extends Scene {
                 card.setAlpha(1).setDepth(4);
                 this.tweens.add({ targets: card, x: targetX, y: targetY - 13, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
             } else {
-                card.setAlpha(selected ? 1 : 0.74).setPosition(targetX, selected ? targetY - 13 : targetY).setScale(selected ? 1.04 : 1).setDepth(selected ? 4 : 1);
+                card.setAlpha(1).setPosition(targetX, selected ? targetY - 13 : targetY).setScale(selected ? 1.04 : 1).setDepth(selected ? 4 : 1);
             }
         });
     }
