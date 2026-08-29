@@ -9,10 +9,10 @@ const masterPath = path.join(root, 'source/assets/championship-re/references/gat
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/interiors');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/interiors');
 
-// 枠の透明窓と同寸で書き出す。ゲーム側で縦横別に伸ばす余地をなくし、全員で床位置を揃える。
-const width = 370;
-const height = 3137;
-const sourceCrop = { left: 280, top: 0, width: 234, height: 1983 };
+// 背景は透明窓だけでなく枠の上下端まで敷く。枠と同じ比率なら、上端・下端に黒い抜けを作らない。
+const width = 450;
+const height = 3477;
+const sourceCrop = { left: 269, top: 0, width: 256, height: 1983 };
 const fighters = [
     { id: 'raven', color: '#55dffc' },
     { id: 'mika', color: '#ff5ca8' },
@@ -25,10 +25,15 @@ const fighters = [
 ];
 
 async function makeInterior({ id, color }) {
-    // 同じ無彩色マスターを色相だけ変える。個別生成で床・オーラ・ノイズの位置がずれるのを防ぐ。
-    const interior = await sharp(masterPath)
+    // 床はキャラの足元だけに置く。元画像を拡大して上側を切ることで、地面の境界が膝を横切らない。
+    const enlarged = await sharp(masterPath)
         .extract(sourceCrop)
-        .resize({ width, height, fit: 'fill' })
+        .resize({ height: 4170, fit: 'contain' })
+        .extract({ left: 44, top: 300, width, height })
+        .png()
+        .toBuffer();
+    // 同じ無彩色マスターを色相だけ変える。個別生成で床・オーラ・ノイズの位置がずれるのを防ぐ。
+    const interior = await sharp(enlarged)
         .tint(color)
         .png()
         .toBuffer();

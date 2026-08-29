@@ -221,11 +221,12 @@ export class Game extends Scene {
         const x = SELECT_GATE_SLOTS[index];
         const y = SELECT_GATE_Y;
         const card = this.add.container(x, y);
-        // 背景と人物は分ける。非選択で人物だけを落としても、街が異次元ゲート内へ漏れない。
-        const gateArtScale = 767 / 3137;
-        const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(gateArtScale);
-        const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(gateArtScale);
-        const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(gateArtScale).setVisible(false);
+        // 背景は枠の外寸を完全に埋め、人物だけを透明窓の内寸に合わせる。両者を同じ内寸にすると上下に抜けが残る。
+        const characterArtScale = 767 / 3137;
+        const interiorArtScale = 850 / 3477;
+        const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(interiorArtScale);
+        const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(characterArtScale);
+        const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale).setVisible(false);
         const windowShade = this.add.rectangle(0, 0, 90.5, 767, 0x02070e, 0.42);
         const accent = this.add.rectangle(0, 0, 96, 814, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
         const leftAccentRail = this.add.rectangle(-46, 0, 3, 802, fighter.color, 0.68);
