@@ -39,10 +39,10 @@ const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterS
 // 見出しはキャラ制作前に全員共通で決める。個別のゲートで位置を変えると、
 // 立ち絵を同じ距離感・同じ安全領域へ揃えられなくなるため、ここでは共通値だけを持つ。
 const DEFAULT_GATE_HEADER_LAYOUT = {
-    numberY: -380, numberSize: 18,
-    markY: -321, markSize: 62,
-    nameY: -255, nameSize: 16,
-    subtitleY: -232, subtitleSize: 10
+    numberY: -391, numberSize: 19,
+    markY: -338, markSize: 75,
+    nameY: -286, nameSize: 20,
+    subtitleY: -265, subtitleSize: 13
 };
 // 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
@@ -261,11 +261,12 @@ export class Game extends Scene {
         // 本体規格は共通。選択時だけは手前へ出る分を小さく拡大し、足元Yは地面ラインへ戻す。
         const selectedFrame = this.add.image(0, 0, 'championship-re-frame-select').setOrigin(0.5).setDisplaySize(GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT).setVisible(false);
         // 番号→マーク→名前→肩書きを先に固定する。立ち絵はこの見出しブロックの下から描く。
-        const number = this.add.text(0, this.gateHeaderLayout.numberY, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.numberSize}px`, fontStyle: 'bold', color: '#f7fbff', letterSpacing: 1 }).setOrigin(0.5);
-        // 固有色はレールと背景で担う。高密度マークは白のまま残すことで、暗いゲート内でも形を読ませる。
-        const mark = this.add.image(0, this.gateHeaderLayout.markY, `gate-icon-${fighter.id}`).setOrigin(0.5).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize);
-        const name = this.add.text(0, this.gateHeaderLayout.nameY, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.nameSize}px`, fontStyle: 'bold', color: '#f7fbff', letterSpacing: 0.5 }).setOrigin(0.5);
-        const subtitle = this.add.text(0, this.gateHeaderLayout.subtitleY, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.subtitleSize}px`, fontStyle: 'bold', color: '#d6eaff', letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
+        const headerColor = this.gateHeaderTextColor(fighter.color);
+        const number = this.add.text(0, this.gateHeaderLayout.numberY, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.numberSize}px`, fontStyle: 'bold', color: headerColor, letterSpacing: 1 }).setOrigin(0.5);
+        // 色をベタにせず少し白へ寄せる。暗い背景でも細い線画の密度を潰さず、レール色ともつながる。
+        const mark = this.add.image(0, this.gateHeaderLayout.markY, `gate-icon-${fighter.id}`).setOrigin(0.5).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize).setTint(this.gateHeaderTint(fighter.color));
+        const name = this.add.text(0, this.gateHeaderLayout.nameY, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.nameSize}px`, fontStyle: 'bold', color: headerColor, letterSpacing: 0.5 }).setOrigin(0.5);
+        const subtitle = this.add.text(0, this.gateHeaderLayout.subtitleY, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: `${this.gateHeaderLayout.subtitleSize}px`, fontStyle: 'bold', color: headerColor, letterSpacing: 0.2, align: 'center' }).setOrigin(0.5);
         const hit = this.add.rectangle(0, 0, GATE_DISPLAY_WIDTH, GATE_DISPLAY_HEIGHT, 0xffffff, 0).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => this.selectFighter(fighter));
         card.setData('fighter', fighter);
@@ -683,11 +684,23 @@ export class Game extends Scene {
 
     private applyGateHeaderLayout() {
         this.selectionCards.forEach((card) => {
+            const fighter = card.getData('fighter') as FighterDefinition;
+            const headerColor = this.gateHeaderTextColor(fighter.color);
             (card.getData('number') as GameObjects.Text).setY(this.gateHeaderLayout.numberY).setFontSize(this.gateHeaderLayout.numberSize);
-            (card.getData('mark') as GameObjects.Image).setY(this.gateHeaderLayout.markY).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize).clearTint();
-            (card.getData('name') as GameObjects.Text).setY(this.gateHeaderLayout.nameY).setFontSize(this.gateHeaderLayout.nameSize);
-            (card.getData('subtitle') as GameObjects.Text).setY(this.gateHeaderLayout.subtitleY).setFontSize(this.gateHeaderLayout.subtitleSize);
+            (card.getData('mark') as GameObjects.Image).setY(this.gateHeaderLayout.markY).setDisplaySize(this.gateHeaderLayout.markSize, this.gateHeaderLayout.markSize).setTint(this.gateHeaderTint(fighter.color));
+            (card.getData('number') as GameObjects.Text).setColor(headerColor);
+            (card.getData('name') as GameObjects.Text).setY(this.gateHeaderLayout.nameY).setFontSize(this.gateHeaderLayout.nameSize).setColor(headerColor);
+            (card.getData('subtitle') as GameObjects.Text).setY(this.gateHeaderLayout.subtitleY).setFontSize(this.gateHeaderLayout.subtitleSize).setColor(headerColor);
         });
+    }
+
+    private gateHeaderTint(color: number) {
+        const lift = (channel: number) => Math.round(channel + (255 - channel) * 0.26);
+        return (lift((color >> 16) & 0xff) << 16) | (lift((color >> 8) & 0xff) << 8) | lift(color & 0xff);
+    }
+
+    private gateHeaderTextColor(color: number) {
+        return `#${this.gateHeaderTint(color).toString(16).padStart(6, '0')}`;
     }
 
     private destroyGateHeaderTuner() {
