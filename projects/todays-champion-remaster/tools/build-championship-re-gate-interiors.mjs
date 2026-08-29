@@ -5,14 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-aura-well-master-v1.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/gates/gate-interior-aura-well-master-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/interiors');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/interiors');
 
 // 背景は透明窓だけでなく枠の上下端まで敷く。枠と同じ比率なら、上端・下端に黒い抜けを作らない。
 const width = 450;
 const height = 3477;
-const sourceCrop = { left: 269, top: 0, width: 256, height: 1983 };
+const sourceCrop = { left: 314, top: 0, width: 236, height: 1821 };
 const fighters = [
     { id: 'raven', color: '#55dffc' },
     { id: 'mika', color: '#ff5ca8' },
@@ -25,15 +25,11 @@ const fighters = [
 ];
 
 async function makeInterior({ id, color }) {
-    // 床はキャラの足元だけに置く。元画像を拡大して上側を切ることで、地面の境界が膝を横切らない。
-    const enlarged = await sharp(masterPath)
+    // この原画は床が最下部に来るよう構図から作っている。中央の縦長領域を等倍比率で切り出す。
+    const interior = await sharp(masterPath)
         .extract(sourceCrop)
-        .resize({ height: 4170, fit: 'contain' })
-        .extract({ left: 44, top: 300, width, height })
-        .png()
-        .toBuffer();
-    // 同じ無彩色マスターを色相だけ変える。個別生成で床・オーラ・ノイズの位置がずれるのを防ぐ。
-    const interior = await sharp(enlarged)
+        .resize({ width, height, fit: 'fill' })
+        // 同じ無彩色マスターを色相だけ変える。個別生成で床・オーラ・ノイズの位置がずれるのを防ぐ。
         .tint(color)
         .png()
         .toBuffer();
