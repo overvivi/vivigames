@@ -1475,3 +1475,29 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `build-championship-re-gate-art-final.mjs`はv2原画の透明余白だけを除き、高さだけで等比規格化する。全員の足元は同じ`baseline=3070`へ置き、身長差は2250〜2625pxの範囲だけに抑える。縦横別の引き伸ばしはしない
 - ゲームは新しい`gate-character-*-v2.webp`を読むよう切替済み。型チェック、公開用ビルド、ルート`npm run verify`、`git diff --check`成功。ユーザーの明示`push`で公開する
 - 型チェック、Remaster公開用ビルド、ルート`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-08-29 — Codex（Remaster：キャラクター設定の台帳化、未公開）
+
+- 7人の表示名／肩書き／人物像／色・意匠／紋章／攻撃演出を`docs/CHAMPIONSHIP_RE_キャラクター台帳.md`へ集約した。既存素材・実装で確認できる事項は「確定」、現行VFXと意匠から読み取った攻撃の方向性は、正式な技名を捏造しないよう「攻撃案」として分離している
+- 年齢は正式設定にしない。旧立ち絵の共通カメラ基準に残っていた年齢表現と、古い通常3/4／選択正面立ちの記述を、現在採用済みの「正面待機／片脚だけ前へ出す一歩目」へ更新した
+- 14枚の現行立ち絵は、構図・透明化・ゲート内への収まりを確認する試作へ格下げ。次回はまず7人の種族・外見・服・装備・戦い方を細かく確定し、非実写寄りの通常／選択2ポーズを作る。同一キャラの2枚が顔・髪・衣装・装備・体格から85%以上同一人物と判断できなければ不採用とし、立ち絵確定後に戦闘用ちびキャラ・全アクション素材・攻撃VFXを同じデザインで刷新する
+- 携帯で台帳を確認・更新できるよう、`public/character-archive.html`を追加し、選択画面右上の`CHARACTER ARCHIVE`から開ける導線を追加した。公開後は`games/todays-champion-remaster/character-archive.html`で直接開ける
+- ユーザー確定の種族: RAVEN=ダークエルフ、MIKA=サキュバス、BRICK=ドワーフ（身長150cm）、NOISE=ヴァンパイア、KIRI=実体ありのゴースト、VIVI=天使と悪魔のハーフ、TΩ9=信楽焼モチーフの狸（赤いちゃんちゃんこ・笠・徳利・通い帳・酔拳）。台帳・携帯ARCHIVEへ反映済み。TΩ9の旧オーガ／炉心／キメラ設定は不採用
+- 個別追加: BRICKは長いひげ・土で汚れた炭鉱作業服、MIKAは露出度高めのサキュバス衣装と攻撃時に散る小さなハート、NOISEは未成人で超音波とビートを併用、KIRIは霧とゴーストの使い魔をまとう。台帳・携帯ARCHIVEへ反映済み
+- 携帯ARCHIVEに、7人×10項目（体格、顔、髪、肌、服、装備、常時種族要素、攻撃時要素、色、NG）を直接入力する折りたたみ式シートを追加。端末内へ自動保存し、全員分をコピーして共有できる。これは設定案の入力用であり、確定台帳を勝手に上書きしない
+- ARCHIVEの入力欄には、ユーザー確定済みの7人×10項目を初期値として投入した。入力欄を直接修正するとその端末だけに保存され、`RESET TO DEFAULTS`はこの確定初期値へ戻す。年齢の数値は引き続き未設定だが、NOISEの「まだ成人していない」は戦い方に関わる明示設定として採用する
+- ARCHIVE上部カードに表示する確定項目（種族・人物像・意匠・攻撃案）も、別の`CONFIRMED PROFILE EDIT`から直接編集できるようにした。編集内容はカードへ即時反映・端末保存・コピー可能。設定入力シートとは分離し、確定項目の変更案と補足の外見設定を混同しない
+- ユーザーが`CONFIRMED PROFILE EDIT`から共有した内容を正式台帳へ反映。身長はRAVEN=170cm、MIKA=170cm、BRICK=150cm、NOISE=160cm、KIRI=180cm。BRICKはハンマーで地面を叩き火花・土・金属圧を出す。KIRIは霧と使い魔をまとうデスサイスの静かな斬撃。VIVIは右側の悪魔の手を前へ出し、六枚翼から白黒の羽を飛ばす
+- その後のユーザー確定でBRICKは160cm、TΩ9も160cmへ変更。TΩ9の肩書きは`DESTROYER`から`DRUNK BEAST`へ変更し、紋章は描き直さず文字だけを差し替える。選択アートの等比規格もTΩ9をBRICKと同じ高さへ揃える
+- 全7人を個別生成せず、同じ雨のネオン都市・同じカメラ・同じ陰影で描いた共通ロスター正本を`projects/todays-champion-remaster/source/assets/championship-re/references/character-roster-master-v2.png`へ保存。RAVENは右手の長い青いブレード1本／左手は空、BRICKは豪快だが笑いすぎない表情、VIVIは中性的な美少年・右黒左白の六枚翼、TΩ9はBRICKと同じ表示サイズで統一。以後の通常／一歩目の透過素材はこの正本を参照して作る
+- v2/v3は連続編集で雨粒・白い点のノイズが積み上がったため不採用。旧ロスターの画風参照から一発生成した`source/assets/championship-re/references/character-roster-master-v4.png`を現行候補へ更新。RAVENの左手は空で、一本のブレード・背中の弓矢・腰の緑の毒ポーションを明確化。VIVIは女性的な胸を排し、美少年の平らな胸と右黒／左白の翼を必須とする
+- 上側カードだけでは、左右の髪・目・羽の枚数／色・装備などの詳細が要約に見えてしまうため、各カードへ`FULL VISUAL DETAILS`を追加。10項目の確定初期値と端末内の入力変更を、カード直下でもそのまま確認できるようにした
+
+### 2026-08-31 — Codex（Remaster：v6セレクト立ち絵14枚を選択画面へ接続、未公開）
+
+- 現行ロスター正本を`source/assets/championship-re/references/character-roster-master-v6.png`へ固定し、通常（足幅を抑えた正面待機）／選択（腕を振らず片脚だけ前へ出す一歩目）の全14枚をv6として保存した。KIRIは過度なダークファンタジー寄りを避け、TΩ9は人間顔・髪を使わない狸へ修正した
+- 画像生成器が透明ではなく白灰のチェック柄を背景へ焼き込む出力を返したため、`build-championship-re-gate-art-final.mjs`に外周連結した白灰チェックだけをalpha=0へ戻す処理を追加。白いVIVI翼など、輪郭内の明部を消さないよう外周からのみ走査する。実画面でチェック柄が残らないことを確認済み
+- 原画ディレクトリを通常`cutouts/v6-normal-review/`・選択`cutouts/v6-selected-review/`へ分離し、v6のPNG/WebPを生成。足元は共通`baseline=3070`へ等比配置し、表示身長はRAVEN/MIKA=2400、BRICK/NOISE/TΩ9=2250、KIRI=2540、VIVI=2325で規格化した。縦横の引き伸ばしはしていない
+- `Game.ts`は`gate-character-*-lineup-v6.webp`／`selected-v6.webp`を読むよう切替。ローカル実画面で通常の暗転・選択時の前進ポーズ切替・ゲート内背景を確認した
+- `npx tsc --noEmit`、Remaster `npm run build-nolog`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+- `?debug=1`の`GATE TUNER`へ、キャラ別の`NORMAL`／`SELECTED`切替を追加。各状態ごとにX・Y・SIZEをスライダーと数値入力の両方で個別調整でき、対象の絵だけを明るく表示して足元位置を確認できる。`COPY CHARACTER VALUES`で7体・両状態の値をまとめて取り出せる

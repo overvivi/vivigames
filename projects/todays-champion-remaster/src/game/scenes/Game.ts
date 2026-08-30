@@ -31,6 +31,8 @@ type FighterDefinition = {
 };
 
 type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
+type GateCharacterState = 'lineup' | 'selected';
+type GateCharacterLayout = { x: number; y: number; scale: number };
 
 // 縦持ち実機を基準にする。PCでは余白を許容し、無理に横長へ引き伸ばさない。
 const VIEW_WIDTH = 941;
@@ -43,6 +45,10 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
     markY: -338, markSize: 75,
     nameY: -286, nameSize: 20,
     subtitleY: -265, subtitleSize: 13
+};
+const DEFAULT_GATE_CHARACTER_LAYOUT: Record<GateCharacterState, GateCharacterLayout> = {
+    lineup: { x: 0, y: 0, scale: 1 },
+    selected: { x: 0, y: 0, scale: 1 }
 };
 // 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
@@ -61,7 +67,7 @@ const FIGHTERS: FighterDefinition[] = [
     { id: 'noise', name: 'NOISE', subtitle: 'BEAT BRKR', color: 0xa776ff, portraitKey: 'portrait-noise', gateLineupKey: 'gate-noise-lineup', gateSelectedKey: 'gate-noise-selected', combatKey: 'guard-noise', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right' }, poseFlipOverrides: { guard: true, lose: true }, poseScales: { guard: 0.45, dash: 0.41, attack: 0.46, win: 0.52, lose: 0.33 }, poseOffsetYs: { win: 17 }, attackEffect: { scale: 0.31, offsetX: 123, offsetY: -113, layer: 'behind' } },
     { id: 'kiri', name: 'KIRI', subtitle: 'GHOST SIG', color: 0xb1c4f6, portraitKey: 'portrait-kiri', gateLineupKey: 'gate-kiri-lineup', gateSelectedKey: 'gate-kiri-selected', combatKey: 'guard-kiri', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', win: 'left', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.41, dash: 0.41, attack: 0.63, win: 0.58, lose: 0.31 }, poseOffsetYs: { attack: 60, win: 20, lose: -7 }, attackEffect: { scale: 0.32, offsetX: 70, offsetY: -17, layer: 'behind' } },
     { id: 'vivi', name: 'VIVI', subtitle: 'TWO-FACED', color: 0xf0d59b, portraitKey: 'portrait-vivi', gateLineupKey: 'gate-vivi-lineup', gateSelectedKey: 'gate-vivi-selected', combatKey: 'guard-vivi', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.25, dash: 0.25, attack: 0.25, win: 0.23, lose: 0.19 }, poseOffsetYs: { guard: 27, dash: -7, attack: 40, win: 3 }, attackEffect: { scale: 0.39, offsetX: 240, offsetY: -70, layer: 'behind' } },
-    { id: 'tomega9', name: 'TΩ9', subtitle: 'DESTROYER', color: 0xff534c, portraitKey: 'portrait-tomega9', gateLineupKey: 'gate-tomega9-lineup', gateSelectedKey: 'gate-tomega9-selected', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.35, dash: 0.34, attack: 0.33, win: 0.34, lose: 0.31 }, poseOffsetYs: { attack: 20 }, attackEffect: { scale: 0.49, offsetX: 147, offsetY: -90, layer: 'behind' } }
+    { id: 'tomega9', name: 'TΩ9', subtitle: 'DRUNK BEAST', color: 0xff534c, portraitKey: 'portrait-tomega9', gateLineupKey: 'gate-tomega9-lineup', gateSelectedKey: 'gate-tomega9-selected', combatKey: 'guard-tomega9', combatScale: 0.19, naturalFacing: 'right', poseScales: { guard: 0.35, dash: 0.34, attack: 0.33, win: 0.34, lose: 0.31 }, poseOffsetYs: { attack: 20 }, attackEffect: { scale: 0.49, offsetX: 147, offsetY: -90, layer: 'behind' } }
 ];
 
 // 背景へ文字を焼かず、端末差で見た目が崩れない同一キャンバス内の画像演出にする。
@@ -113,6 +119,12 @@ export class Game extends Scene {
     private gateHeaderTunerStyle?: HTMLStyleElement;
     private gateHeaderTunerOpen = false;
     private gateHeaderTunerPosition: 'top' | 'bottom' = 'bottom';
+    private gateCharacterTunerFighterId = 'raven';
+    private gateCharacterTunerState: GateCharacterState = 'lineup';
+    private gateCharacterLayouts = Object.fromEntries(FIGHTERS.map((fighter) => [fighter.id, {
+        lineup: { ...DEFAULT_GATE_CHARACTER_LAYOUT.lineup },
+        selected: { ...DEFAULT_GATE_CHARACTER_LAYOUT.selected }
+    }])) as Record<string, Record<GateCharacterState, GateCharacterLayout>>;
     private flash!: GameObjects.Rectangle;
 
     constructor() {
@@ -129,8 +141,8 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-art-v1.webp`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
-            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v2.webp`);
-            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v2.webp`);
+            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v6.webp`);
+            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v6.webp`);
         });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');
@@ -216,10 +228,12 @@ export class Game extends Scene {
 
         const gameBase = this.add.text(110, 60, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
         gameBase.on('pointerdown', () => { window.location.href = '../..'; });
+        const archive = this.add.text(VIEW_WIDTH - 110, 60, 'CHARACTER ARCHIVE →', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1.2 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
         // PCでも主題として読める横幅を取る。選択情報は各ゲート内へ集約する。
         const titleLogo = this.add.image(VIEW_WIDTH / 2, 245, 'championship-re-title').setDisplaySize(820, 205);
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
-        layer.add([gameBase, titleLogo, this.selectTitle]);
+        layer.add([gameBase, archive, titleLogo, this.selectTitle]);
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
         // 選択操作の案内はゲート群から切り離し、開始CTAの直前で次の行動として読ませる。
@@ -249,8 +263,10 @@ export class Game extends Scene {
         const characterArtScale = 767 / 3137;
         const interiorArtScale = 850 / 3477;
         const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(interiorArtScale);
-        const lineupArt = this.add.image(0, 0, fighter.gateLineupKey!).setOrigin(0.5).setScale(characterArtScale);
-        const selectedArt = this.add.image(0, 0, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale).setVisible(false);
+        const lineupLayout = this.gateCharacterLayouts[fighter.id].lineup;
+        const selectedLayout = this.gateCharacterLayouts[fighter.id].selected;
+        const lineupArt = this.add.image(lineupLayout.x, lineupLayout.y, fighter.gateLineupKey!).setOrigin(0.5).setScale(characterArtScale * lineupLayout.scale);
+        const selectedArt = this.add.image(selectedLayout.x, selectedLayout.y, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale * selectedLayout.scale).setVisible(false);
         const windowShade = this.add.rectangle(0, 0, GATE_OPENING_WIDTH, GATE_OPENING_HEIGHT, 0x02070e, 0.42);
         const accent = this.add.rectangle(0, 0, 96, GATE_OPENING_HEIGHT, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
         // 枠v3の上下キャップ直前まで届く長さに揃える。選択だけ別寸にすると、
@@ -297,6 +313,9 @@ export class Game extends Scene {
         this.selectTitle?.setText(`CONTENDER ${String(index).padStart(2, '0')}  //  ${fighter.name}  /  ${fighter.subtitle}`);
         this.selectionCards.forEach((card, id) => {
             const selected = id === fighter.id;
+            // 調整中だけは、選択中のカードにも通常絵を出せるようにする。通常絵を暗転状態で
+            // 判断するとサイズ・足元位置を誤るため、通常／選択を同じ明るさで見比べられるようにする。
+            const previewingLineup = selected && this.debugEnabled && id === this.gateCharacterTunerFighterId && this.gateCharacterTunerState === 'lineup';
             const targetX = SELECT_GATE_SLOTS[FIGHTERS.findIndex((entry) => entry.id === id)];
             const targetY = SELECT_GATE_Y;
             const frame = card.getData('lineupFrame') as GameObjects.Image;
@@ -312,12 +331,12 @@ export class Game extends Scene {
             const name = card.getData('name') as GameObjects.Text;
             const subtitle = card.getData('subtitle') as GameObjects.Text;
             const hit = card.getData('hit') as GameObjects.Rectangle;
-            frame.setVisible(!selected).setAlpha(selected ? 0 : 0.86);
-            selectedFrame.setVisible(selected).setAlpha(1);
+            frame.setVisible(!selected || previewingLineup).setAlpha(previewingLineup ? 1 : selected ? 0 : 0.86);
+            selectedFrame.setVisible(selected && !previewingLineup).setAlpha(1);
             // 非選択キャラは透明にせず暗くする。alphaを下げると床の線が体を貫通して見えるため。
-            lineupArt.setVisible(!selected).setAlpha(selected ? 0 : 1).setTint(selected ? 0xffffff : 0x666666);
-            selectedArt.setVisible(selected).setAlpha(selected ? 1 : 0);
-            windowShade.setAlpha(selected ? 0.04 : 0.74);
+            lineupArt.setVisible(!selected || previewingLineup).setAlpha(selected && !previewingLineup ? 0 : 1).setTint(previewingLineup ? 0xffffff : selected ? 0xffffff : 0x666666);
+            selectedArt.setVisible(selected && !previewingLineup).setAlpha(selected ? 1 : 0);
+            windowShade.setAlpha(selected && !previewingLineup ? 0.04 : previewingLineup ? 0.04 : 0.74);
             accent.setAlpha(selected ? 0.34 : 0.16);
             // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
             leftAccentRail.setAlpha(selected ? 1 : 0.34);
@@ -326,13 +345,13 @@ export class Game extends Scene {
             mark.setPosition(0, this.gateHeaderLayout.markY).setAlpha(selected ? 1 : 0.72);
             name.setPosition(0, this.gateHeaderLayout.nameY).setAlpha(selected ? 1 : 0.88);
             subtitle.setPosition(0, this.gateHeaderLayout.subtitleY).setAlpha(selected ? 1 : 0.82);
-            hit.setScale(selected ? 1 / 1.04 : 1);
+            hit.setScale(selected && !previewingLineup ? 1 / 1.04 : 1);
             this.tweens.killTweensOf(card);
-            if (selected && changed) {
+            if (selected && changed && !previewingLineup) {
                 card.setAlpha(1).setDepth(4);
                 this.tweens.add({ targets: card, x: targetX, y: targetY - 13, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
             } else {
-                card.setAlpha(1).setPosition(targetX, selected ? targetY - 13 : targetY).setScale(selected ? 1.04 : 1).setDepth(selected ? 4 : 1);
+                card.setAlpha(1).setPosition(targetX, selected && !previewingLineup ? targetY - 13 : targetY).setScale(selected && !previewingLineup ? 1.04 : 1).setDepth(selected && !previewingLineup ? 4 : 1);
             }
         });
     }
@@ -580,6 +599,10 @@ export class Game extends Scene {
                 .tc-remaster-gate-tuner summary { min-height:38px; box-sizing:border-box; padding:12px; color:#b9fff7; font-size:11px; font-weight:700; letter-spacing:1.4px; cursor:pointer; }
                 .tc-remaster-gate-tuner__body { padding:0 12px 12px; }
                 .tc-remaster-gate-tuner__hint { margin:0 0 10px; color:#9cb7c9; font-size:10px; line-height:1.4; }
+                .tc-remaster-gate-tuner__section { margin:16px 0 8px; padding-top:12px; border-top:1px solid rgba(113,198,223,.28); color:#b9fff7; font-size:10px; letter-spacing:1px; }
+                .tc-remaster-gate-tuner__choice { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:8px 0; }
+                .tc-remaster-gate-tuner select { box-sizing:border-box; width:100%; min-width:0; padding:8px; color:#eef8ff; background:#101d2d; border:1px solid #5c7894; border-radius:0; font:700 12px Arial,sans-serif; }
+                .tc-remaster-gate-tuner__choice button.is-active { color:#071318; background:#9af7ec; border-color:#dcfffa; }
                 .tc-remaster-gate-tuner__row { display:grid; grid-template-columns:90px 1fr 58px; gap:7px; align-items:center; margin:8px 0; color:#c8dae8; font-size:10px; font-weight:700; letter-spacing:.5px; }
                 .tc-remaster-gate-tuner input[type=range] { width:100%; margin:0; accent-color:#75f4ea; }
                 .tc-remaster-gate-tuner input[type=number] { box-sizing:border-box; width:100%; min-width:0; padding:7px 5px; color:#eef8ff; background:#101d2d; border:1px solid #5c7894; border-radius:0; font:700 12px Arial,sans-serif; }
@@ -603,7 +626,7 @@ export class Game extends Scene {
         tuner.classList.toggle('is-top', this.gateHeaderTunerPosition === 'top');
         tuner.replaceChildren();
         const summary = document.createElement('summary');
-        summary.textContent = 'GATE HEADER TUNER  /  TAP TO OPEN';
+        summary.textContent = 'GATE TUNER  /  TAP TO OPEN';
         const body = document.createElement('div');
         body.className = 'tc-remaster-gate-tuner__body';
         const hint = document.createElement('p');
@@ -618,6 +641,70 @@ export class Game extends Scene {
         this.addGateHeaderField(body, 'NAME SIZE', 10, 24, this.gateHeaderLayout.nameSize, 1, (value) => { this.gateHeaderLayout.nameSize = value; });
         this.addGateHeaderField(body, 'TITLE Y', -270, -190, this.gateHeaderLayout.subtitleY, 1, (value) => { this.gateHeaderLayout.subtitleY = value; });
         this.addGateHeaderField(body, 'TITLE SIZE', 7, 16, this.gateHeaderLayout.subtitleSize, 1, (value) => { this.gateHeaderLayout.subtitleSize = value; });
+        const characterSection = document.createElement('h3');
+        characterSection.className = 'tc-remaster-gate-tuner__section';
+        characterSection.textContent = 'GATE CHARACTER TUNER';
+        body.appendChild(characterSection);
+        const characterHint = document.createElement('p');
+        characterHint.className = 'tc-remaster-gate-tuner__hint';
+        characterHint.textContent = 'キャラごとに通常／選択を別々に調整。対象の絵を明るく表示したまま、X・Y・SIZEを直接入力できる。';
+        body.appendChild(characterHint);
+        const fighterSelect = document.createElement('select');
+        FIGHTERS.forEach((fighter) => {
+            const option = document.createElement('option');
+            option.value = fighter.id;
+            option.textContent = `${fighter.name} / ${fighter.subtitle}`;
+            fighterSelect.appendChild(option);
+        });
+        fighterSelect.value = this.gateCharacterTunerFighterId;
+        fighterSelect.addEventListener('change', () => {
+            this.gateCharacterTunerFighterId = fighterSelect.value;
+            const target = FIGHTERS.find((fighter) => fighter.id === fighterSelect.value);
+            if (target) this.selectFighter(target, true);
+            this.createGateHeaderTuner();
+        });
+        body.appendChild(fighterSelect);
+        const stateChoice = document.createElement('div');
+        stateChoice.className = 'tc-remaster-gate-tuner__choice';
+        (['lineup', 'selected'] as GateCharacterState[]).forEach((state) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = state === 'lineup' ? 'NORMAL' : 'SELECTED';
+            button.classList.toggle('is-active', this.gateCharacterTunerState === state);
+            button.addEventListener('click', () => {
+                this.gateCharacterTunerState = state;
+                const target = FIGHTERS.find((fighter) => fighter.id === this.gateCharacterTunerFighterId);
+                if (target) this.selectFighter(target, true);
+                this.createGateHeaderTuner();
+            });
+            stateChoice.appendChild(button);
+        });
+        body.appendChild(stateChoice);
+        const characterLayout = this.gateCharacterLayouts[this.gateCharacterTunerFighterId][this.gateCharacterTunerState];
+        this.addGateCharacterField(body, 'CHARACTER X', -80, 80, characterLayout.x, 1, (value) => { characterLayout.x = value; });
+        this.addGateCharacterField(body, 'CHARACTER Y', -120, 120, characterLayout.y, 1, (value) => { characterLayout.y = value; });
+        this.addGateCharacterField(body, 'CHARACTER SIZE', 0.65, 1.35, characterLayout.scale, 0.01, (value) => { characterLayout.scale = value; });
+        const characterActions = document.createElement('div');
+        characterActions.className = 'tc-remaster-gate-tuner__actions';
+        const copyCharacter = document.createElement('button');
+        copyCharacter.type = 'button';
+        copyCharacter.textContent = 'COPY CHARACTER VALUES';
+        copyCharacter.addEventListener('click', () => {
+            const values = JSON.stringify({ gateCharacters: this.gateCharacterLayouts });
+            void navigator.clipboard?.writeText(values);
+            const status = body.querySelector<HTMLElement>('.tc-remaster-gate-tuner__status');
+            if (status) status.textContent = `COPIED: ${values}`;
+        });
+        const resetCharacter = document.createElement('button');
+        resetCharacter.type = 'button';
+        resetCharacter.textContent = 'RESET THIS STATE';
+        resetCharacter.addEventListener('click', () => {
+            this.gateCharacterLayouts[this.gateCharacterTunerFighterId][this.gateCharacterTunerState] = { ...DEFAULT_GATE_CHARACTER_LAYOUT[this.gateCharacterTunerState] };
+            this.applyGateCharacterLayout();
+            this.createGateHeaderTuner();
+        });
+        characterActions.append(copyCharacter, resetCharacter);
+        body.appendChild(characterActions);
         const actions = document.createElement('div');
         actions.className = 'tc-remaster-gate-tuner__actions';
         const copy = document.createElement('button');
@@ -680,6 +767,48 @@ export class Game extends Scene {
         number.addEventListener('change', () => commit(Number(number.value)));
         row.append(caption, range, number);
         host.appendChild(row);
+    }
+
+    private addGateCharacterField(host: HTMLElement, label: string, min: number, max: number, value: number, step: number, setValue: (value: number) => void) {
+        const row = document.createElement('label');
+        row.className = 'tc-remaster-gate-tuner__row';
+        const caption = document.createElement('span');
+        caption.textContent = label;
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = `${min}`;
+        range.max = `${max}`;
+        range.step = `${step}`;
+        range.value = `${value}`;
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = `${min}`;
+        number.max = `${max}`;
+        number.step = `${step}`;
+        number.value = `${Number(value.toFixed(2))}`;
+        const commit = (next: number) => {
+            if (!Number.isFinite(next)) return;
+            const normalized = Math.round(PhaserMath.Clamp(next, min, max) / step) * step;
+            const displayValue = Number(normalized.toFixed(2));
+            range.value = `${displayValue}`;
+            number.value = `${displayValue}`;
+            setValue(displayValue);
+            this.applyGateCharacterLayout();
+        };
+        range.addEventListener('input', () => commit(Number(range.value)));
+        number.addEventListener('change', () => commit(Number(number.value)));
+        row.append(caption, range, number);
+        host.appendChild(row);
+    }
+
+    private applyGateCharacterLayout() {
+        this.selectionCards.forEach((card, id) => {
+            const layout = this.gateCharacterLayouts[id];
+            const characterArtScale = 767 / 3137;
+            (card.getData('lineupArt') as GameObjects.Image).setPosition(layout.lineup.x, layout.lineup.y).setScale(characterArtScale * layout.lineup.scale);
+            (card.getData('selectedArt') as GameObjects.Image).setPosition(layout.selected.x, layout.selected.y).setScale(characterArtScale * layout.selected.scale);
+        });
+        this.selectFighter(this.selectedFighter, true);
     }
 
     private applyGateHeaderLayout() {
