@@ -1535,3 +1535,9 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 携帯幅では`GATE TUNER`を常に画面上端へ固定した。ゲートとキャラを見ながら、下側のゲームボタンを隠さず調整できる
 - 調整UI上の`pointerdown`／`pointerup`／`click`は伝播を止める。スライダー・数値欄・選択ボタンを触った操作が背後のPhaserゲート選択へ渡らないようにした
 - ルート`npm run verify`、`npm run test:champion`（20件）、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-08-31 — Codex（Remaster：ゲート内キャラの調整余白、未公開）
+
+- v7は細いゲート幅で人物画像を事前に切り出していたため、X/Y調整後に腕・翼・武器の画素そのものが欠けていた。v8は7人×通常／選択の原画alphaを全身のまま出力し、事前カットを廃止した
+- Phaser 4のWebGLでは旧式GeometryMaskが使えないため、各キャラへ外部Maskフィルタを適用。ゲート開口だけを表示し、隣のゲートへ絵が漏れない状態で位置・サイズを調整できる。選択時のゲート前進と同時にmaskも移動・拡縮する
+- ローカル実画面のPC／390×844携帯で、通常・VIVI選択時とも全身原画が隣へ漏れず開口に収まることを確認した。`npx tsc --noEmit`、ルート`npm run verify`、`npm run test:champion`（20件）、`git diff --check`成功。公開はユーザーの明示`push`待ち

@@ -60,6 +60,12 @@ const GATE_DISPLAY_HEIGHT = 850;
 // 高さにすると、その始終端が背景の横線に見えるため、内側へ重ねる全要素で共用する。
 const GATE_OPENING_WIDTH = GATE_DISPLAY_WIDTH * 370 / 450;
 const GATE_OPENING_HEIGHT = GATE_DISPLAY_HEIGHT * 3385 / 3477;
+// 原画を先に枠幅で切ると、位置調整時に存在しない画素を引っ張ることになる。
+// この規格は表示上の身長と足元だけを共通化し、横方向は各原画を残したまま開口で切る。
+const GATE_CHARACTER_CANVAS_HEIGHT = 3137;
+const GATE_CHARACTER_BASELINE = 3070;
+const GATE_CHARACTER_CANVAS_SCALE = 767 / GATE_CHARACTER_CANVAS_HEIGHT;
+const GATE_CHARACTER_DISPLAY_HEIGHTS: Record<string, number> = { raven: 2400, mika: 2400, brick: 2250, noise: 2250, kiri: 2540, vivi: 2325, tomega9: 2250 };
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
@@ -93,6 +99,7 @@ export class Game extends Scene {
     private selectionLayer?: GameObjects.Container;
     private selectionFrames = new Map<string, GameObjects.Image>();
     private selectionCards = new Map<string, GameObjects.Container>();
+    private selectionOpeningMasks = new Map<string, GameObjects.Graphics>();
     private selectionSwipeStart?: { x: number; y: number };
     private reactionStartedAt = 0;
     private lastActionAt = -Infinity;
@@ -141,8 +148,8 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-art-v1.webp`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
-            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v7.webp`);
-            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v7.webp`);
+            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v8.webp`);
+            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v8.webp`);
         });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');
@@ -240,6 +247,8 @@ export class Game extends Scene {
         const selectedHint = this.add.text(VIEW_WIDTH / 2, 1360, 'TAP A GATE   |   SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         layer.add([selectedHint]);
         this.selectionLayer = layer;
+        this.selectionOpeningMasks.forEach((mask) => mask.destroy());
+        this.selectionOpeningMasks.clear();
         this.selectionFrames.clear();
         this.selectionCards.clear();
 
@@ -260,13 +269,23 @@ export class Game extends Scene {
         const y = SELECT_GATE_Y;
         const card = this.add.container(x, y);
         // 背景は枠の外寸を完全に埋め、人物だけを透明窓の内寸に合わせる。両者を同じ内寸にすると上下に抜けが残る。
-        const characterArtScale = 767 / 3137;
         const interiorArtScale = 850 / 3477;
         const interiorArt = this.add.image(0, 0, `gate-interior-${fighter.id}`).setOrigin(0.5).setScale(interiorArtScale);
         const lineupLayout = this.gateCharacterLayouts[fighter.id].lineup;
         const selectedLayout = this.gateCharacterLayouts[fighter.id].selected;
-        const lineupArt = this.add.image(lineupLayout.x, lineupLayout.y, fighter.gateLineupKey!).setOrigin(0.5).setScale(characterArtScale * lineupLayout.scale);
-        const selectedArt = this.add.image(selectedLayout.x, selectedLayout.y, fighter.gateSelectedKey!).setOrigin(0.5).setScale(characterArtScale * selectedLayout.scale).setVisible(false);
+        const lineupArt = this.add.image(lineupLayout.x, this.gateCharacterBaseY(fighter) + lineupLayout.y, fighter.gateLineupKey!).setOrigin(0.5);
+        const selectedArt = this.add.image(selectedLayout.x, this.gateCharacterBaseY(fighter) + selectedLayout.y, fighter.gateSelectedKey!).setOrigin(0.5).setVisible(false);
+        lineupArt.setScale(this.gateCharacterBaseScale(fighter, lineupArt) * lineupLayout.scale);
+        selectedArt.setScale(this.gateCharacterBaseScale(fighter, selectedArt) * selectedLayout.scale);
+        // 原画は広く残し、見える範囲だけをゲートの透明開口へ限定する。
+        // maskはカード移動と同じ座標を使うため、選択時の前進演出でも枠からずれない。
+        const openingMaskShape = this.make.graphics({ x, y }, false);
+        openingMaskShape.fillStyle(0xffffff);
+        openingMaskShape.fillRect(-GATE_OPENING_WIDTH / 2, -GATE_OPENING_HEIGHT / 2, GATE_OPENING_WIDTH, GATE_OPENING_HEIGHT);
+        // WebGLではGeometryMaskが効かないため、Phaser 4の外部Maskフィルタを使う。
+        // この方式ならカードと同じworld座標の矩形だけを描画し、隣のゲートへは漏れない。
+        lineupArt.enableFilters().filters!.external.addMask(openingMaskShape, false, this.cameras.main, 'world');
+        selectedArt.enableFilters().filters!.external.addMask(openingMaskShape, false, this.cameras.main, 'world');
         const windowShade = this.add.rectangle(0, 0, GATE_OPENING_WIDTH, GATE_OPENING_HEIGHT, 0x02070e, 0.42);
         const accent = this.add.rectangle(0, 0, 96, GATE_OPENING_HEIGHT, fighter.color, 0.16).setStrokeStyle(2, fighter.color, 0.7);
         // 枠v3の上下キャップ直前まで届く長さに揃える。選択だけ別寸にすると、
@@ -288,6 +307,7 @@ export class Game extends Scene {
         card.setData('fighter', fighter);
         card.setData('lineupArt', lineupArt);
         card.setData('selectedArt', selectedArt);
+        card.setData('openingMaskShape', openingMaskShape);
         card.setData('windowShade', windowShade);
         card.setData('lineupFrame', frame);
         card.setData('selectedFrame', selectedFrame);
@@ -303,6 +323,7 @@ export class Game extends Scene {
         this.selectionLayer?.add(card);
         this.selectionFrames.set(fighter.id, frame);
         this.selectionCards.set(fighter.id, card);
+        this.selectionOpeningMasks.set(fighter.id, openingMaskShape);
     }
 
     private selectFighter(fighter: FighterDefinition, force = false) {
@@ -331,6 +352,7 @@ export class Game extends Scene {
             const name = card.getData('name') as GameObjects.Text;
             const subtitle = card.getData('subtitle') as GameObjects.Text;
             const hit = card.getData('hit') as GameObjects.Rectangle;
+            const openingMaskShape = card.getData('openingMaskShape') as GameObjects.Graphics;
             frame.setVisible(!selected || previewingLineup).setAlpha(previewingLineup ? 1 : selected ? 0 : 0.86);
             selectedFrame.setVisible(selected && !previewingLineup).setAlpha(1);
             // 非選択キャラは透明にせず暗くする。alphaを下げると床の線が体を貫通して見えるため。
@@ -347,11 +369,13 @@ export class Game extends Scene {
             subtitle.setPosition(0, this.gateHeaderLayout.subtitleY).setAlpha(selected ? 1 : 0.82);
             hit.setScale(selected && !previewingLineup ? 1 / 1.04 : 1);
             this.tweens.killTweensOf(card);
+            this.tweens.killTweensOf(openingMaskShape);
             if (selected && changed && !previewingLineup) {
                 card.setAlpha(1).setDepth(4);
-                this.tweens.add({ targets: card, x: targetX, y: targetY - 13, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
+                this.tweens.add({ targets: [card, openingMaskShape], x: targetX, y: targetY - 13, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
             } else {
                 card.setAlpha(1).setPosition(targetX, selected && !previewingLineup ? targetY - 13 : targetY).setScale(selected && !previewingLineup ? 1.04 : 1).setDepth(selected && !previewingLineup ? 4 : 1);
+                openingMaskShape.setPosition(card.x, card.y).setScale(card.scaleX, card.scaleY);
             }
         });
     }
@@ -828,12 +852,22 @@ export class Game extends Scene {
 
     private applyGateCharacterLayout() {
         this.selectionCards.forEach((card, id) => {
+            const fighter = card.getData('fighter') as FighterDefinition;
             const layout = this.gateCharacterLayouts[id];
-            const characterArtScale = 767 / 3137;
-            (card.getData('lineupArt') as GameObjects.Image).setPosition(layout.lineup.x, layout.lineup.y).setScale(characterArtScale * layout.lineup.scale);
-            (card.getData('selectedArt') as GameObjects.Image).setPosition(layout.selected.x, layout.selected.y).setScale(characterArtScale * layout.selected.scale);
+            const lineupArt = card.getData('lineupArt') as GameObjects.Image;
+            const selectedArt = card.getData('selectedArt') as GameObjects.Image;
+            lineupArt.setPosition(layout.lineup.x, this.gateCharacterBaseY(fighter) + layout.lineup.y).setScale(this.gateCharacterBaseScale(fighter, lineupArt) * layout.lineup.scale);
+            selectedArt.setPosition(layout.selected.x, this.gateCharacterBaseY(fighter) + layout.selected.y).setScale(this.gateCharacterBaseScale(fighter, selectedArt) * layout.selected.scale);
         });
         this.selectFighter(this.selectedFighter, true);
+    }
+
+    private gateCharacterBaseScale(fighter: FighterDefinition, art: GameObjects.Image) {
+        return GATE_CHARACTER_CANVAS_SCALE * GATE_CHARACTER_DISPLAY_HEIGHTS[fighter.id] / art.height;
+    }
+
+    private gateCharacterBaseY(fighter: FighterDefinition) {
+        return GATE_CHARACTER_CANVAS_SCALE * (GATE_CHARACTER_BASELINE - GATE_CHARACTER_DISPLAY_HEIGHTS[fighter.id] / 2 - GATE_CHARACTER_CANVAS_HEIGHT / 2);
     }
 
     private applyGateHeaderLayout() {
