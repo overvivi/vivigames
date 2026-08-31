@@ -122,7 +122,7 @@ export class Game extends Scene {
     private desktopMotionPanel?: HTMLElement;
     private desktopDebugStyle?: HTMLStyleElement;
     private gateHeaderLayout = { ...DEFAULT_GATE_HEADER_LAYOUT };
-    private gateHeaderTuner?: HTMLElement;
+    private gateHeaderTuner?: HTMLDetailsElement;
     private gateHeaderTunerStyle?: HTMLStyleElement;
     private gateHeaderTunerOpen = false;
     private gateHeaderTunerPosition: 'top' | 'bottom' = 'bottom';
@@ -648,14 +648,25 @@ export class Game extends Scene {
                     .tc-remaster-gate-tuner__row { margin:5px 0; }
                     .tc-remaster-gate-tuner__actions { margin-top:7px; }
                 }
-                @media (min-width:1101px) { .tc-remaster-gate-tuner { left:50%; right:auto; width:360px; transform:translateX(-50%); bottom:18px; max-height:58vh; } .tc-remaster-gate-tuner.is-top { top:18px; bottom:auto; } }
+                @media (min-width:1101px) {
+                    .tc-remaster-gate-tuner { left:50%; right:auto; width:360px; transform:translateX(-50%); bottom:18px; max-height:58vh; }
+                    .tc-remaster-gate-tuner.is-top { top:18px; bottom:auto; }
+                    /* FIT表示したゲームの右余白に収める。ゲーム側の表示倍率は高さ基準なので、
+                       余白幅もviewport高さから算出しておけば、横長PCで本体へ重ならない。 */
+                    .tc-remaster-gate-tuner.is-desktop-side { left:auto; right:12px; bottom:auto; top:18px; width:min(360px, max(300px, calc(50vw - 29vh - 12px))); max-height:calc(100vh - 36px); transform:none; }
+                }
             `;
             document.head.appendChild(style);
             this.gateHeaderTunerStyle = style;
             const tuner = document.createElement('details');
             tuner.className = 'tc-remaster-gate-tuner';
             tuner.open = this.gateHeaderTunerOpen;
-            tuner.addEventListener('toggle', () => { this.gateHeaderTunerOpen = tuner.open; });
+            tuner.addEventListener('toggle', () => {
+                this.gateHeaderTunerOpen = tuner.open;
+                // DOMパネルを開いている間は、画面全体を監視するPhaser入力を止める。
+                // イベント伝播だけでは携帯Safariのタッチが背後のゲートへ届くことがあるため。
+                this.input.enabled = !tuner.open;
+            });
             // Phaser は画面全体のポインタを監視するため、調整UIへの操作をゲート選択へ渡さない。
             const stopGateInput = (event: Event) => event.stopPropagation();
             tuner.addEventListener('pointerdown', stopGateInput);
@@ -663,13 +674,22 @@ export class Game extends Scene {
             tuner.addEventListener('click', stopGateInput);
             document.body.appendChild(tuner);
             this.gateHeaderTuner = tuner;
+            this.input.enabled = !tuner.open;
         }
 
         const tuner = this.gateHeaderTuner;
+        const useDesktopSide = this.hasDesktopDebugSpace();
+        tuner.classList.toggle('is-desktop-side', useDesktopSide);
         tuner.classList.toggle('is-top', this.gateHeaderTunerPosition === 'top');
+        // PCの十分な余白では開いたまま置く。閉じる操作は残すので、通常操作へ戻したい時も支障はない。
+        if (useDesktopSide && !tuner.open) {
+            tuner.open = true;
+            this.gateHeaderTunerOpen = true;
+            this.input.enabled = false;
+        }
         tuner.replaceChildren();
         const summary = document.createElement('summary');
-        summary.textContent = 'GATE TUNER  /  TAP TO OPEN';
+        summary.textContent = useDesktopSide ? 'GATE TUNER  /  PC SIDE PANEL' : 'GATE TUNER  /  TAP TO OPEN';
         const body = document.createElement('div');
         body.className = 'tc-remaster-gate-tuner__body';
         const headerSettings = document.createElement('details');
@@ -896,6 +916,8 @@ export class Game extends Scene {
         this.gateHeaderTunerStyle?.remove();
         this.gateHeaderTuner = undefined;
         this.gateHeaderTunerStyle = undefined;
+        // 調整画面を離れた後までゲーム操作が止まらないよう、ここで必ず戻す。
+        this.input.enabled = true;
     }
 
     private destroyDesktopDebugPanels() {

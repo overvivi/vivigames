@@ -1541,3 +1541,15 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - v7は細いゲート幅で人物画像を事前に切り出していたため、X/Y調整後に腕・翼・武器の画素そのものが欠けていた。v8は7人×通常／選択の原画alphaを全身のまま出力し、事前カットを廃止した
 - Phaser 4のWebGLでは旧式GeometryMaskが使えないため、各キャラへ外部Maskフィルタを適用。ゲート開口だけを表示し、隣のゲートへ絵が漏れない状態で位置・サイズを調整できる。選択時のゲート前進と同時にmaskも移動・拡縮する
 - ローカル実画面のPC／390×844携帯で、通常・VIVI選択時とも全身原画が隣へ漏れず開口に収まることを確認した。`npx tsc --noEmit`、ルート`npm run verify`、`npm run test:champion`（20件）、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-08-31 — Codex（Remaster：GATE TUNER操作時の背後入力停止、未公開）
+
+- 携帯SafariではDOMパネル内でイベント伝播を止めても、Phaserが画面全体で監視する入力へタップが届くことがあった。`GATE TUNER`を開いている間は`this.input.enabled=false`でゲーム入力そのものを停止する
+- キャラ切替はDOM側の選択欄から明示的に行うため、調整作業は維持する。パネルを閉じる、または選択画面を離れるとゲーム入力は必ず再開する
+- `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-09-01 — Codex（Remaster：PC右余白へのGATE TUNER展開、未公開）
+
+- 横長PCでゲーム左右の余白が十分ある時は、`GATE TUNER`をゲーム右側の余白へ固定配置し、自動で展開する。ゲーム本体を隠さず、通常／選択とX/Y/SIZEを見ながら調整できる
+- 余白幅は表示高さから計算してパネル幅を収める。余白が足りない画面では従来どおり画面内の折りたたみ表示へ戻る
+- ローカルPC実画面で、ゲーム本体と重ならない右側展開を確認した。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
