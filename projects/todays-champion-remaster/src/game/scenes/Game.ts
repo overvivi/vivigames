@@ -58,12 +58,12 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 // 素材を作る前に、参考モックの構図を基準キャンバスへ固定する。
 // 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
-    miniGate: { x: 48, y: 270, width: 96, height: 310, gap: 25 },
-    gate: { x: 38, y: 585, width: 865, height: 840 },
-    interior: { x: 178, y: 660, width: 585, height: 715 },
-    character: { baseline: 1390, height: 760 },
+    miniGate: { x: 48, y: 254, width: 96, height: 284, gap: 28 },
+    gate: { x: 65, y: 561, width: 805, height: 830 },
+    interior: { x: 178, y: 660, width: 585, height: 731 },
+    character: { baseline: 1390, height: 706 },
     hintY: 1465,
-    cta: { x: 130, y: 1500, width: 680, height: 170 }
+    cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
 // 通常／選択は別々に持ち、リセットしてもこの安全な位置・サイズへ戻す。
@@ -174,6 +174,7 @@ export class Game extends Scene {
     preload() {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
+        this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v1.webp');
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v1.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
@@ -263,7 +264,10 @@ export class Game extends Scene {
         const layer = this.add.container().setDepth(100);
         // 選択画面は戦闘背景を暗く覆うのではなく、カードを置く専用舞台へ丸ごと差し替える。
         // 枠・キャラ・文字はこの上へ同じPhaser座標で積むので、端末別のズレを作らない。
-        const selectBackground = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'select-bg-mobile').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
+        // 大型召喚ステージの確認時だけ、門・人物を焼き込んでいない外側背景へ差し替える。
+        // 通常の7ゲート選択画面は既存背景のまま残し、構図確認の結果だけを切り離して判断する。
+        const selectBackgroundKey = this.summonStagePreviewEnabled ? 'summon-stage-preview-bg' : 'select-bg-mobile';
+        const selectBackground = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, selectBackgroundKey).setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
         const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x02060d, 0.08);
         const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 180, VIEW_WIDTH, 360, 0x050a13, 0.24);
         layer.add([selectBackground, shade, upperShade]);

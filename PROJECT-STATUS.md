@@ -1572,3 +1572,6 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 大型ゲートは外枠のみの透過素材、内側の異次元背景はキャラ別7枚、キャラはその前面という独立レイヤー構成。内側へ装飾を描かず、外側の肩・柱・上アーチ・敷居へ装飾を集める
 - 実装前の基準座標を`docs/CHAMPIONSHIP_RE_GATE_ART_CALIBRATION.md`へ記録。`?debug=1&layout=1`では、実ゲーム背景の上に7ミニゲート列・大型門・内側背景窓・キャラ安全領域／接地点・CTAをガイド表示し、スライダーと直接数値入力で調整、JSONコピーできる`SUMMON STAGE TUNER`を追加した
 - ローカルPC実画面でガイドと調整パネルを確認。`npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+- ユーザー確定のガイド値: ミニゲート`x=48/y=254/w=96/h=284/gap=28`、大型ゲート`x=65/y=561/w=805/h=830`、内側背景`x=178/y=660/w=585/h=731`、キャラ`baseline=1390/h=706`、CTA`x=130/y=1445/w=680/h=170`。既定値と素材発注基準へ反映済み
+- 確認用として、門・キャラ・UIを焼き込まない共通外側背景`source/assets/championship-re/references/summon-stage-outer-background-master-v1.png`を追加した。`?debug=1&layout=1`だけが`select/summon-stage-preview-bg-v1.webp`を読み、通常の7ゲート選択背景は変更しない。大型門の敷居とキャラの足元`Y=1390`が、背景の濡れた横方向の路面へ接地するかを実画面で評価できる
+- `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、Remaster公開用ビルド成功。公開はユーザーの明示`push`待ち
