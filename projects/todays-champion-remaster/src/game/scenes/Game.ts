@@ -33,6 +33,15 @@ type FighterDefinition = {
 type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
 type GateCharacterState = 'lineup' | 'selected';
 type GateCharacterLayout = { x: number; y: number; scale: number };
+type RectLayout = { x: number; y: number; width: number; height: number };
+type SummonStageLayout = {
+    miniGate: { x: number; y: number; width: number; height: number; gap: number };
+    gate: RectLayout;
+    interior: RectLayout;
+    character: { baseline: number; height: number };
+    hintY: number;
+    cta: RectLayout;
+};
 
 // 縦持ち実機を基準にする。PCでは余白を許容し、無理に横長へ引き伸ばさない。
 const VIEW_WIDTH = 941;
@@ -45,6 +54,16 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
     markY: -338, markSize: 75,
     nameY: -286, nameSize: 20,
     subtitleY: -265, subtitleSize: 13
+};
+// 素材を作る前に、参考モックの構図を基準キャンバスへ固定する。
+// 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
+const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
+    miniGate: { x: 48, y: 270, width: 96, height: 310, gap: 25 },
+    gate: { x: 38, y: 585, width: 865, height: 840 },
+    interior: { x: 178, y: 660, width: 585, height: 715 },
+    character: { baseline: 1390, height: 760 },
+    hintY: 1465,
+    cta: { x: 130, y: 1500, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
 // 通常／選択は別々に持ち、リセットしてもこの安全な位置・サイズへ戻す。
@@ -116,6 +135,7 @@ export class Game extends Scene {
     private motionPreviewLayer?: GameObjects.Container;
     private motionPreviewEnabled = false;
     private debugEnabled = false;
+    private summonStagePreviewEnabled = false;
     private debugLayer?: GameObjects.Container;
     private debugExpanded = true;
     private debugAsset: 'pose' | 'effect' = 'pose';
@@ -135,6 +155,10 @@ export class Game extends Scene {
     private gateHeaderTunerStyle?: HTMLStyleElement;
     private gateHeaderTunerOpen = false;
     private gateHeaderTunerPosition: 'top' | 'bottom' = 'bottom';
+    private summonStageTuner?: HTMLDetailsElement;
+    private summonStageTunerStyle?: HTMLStyleElement;
+    private summonStageGuide?: GameObjects.Container;
+    private summonStageLayout: SummonStageLayout = JSON.parse(JSON.stringify(DEFAULT_SUMMON_STAGE_LAYOUT));
     private gateCharacterTunerFighterId = 'raven';
     private gateCharacterTunerState: GateCharacterState = 'lineup';
     private gateCharacterLayouts = Object.fromEntries(FIGHTERS.map((fighter) => [fighter.id, {
@@ -178,10 +202,12 @@ export class Game extends Scene {
     create() {
         const params = new URLSearchParams(window.location.search);
         this.debugEnabled = params.has('debug');
+        this.summonStagePreviewEnabled = this.debugEnabled && params.has('layout');
         this.desktopDebugEnabled = this.debugEnabled && this.hasDesktopDebugSpace();
         this.events.once('shutdown', () => {
             this.destroyDesktopDebugPanels();
             this.destroyGateHeaderTuner();
+            this.destroySummonStageTuner();
         });
         this.motionPreviewEnabled = params.has('motionPreview') || this.debugEnabled;
         this.createArena();
@@ -247,7 +273,7 @@ export class Game extends Scene {
         const archive = this.add.text(VIEW_WIDTH - 110, 60, 'CHARACTER ARCHIVE →', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1.2 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
         archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
         // PCでも主題として読める横幅を取る。選択情報は各ゲート内へ集約する。
-        const titleLogo = this.add.image(VIEW_WIDTH / 2, 245, 'championship-re-title').setDisplaySize(820, 205);
+        const titleLogo = this.add.image(VIEW_WIDTH / 2, this.summonStagePreviewEnabled ? 165 : 245, 'championship-re-title').setDisplaySize(820, this.summonStagePreviewEnabled ? 190 : 205);
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
         layer.add([gameBase, archive, titleLogo, this.selectTitle]);
 
@@ -261,6 +287,14 @@ export class Game extends Scene {
         this.selectionFrames.clear();
         this.selectionCards.clear();
 
+        if (this.summonStagePreviewEnabled) {
+            // 完成画面を作り込む前に、実キャンバス上で各素材の占有領域を決める。
+            // 既存の細いゲートは出さず、ここでは「何をどこへ置くか」だけを確認する。
+            this.createSummonStagePreview(layer);
+            this.createSummonStageTuner();
+            return;
+        }
+
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter, true);
         this.createGateHeaderTuner();
@@ -271,6 +305,45 @@ export class Game extends Scene {
         startButton.on('pointerover', () => startButton.setAlpha(0.92));
         startButton.on('pointerout', () => startButton.setAlpha(1));
         layer.add(startButton);
+    }
+
+    private createSummonStagePreview(layer: GameObjects.Container) {
+        this.summonStageGuide?.destroy();
+        const guide = this.add.container().setDepth(8);
+        const layout = this.summonStageLayout;
+        const addBox = (box: RectLayout, color: number, alpha: number, label: string) => {
+            const rect = this.add.rectangle(box.x, box.y, box.width, box.height, color, alpha).setOrigin(0).setStrokeStyle(3, color, 0.95);
+            const text = this.add.text(box.x + 10, box.y + 10, label, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f4fbff', letterSpacing: 1.2 });
+            guide.add([rect, text]);
+        };
+        const mini = layout.miniGate;
+        FIGHTERS.forEach((fighter, index) => {
+            const x = mini.x + index * (mini.width + mini.gap);
+            const selected = index === 5;
+            const scale = selected ? 1.06 : 1;
+            const y = mini.y - (selected ? 12 : 0);
+            const gate = this.add.rectangle(x, y, mini.width, mini.height, fighter.color, selected ? 0.34 : 0.16).setOrigin(0).setStrokeStyle(selected ? 4 : 2, fighter.color, 0.98).setScale(scale);
+            const number = this.add.text(x + mini.width / 2, y + 34, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#eefaff' }).setOrigin(0.5).setScale(scale);
+            // setDisplaySize後にsetScaleすると元画像の巨大な寸法へ戻るため、選択時の拡大分も表示寸法へ含める。
+            const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
+            const name = this.add.text(x + mini.width / 2, y + 184, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
+            const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
+            guide.add([gate, number, icon, name, role]);
+        });
+        addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
+        addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
+        const characterTop = layout.character.baseline - layout.character.height;
+        const character = this.add.rectangle(VIEW_WIDTH / 2 - 180, characterTop, 360, layout.character.height, 0x5ff1cf, 0.08).setOrigin(0).setStrokeStyle(3, 0x5ff1cf, 0.95);
+        const characterLabel = this.add.text(VIEW_WIDTH / 2, characterTop + 16, `CHARACTER SAFE AREA  H=${layout.character.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 }).setOrigin(0.5);
+        const baseline = this.add.rectangle(100, layout.character.baseline, VIEW_WIDTH - 200, 3, 0x5ff1cf, 0.98).setOrigin(0, 0.5);
+        const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
+        guide.add([character, characterLabel, baseline, baselineLabel]);
+        const hint = this.add.text(VIEW_WIDTH / 2, layout.hintY, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#e3ecf6', letterSpacing: 3 }).setOrigin(0.5);
+        const cta = this.add.rectangle(layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height, 0xe8c878, 0.16).setOrigin(0).setStrokeStyle(3, 0xe8c878, 0.95);
+        const ctaLabel = this.add.text(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, `START DUEL  ${layout.cta.width} × ${layout.cta.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffedb2', letterSpacing: 3 }).setOrigin(0.5);
+        guide.add([hint, cta, ctaLabel]);
+        layer.add(guide);
+        this.summonStageGuide = guide;
     }
 
     private createSelectionCard(fighter: FighterDefinition, index: number) {
@@ -626,6 +699,135 @@ export class Game extends Scene {
         const gameWidth = Math.min(window.innerWidth, window.innerHeight * (VIEW_WIDTH / VIEW_HEIGHT));
         const sideMargin = (window.innerWidth - gameWidth) / 2;
         return window.innerWidth > window.innerHeight && sideMargin >= 350;
+    }
+
+    private createSummonStageTuner() {
+        if (!this.summonStagePreviewEnabled || !this.selectionLayer) return;
+        if (!this.summonStageTuner) {
+            const style = document.createElement('style');
+            style.textContent = `
+                .tc-remaster-summon-tuner { position:fixed; z-index:1200; left:8px; right:8px; bottom:8px; box-sizing:border-box; max-height:36vh; overflow:auto; color:#d9e9f4; background:linear-gradient(160deg,rgba(8,17,29,.98),rgba(4,10,19,.97)); border:1px solid rgba(232,200,120,.9); box-shadow:0 12px 36px rgba(0,0,0,.58); font-family:Arial,sans-serif; touch-action:manipulation; }
+                .tc-remaster-summon-tuner summary { padding:12px; color:#ffedb2; font-size:11px; font-weight:700; letter-spacing:1.4px; cursor:pointer; }
+                .tc-remaster-summon-tuner__body { padding:0 12px 12px; }
+                .tc-remaster-summon-tuner__section { margin:12px 0 7px; padding-top:10px; border-top:1px solid rgba(232,200,120,.28); color:#ffedb2; font-size:10px; letter-spacing:1px; }
+                .tc-remaster-summon-tuner__row { display:grid; grid-template-columns:95px 1fr 62px; gap:7px; align-items:center; margin:7px 0; color:#dbe6ee; font-size:10px; font-weight:700; letter-spacing:.4px; }
+                .tc-remaster-summon-tuner input[type=range] { width:100%; margin:0; accent-color:#f2cf70; }
+                .tc-remaster-summon-tuner input[type=number] { box-sizing:border-box; width:100%; padding:6px 5px; color:#eef8ff; background:#101d2d; border:1px solid #6d7682; font:700 12px Arial,sans-serif; }
+                .tc-remaster-summon-tuner__actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:12px; }
+                .tc-remaster-summon-tuner button { min-height:34px; padding:7px; color:#fff0b8; background:#2c2618; border:1px solid #d9b85d; font:700 10px Arial,sans-serif; letter-spacing:.8px; }
+                .tc-remaster-summon-tuner__status { min-height:12px; margin:8px 0 0; color:#a9eac9; font-size:10px; overflow-wrap:anywhere; }
+                @media (min-width:1101px) { .tc-remaster-summon-tuner { left:auto; right:12px; top:18px; bottom:auto; width:360px; max-height:calc(100vh - 36px); } }
+            `;
+            document.head.appendChild(style);
+            this.summonStageTunerStyle = style;
+            const tuner = document.createElement('details');
+            tuner.className = 'tc-remaster-summon-tuner';
+            tuner.open = true;
+            tuner.addEventListener('toggle', () => { this.input.enabled = !tuner.open; });
+            const stopInput = (event: Event) => event.stopPropagation();
+            tuner.addEventListener('pointerdown', stopInput);
+            tuner.addEventListener('pointerup', stopInput);
+            tuner.addEventListener('click', stopInput);
+            document.body.appendChild(tuner);
+            this.summonStageTuner = tuner;
+            this.input.enabled = false;
+        }
+        const tuner = this.summonStageTuner;
+        tuner.replaceChildren();
+        const summary = document.createElement('summary');
+        summary.textContent = 'SUMMON STAGE TUNER  /  LAYOUT GUIDES';
+        const body = document.createElement('div');
+        body.className = 'tc-remaster-summon-tuner__body';
+        const layout = this.summonStageLayout;
+        const addSection = (text: string) => {
+            const title = document.createElement('h3');
+            title.className = 'tc-remaster-summon-tuner__section';
+            title.textContent = text;
+            body.appendChild(title);
+        };
+        addSection('TOP ROSTER / 7 MINI GATES');
+        this.addSummonStageField(body, 'ROW Y', 220, 390, layout.miniGate.y, 1, (value) => { layout.miniGate.y = value; });
+        this.addSummonStageField(body, 'GATE WIDTH', 72, 118, layout.miniGate.width, 1, (value) => { layout.miniGate.width = value; });
+        this.addSummonStageField(body, 'GATE HEIGHT', 220, 370, layout.miniGate.height, 1, (value) => { layout.miniGate.height = value; });
+        this.addSummonStageField(body, 'GATE GAP', 8, 36, layout.miniGate.gap, 1, (value) => { layout.miniGate.gap = value; });
+        addSection('LARGE SUMMON GATE');
+        this.addSummonStageField(body, 'GATE X', 0, 100, layout.gate.x, 1, (value) => { layout.gate.x = value; });
+        this.addSummonStageField(body, 'GATE Y', 520, 760, layout.gate.y, 1, (value) => { layout.gate.y = value; });
+        this.addSummonStageField(body, 'GATE WIDTH', 700, 920, layout.gate.width, 1, (value) => { layout.gate.width = value; });
+        this.addSummonStageField(body, 'GATE HEIGHT', 650, 980, layout.gate.height, 1, (value) => { layout.gate.height = value; });
+        addSection('INNER DIMENSION / CHARACTER');
+        this.addSummonStageField(body, 'INNER X', 90, 260, layout.interior.x, 1, (value) => { layout.interior.x = value; });
+        this.addSummonStageField(body, 'INNER Y', 570, 830, layout.interior.y, 1, (value) => { layout.interior.y = value; });
+        this.addSummonStageField(body, 'INNER WIDTH', 420, 700, layout.interior.width, 1, (value) => { layout.interior.width = value; });
+        this.addSummonStageField(body, 'INNER HEIGHT', 560, 840, layout.interior.height, 1, (value) => { layout.interior.height = value; });
+        this.addSummonStageField(body, 'FOOT BASELINE', 1260, 1460, layout.character.baseline, 1, (value) => { layout.character.baseline = value; });
+        this.addSummonStageField(body, 'CHARACTER H', 600, 900, layout.character.height, 1, (value) => { layout.character.height = value; });
+        addSection('CTA');
+        this.addSummonStageField(body, 'CTA Y', 1430, 1520, layout.cta.y, 1, (value) => { layout.cta.y = value; });
+        const actions = document.createElement('div');
+        actions.className = 'tc-remaster-summon-tuner__actions';
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.textContent = 'COPY LAYOUT JSON';
+        copy.addEventListener('click', () => {
+            const values = JSON.stringify({ summonStage: this.summonStageLayout });
+            void navigator.clipboard?.writeText(values);
+            const status = body.querySelector<HTMLElement>('.tc-remaster-summon-tuner__status');
+            if (status) status.textContent = `COPIED: ${values}`;
+        });
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.textContent = 'RESET GUIDE';
+        reset.addEventListener('click', () => {
+            this.summonStageLayout = JSON.parse(JSON.stringify(DEFAULT_SUMMON_STAGE_LAYOUT));
+            this.createSummonStagePreview(this.selectionLayer!);
+            this.createSummonStageTuner();
+        });
+        const status = document.createElement('p');
+        status.className = 'tc-remaster-summon-tuner__status';
+        actions.append(copy, reset);
+        body.append(actions, status);
+        tuner.append(summary, body);
+    }
+
+    private addSummonStageField(host: HTMLElement, label: string, min: number, max: number, value: number, step: number, setValue: (value: number) => void) {
+        const row = document.createElement('label');
+        row.className = 'tc-remaster-summon-tuner__row';
+        const caption = document.createElement('span');
+        caption.textContent = label;
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = `${min}`;
+        range.max = `${max}`;
+        range.step = `${step}`;
+        range.value = `${value}`;
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = `${min}`;
+        number.max = `${max}`;
+        number.step = `${step}`;
+        number.value = `${value}`;
+        const commit = (next: number) => {
+            if (!Number.isFinite(next)) return;
+            const normalized = Math.round(PhaserMath.Clamp(next, min, max) / step) * step;
+            range.value = `${normalized}`;
+            number.value = `${normalized}`;
+            setValue(normalized);
+            this.createSummonStagePreview(this.selectionLayer!);
+        };
+        range.addEventListener('input', () => commit(Number(range.value)));
+        number.addEventListener('change', () => commit(Number(number.value)));
+        row.append(caption, range, number);
+        host.appendChild(row);
+    }
+
+    private destroySummonStageTuner() {
+        this.summonStageTuner?.remove();
+        this.summonStageTunerStyle?.remove();
+        this.summonStageTuner = undefined;
+        this.summonStageTunerStyle = undefined;
+        this.summonStageGuide?.destroy();
+        this.summonStageGuide = undefined;
     }
 
     private createGateHeaderTuner() {
