@@ -30,13 +30,13 @@
   </main>
   <script>
     const rows = [
-      ['RAVEN','生成途中（選択待ち）','raven-normal.png',null],
-      ['MIKA','生成途中（通常／選択の同一人物性を確認中）','mika-normal.png','mika-selected.png'],
-      ['BRICK','生成途中（通常／選択の同一人物性を確認中）','brick-normal.png','brick-selected.png'],
-      ['NOISE','生成途中（通常／選択の同一人物性を確認中）','noise-normal.png','noise-selected.png'],
-      ['KIRI','生成途中（選択待ち）','kiri-normal.png',null],
-      ['VIVI','生成途中（選択待ち）','vivi-normal.png',null],
-      ['TΩ9','生成待ち',null,null]
+      ['RAVEN','生成途中（ペアと全体の統一感を検収中）','raven-normal.png','raven-selected.png'],
+      ['MIKA','生成途中（ペアと全体の統一感を検収中）','mika-normal.png','mika-selected.png'],
+      ['BRICK','生成途中（ペアと全体の統一感を検収中）','brick-normal.png','brick-selected.png'],
+      ['NOISE','生成途中（ペアと全体の統一感を検収中）','noise-normal.png','noise-selected.png'],
+      ['KIRI','生成途中（ペアと全体の統一感を検収中）','kiri-normal.png','kiri-selected.png'],
+      ['VIVI','生成途中（ペアと全体の統一感を検収中）','vivi-normal.png','vivi-selected.png'],
+      ['TΩ9','生成途中（ペアと全体の統一感を検収中）','to9-normal.png','to9-selected.png']
     ];
     const root = document.querySelector('#list');
     for (const [name,status,normal,selected] of rows) {
@@ -45,7 +45,7 @@
       root.append(card);
     }
     function slot(label,file) {
-      return `<figure><figcaption>${label}</figcaption><div class="asset">${file ? `<img src="assets/championship-re/gates/reviews/v9/${file}" alt="${label}">` : '<div class="pending">PENDING</div>'}</div></figure>`;
+      return `<figure><figcaption>${label}</figcaption><div class="asset">${file ? `<img src="assets/championship-re/gates/reviews/v10/${file}" alt="${label}">` : '<div class="pending">PENDING</div>'}</div></figure>`;
     }
     document.querySelector('#background').addEventListener('click',(event)=>{
       document.querySelectorAll('.asset').forEach((item)=>item.classList.toggle('black'));
