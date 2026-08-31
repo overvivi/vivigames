@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const lineupCutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts/v6-normal-review');
-const selectedCutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts/v6-selected-review');
+const lineupCutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts/v7-batch-normal');
+const selectedCutoutDir = path.join(root, 'source/assets/championship-re/gates/cutouts/v7-batch-selected');
 const sourceDir = path.join(root, 'source/assets/championship-re/gates/characters');
 const publicDir = path.join(root, 'public/assets/championship-re/gates/characters');
 
@@ -19,48 +19,14 @@ const fighterIds = ['raven', 'mika', 'brick', 'noise', 'kiri', 'vivi', 'tomega9'
 // 同じ足元へ等比配置し、最小～最大でも枠外へ飛び出さない範囲に留める。
 const characterHeights = { raven: 2400, mika: 2400, brick: 2250, noise: 2250, kiri: 2540, vivi: 2325, tomega9: 2250 };
 
-async function removeBakedCheckerboard(input) {
-    // 生成器がalphaではなく白灰のチェック柄を焼き込んだ場合だけ、外周から連結した
-    // 無彩色の明部を透明へ戻す。白い羽など、輪郭で囲まれたキャラ本体は消さない。
-    const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const { width, height, channels } = info;
-    const visited = new Uint8Array(width * height);
-    const queue = [];
-    const isChecker = (pixel) => {
-        const r = data[pixel * channels];
-        const g = data[pixel * channels + 1];
-        const b = data[pixel * channels + 2];
-        return r >= 236 && g >= 236 && b >= 236 && Math.max(r, g, b) - Math.min(r, g, b) <= 10;
-    };
-    const enqueue = (x, y) => {
-        const pixel = y * width + x;
-        if (!visited[pixel] && isChecker(pixel)) {
-            visited[pixel] = 1;
-            queue.push(pixel);
-        }
-    };
-    for (let x = 0; x < width; x += 1) { enqueue(x, 0); enqueue(x, height - 1); }
-    for (let y = 1; y < height - 1; y += 1) { enqueue(0, y); enqueue(width - 1, y); }
-    for (let head = 0; head < queue.length; head += 1) {
-        const pixel = queue[head];
-        data[pixel * channels + 3] = 0;
-        const x = pixel % width;
-        const y = Math.floor(pixel / width);
-        if (x > 0) enqueue(x - 1, y);
-        if (x + 1 < width) enqueue(x + 1, y);
-        if (y > 0) enqueue(x, y - 1);
-        if (y + 1 < height) enqueue(x, y + 1);
-    }
-    return sharp(data, { raw: { width, height, channels } }).png().toBuffer();
-}
-
 async function makeGateArt(id, state) {
     const cutoutDir = state === 'lineup' ? lineupCutoutDir : selectedCutoutDir;
     const sourceState = state === 'lineup' ? 'normal' : 'selected';
     const cutoutPath = path.join(cutoutDir, `${id}-${sourceState}.png`);
     const characterHeight = characterHeights[id];
     // 原画周辺の透明余白だけを除き、高さだけで規格化する。縦横別の引き伸ばしは絶対にしない。
-    const cleanCutout = await removeBakedCheckerboard(cutoutPath);
+    // v7は生成時から実alphaを持つ原画だけを採用する。輪郭を後処理で抜き直さない。
+    const cleanCutout = await sharp(cutoutPath).ensureAlpha().png().toBuffer();
     const trimmed = await sharp(cleanCutout).trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 12 }).png().toBuffer();
     const resized = await sharp(trimmed).resize({ height: characterHeight, fit: 'contain' }).png().toBuffer();
     const resizedMeta = await sharp(resized).metadata();
@@ -77,7 +43,7 @@ async function makeGateArt(id, state) {
         .composite([{ input: character, left: Math.round((artWidth - (meta.width ?? 0)) / 2), top: baseline - (meta.height ?? 0) }])
         .png()
         .toBuffer();
-    const stem = `gate-character-${id}-${state}-v6`;
+    const stem = `gate-character-${id}-${state}-v7`;
     await Promise.all([
         sharp(art).png().toFile(path.join(sourceDir, `${stem}.png`)),
         sharp(art).webp({ quality: 93, effort: 6 }).toFile(path.join(publicDir, `${stem}.webp`))

@@ -141,8 +141,8 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-art-v1.webp`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
-            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v6.webp`);
-            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v6.webp`);
+            this.load.image(fighter.gateLineupKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-lineup-v7.webp`);
+            this.load.image(fighter.gateSelectedKey!, `assets/championship-re/gates/characters/gate-character-${fighter.id}-selected-v7.webp`);
         });
         this.load.image('countdown-3', 'assets/ui/countdown-3-v1.webp');
         this.load.image('countdown-2', 'assets/ui/countdown-2-v1.webp');

@@ -1516,3 +1516,10 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `character-art-review.html`へ、キャラごとに元シートを表示する`CUT TUNER`を追加。NORMAL/SELECTEDそれぞれの開始・終了を0〜100%の数値入力で指定すると、元シートへ4本の境界線を即時表示する。値は端末保存でき、キャラ単位のJSONをコピーできる
 - 本ツールはレビュー用であり、ユーザー確定の値を受けてから原画alphaを保ったまま再分割する。ゲーム本体素材は変更しない。公開はユーザーの明示`push`待ち
 - ユーザー確定済みの再分割値: BRICK=`normal 0〜43 / selected 43〜100`、KIRI=`normal 0〜48 / selected 48〜100`、TΩ9=`normal 0〜52 / selected 52〜100`。v11比較用PNGへalphaを保ったまま反映済み。公開はユーザーの明示`push`待ち
+
+### 2026-08-31 — Codex（Remaster：v11一括ペアを選択枠へ接続、未公開）
+
+- 一括生成したv11の通常／選択14枚を、v7原画として`cutouts/v7-batch-normal`／`v7-batch-selected`へ保存し、ゲート用PNG/WebPへ等比規格化した。BRICK・KIRI・TΩ9はユーザーがCUT TUNERで確定した境界を適用済み
+- `Game.ts`の選択画面は`gate-character-*-lineup-v7.webp`／`selected-v7.webp`を読む。既存のキャラ別X/Y/SIZE調整値は変更していないため、`?debug=1`のGATE TUNERでユーザーがサイズ・位置を調整できる
+- v7原画は生成時のalphaのみを使う。旧v6にあった市松背景の後処理除去はビルドスクリプトから廃止した
+- `npx tsc --noEmit`、ルート`npm run verify`、`npm run test:champion`（20件）、Remaster公開用ビルド、`git diff --check`成功。公開はユーザーの明示`push`待ち
