@@ -1501,3 +1501,5 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `Game.ts`は`gate-character-*-lineup-v6.webp`／`selected-v6.webp`を読むよう切替。ローカル実画面で通常の暗転・選択時の前進ポーズ切替・ゲート内背景を確認した
 - `npx tsc --noEmit`、Remaster `npm run build-nolog`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
 - `?debug=1`の`GATE TUNER`へ、キャラ別の`NORMAL`／`SELECTED`切替を追加。各状態ごとにX・Y・SIZEをスライダーと数値入力の両方で個別調整でき、対象の絵だけを明るく表示して足元位置を確認できる。`COPY CHARACTER VALUES`で7体・両状態の値をまとめて取り出せる
+- 立ち絵の再生成は、後処理で背景を抜く方式を完全に不採用とする。採用前に実alpha=0の外周を検査し、同じ状態の7体は画風・線密度・質感・カメラ距離が90%以上同一ロスター、各キャラの通常／選択は顔・髪・衣装・装備・体格が85%以上同一人物と確認できなければ採用しない。詳細は`docs/CHAMPIONSHIP_RE_GATE_ART_CALIBRATION.md`の採用判定を正本にする
+- 携帯で進行中の候補を比較するため、`character-art-review.html`を追加。通常／選択を横並びにし、透過を市松／黒背景で切替確認できる。ここに載せた候補は採用ではなく、全14枚の一括検収までゲーム本体へ接続しない

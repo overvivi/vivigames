@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CHAMPIONSHIP RE — Character Art Review</title>
+  <style>
+    :root { color-scheme:dark; font-family:Arial,sans-serif; background:#060a10; color:#e7eef4; }
+    body { margin:0; padding:18px 12px 48px; background:radial-gradient(circle at 50% 0,#142637,#060a10 45%); }
+    main { max-width:720px; margin:auto; }
+    h1 { margin:0; font-size:18px; letter-spacing:.08em; } p { color:#aebdca; line-height:1.55; font-size:13px; }
+    .tools { position:sticky; top:0; z-index:2; padding:10px 0; background:rgba(6,10,16,.94); }
+    button { min-height:40px; padding:0 14px; border:1px solid #77dce2; background:#102732; color:#dffcff; font-weight:bold; }
+    .list { display:grid; gap:14px; }
+    article { border:1px solid #3d5a6c; background:#0c151e; overflow:hidden; }
+    h2 { margin:0; padding:11px 12px 4px; font-size:16px; } .status { margin:0; padding:0 12px 10px; color:#ffce7b; font-size:12px; }
+    .pair { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:#3d5a6c; }
+    figure { min-width:0; margin:0; background:#111820; } figcaption { padding:8px; color:#c9d5de; font-size:11px; font-weight:bold; }
+    .asset { aspect-ratio:2/3; display:grid; place-items:center; background-color:#161d25; background-image:linear-gradient(45deg,#252d35 25%,transparent 25%),linear-gradient(-45deg,#252d35 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252d35 75%),linear-gradient(-45deg,transparent 75%,#252d35 75%); background-size:24px 24px; background-position:0 0,0 12px,12px -12px,-12px 0; }
+    .asset.black { background:#020407; background-image:none; } .asset img { width:100%; height:100%; object-fit:contain; }
+    .pending { color:#6f8190; font-size:12px; text-align:center; padding:24px 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>CHAMPIONSHIP RE / ART REVIEW</h1>
+    <p>生成途中の確認専用。通常と選択を並べて、同一人物性・身長・足元・透過縁を携帯で確認する。ここに載っただけでは採用ではない。</p>
+    <div class="tools"><button id="background">黒背景で確認</button></div>
+    <section class="list" id="list"></section>
+  </main>
+  <script>
+    const rows = [
+      ['RAVEN','生成途中（選択待ち）','raven-normal.png',null],
+      ['MIKA','生成途中（通常／選択の同一人物性を確認中）','mika-normal.png','mika-selected.png'],
+      ['BRICK','生成途中（通常／選択の同一人物性を確認中）','brick-normal.png','brick-selected.png'],
+      ['NOISE','生成途中（通常／選択の同一人物性を確認中）','noise-normal.png','noise-selected.png'],
+      ['KIRI','生成途中（選択待ち）','kiri-normal.png',null],
+      ['VIVI','生成途中（選択待ち）','vivi-normal.png',null],
+      ['TΩ9','生成待ち',null,null]
+    ];
+    const root = document.querySelector('#list');
+    for (const [name,status,normal,selected] of rows) {
+      const card = document.createElement('article');
+      card.innerHTML = `<h2>${name}</h2><p class="status">${status}</p><div class="pair">${slot('NORMAL',normal)}${slot('SELECTED',selected)}</div>`;
+      root.append(card);
+    }
+    function slot(label,file) {
+      return `<figure><figcaption>${label}</figcaption><div class="asset">${file ? `<img src="assets/championship-re/gates/reviews/v9/${file}" alt="${label}">` : '<div class="pending">PENDING</div>'}</div></figure>`;
+    }
+    document.querySelector('#background').addEventListener('click',(event)=>{
+      document.querySelectorAll('.asset').forEach((item)=>item.classList.toggle('black'));
+      event.currentTarget.textContent = document.querySelector('.asset').classList.contains('black') ? '市松で確認' : '黒背景で確認';
+    });
+  </script>
+</body>
+</html>
