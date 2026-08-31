@@ -1553,3 +1553,15 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 横長PCでゲーム左右の余白が十分ある時は、`GATE TUNER`をゲーム右側の余白へ固定配置し、自動で展開する。ゲーム本体を隠さず、通常／選択とX/Y/SIZEを見ながら調整できる
 - 余白幅は表示高さから計算してパネル幅を収める。余白が足りない画面では従来どおり画面内の折りたたみ表示へ戻る
 - ローカルPC実画面で、ゲーム本体と重ならない右側展開を確認した。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-09-01 — Codex（Remaster：ユーザー確定のゲート立ち絵配置、未公開）
+
+- ユーザーがPCのGATE TUNERで確認・確定した7人×通常／選択のX・Y・SIZEを、ゲームの既定配置へ反映した
+- `RESET THIS STATE`も従来の0/0/1ではなく、この確定配置に戻る。通常と選択の別々の位置・倍率は維持する
+- `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-09-01 — Codex（Remaster：選択ゲートの横展開試作、未公開）
+
+- 7本の細いゲートで全員を並べるロスター表示は保持し、選択中のゲートだけを幅250px（約2.3枠）へ横展開する試作を追加した。キャラの顔・衣装・武器・翼など、細い縦スリットでは失われていた横情報を読めるようにする
+- 原画alphaはそのまま使い、WebGL用maskの開口だけを選択時に広げる。選択枠・色面・左右レールも同じ幅に追随し、非選択の6本は従来の幅と暗転を維持する
+- ローカル実画面でVIVI選択時の展開を確認。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち

@@ -46,9 +46,16 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
     nameY: -286, nameSize: 20,
     subtitleY: -265, subtitleSize: 13
 };
-const DEFAULT_GATE_CHARACTER_LAYOUT: Record<GateCharacterState, GateCharacterLayout> = {
-    lineup: { x: 0, y: 0, scale: 1 },
-    selected: { x: 0, y: 0, scale: 1 }
+// 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
+// 通常／選択は別々に持ち、リセットしてもこの安全な位置・サイズへ戻す。
+const DEFAULT_GATE_CHARACTER_LAYOUTS: Record<string, Record<GateCharacterState, GateCharacterLayout>> = {
+    raven: { lineup: { x: -49, y: 49, scale: 1.08 }, selected: { x: 9, y: 51, scale: 1 } },
+    mika: { lineup: { x: -21, y: 80, scale: 0.91 }, selected: { x: 22, y: 86, scale: 0.88 } },
+    brick: { lineup: { x: -19, y: 85, scale: 0.88 }, selected: { x: 0, y: 98, scale: 0.83 } },
+    noise: { lineup: { x: -12, y: 55, scale: 1.07 }, selected: { x: 0, y: 51, scale: 1 } },
+    kiri: { lineup: { x: -3, y: 42, scale: 1.11 }, selected: { x: -2, y: 29, scale: 1.1 } },
+    vivi: { lineup: { x: -8, y: 38, scale: 1.14 }, selected: { x: -5, y: 32, scale: 1.09 } },
+    tomega9: { lineup: { x: 0, y: 94, scale: 1 }, selected: { x: -11, y: 95, scale: 0.93 } }
 };
 // 第二完成系は7枚を常時固定する。縦持ちENVELOPで左右が切れる端末でも外枠が残る安全域。
 const SELECT_GATE_SLOTS = [140, 250, 360, 470, 580, 690, 800];
@@ -60,6 +67,8 @@ const GATE_DISPLAY_HEIGHT = 850;
 // 高さにすると、その始終端が背景の横線に見えるため、内側へ重ねる全要素で共用する。
 const GATE_OPENING_WIDTH = GATE_DISPLAY_WIDTH * 370 / 450;
 const GATE_OPENING_HEIGHT = GATE_DISPLAY_HEIGHT * 3385 / 3477;
+// 選択中だけは隣のゲート1本分強まで開く。7人の整列は残しつつ、衣装・武器・翼などの横情報を読ませる。
+const SELECTED_GATE_REVEAL_WIDTH = 250;
 // 原画を先に枠幅で切ると、位置調整時に存在しない画素を引っ張ることになる。
 // この規格は表示上の身長と足元だけを共通化し、横方向は各原画を残したまま開口で切る。
 const GATE_CHARACTER_CANVAS_HEIGHT = 3137;
@@ -129,8 +138,8 @@ export class Game extends Scene {
     private gateCharacterTunerFighterId = 'raven';
     private gateCharacterTunerState: GateCharacterState = 'lineup';
     private gateCharacterLayouts = Object.fromEntries(FIGHTERS.map((fighter) => [fighter.id, {
-        lineup: { ...DEFAULT_GATE_CHARACTER_LAYOUT.lineup },
-        selected: { ...DEFAULT_GATE_CHARACTER_LAYOUT.selected }
+        lineup: { ...DEFAULT_GATE_CHARACTER_LAYOUTS[fighter.id].lineup },
+        selected: { ...DEFAULT_GATE_CHARACTER_LAYOUTS[fighter.id].selected }
     }])) as Record<string, Record<GateCharacterState, GateCharacterLayout>>;
     private flash!: GameObjects.Rectangle;
 
@@ -280,8 +289,7 @@ export class Game extends Scene {
         // 原画は広く残し、見える範囲だけをゲートの透明開口へ限定する。
         // maskはカード移動と同じ座標を使うため、選択時の前進演出でも枠からずれない。
         const openingMaskShape = this.make.graphics({ x, y }, false);
-        openingMaskShape.fillStyle(0xffffff);
-        openingMaskShape.fillRect(-GATE_OPENING_WIDTH / 2, -GATE_OPENING_HEIGHT / 2, GATE_OPENING_WIDTH, GATE_OPENING_HEIGHT);
+        this.drawGateOpeningMask(openingMaskShape, GATE_OPENING_WIDTH);
         // WebGLではGeometryMaskが効かないため、Phaser 4の外部Maskフィルタを使う。
         // この方式ならカードと同じworld座標の矩形だけを描画し、隣のゲートへは漏れない。
         lineupArt.enableFilters().filters!.external.addMask(openingMaskShape, false, this.cameras.main, 'world');
@@ -353,12 +361,19 @@ export class Game extends Scene {
             const subtitle = card.getData('subtitle') as GameObjects.Text;
             const hit = card.getData('hit') as GameObjects.Rectangle;
             const openingMaskShape = card.getData('openingMaskShape') as GameObjects.Graphics;
+            const reveal = selected && !previewingLineup;
+            const frameWidth = reveal ? SELECTED_GATE_REVEAL_WIDTH : GATE_DISPLAY_WIDTH;
+            const openingWidth = frameWidth * 370 / 450;
+            this.drawGateOpeningMask(openingMaskShape, openingWidth);
             frame.setVisible(!selected || previewingLineup).setAlpha(previewingLineup ? 1 : selected ? 0 : 0.86);
-            selectedFrame.setVisible(selected && !previewingLineup).setAlpha(1);
+            selectedFrame.setDisplaySize(frameWidth, GATE_DISPLAY_HEIGHT).setVisible(reveal).setAlpha(1);
             // 非選択キャラは透明にせず暗くする。alphaを下げると床の線が体を貫通して見えるため。
             lineupArt.setVisible(!selected || previewingLineup).setAlpha(selected && !previewingLineup ? 0 : 1).setTint(previewingLineup ? 0xffffff : selected ? 0xffffff : 0x666666);
             selectedArt.setVisible(selected && !previewingLineup).setAlpha(selected ? 1 : 0);
-            windowShade.setAlpha(selected && !previewingLineup ? 0.04 : previewingLineup ? 0.04 : 0.74);
+            windowShade.setSize(openingWidth, GATE_OPENING_HEIGHT).setAlpha(reveal ? 0.04 : previewingLineup ? 0.04 : 0.74);
+            accent.setSize(openingWidth, GATE_OPENING_HEIGHT);
+            leftAccentRail.setX(-openingWidth / 2 + 2.5);
+            rightAccentRail.setX(openingWidth / 2 - 2.5);
             accent.setAlpha(selected ? 0.34 : 0.16);
             // 全員の色は残しつつ、選択中だけ線の光量を上げて主役を一目で分かるようにする。
             leftAccentRail.setAlpha(selected ? 1 : 0.34);
@@ -768,7 +783,7 @@ export class Game extends Scene {
         resetCharacter.type = 'button';
         resetCharacter.textContent = 'RESET THIS STATE';
         resetCharacter.addEventListener('click', () => {
-            this.gateCharacterLayouts[this.gateCharacterTunerFighterId][this.gateCharacterTunerState] = { ...DEFAULT_GATE_CHARACTER_LAYOUT[this.gateCharacterTunerState] };
+            this.gateCharacterLayouts[this.gateCharacterTunerFighterId][this.gateCharacterTunerState] = { ...DEFAULT_GATE_CHARACTER_LAYOUTS[this.gateCharacterTunerFighterId][this.gateCharacterTunerState] };
             this.applyGateCharacterLayout();
             this.createGateHeaderTuner();
         });
@@ -880,6 +895,12 @@ export class Game extends Scene {
             selectedArt.setPosition(layout.selected.x, this.gateCharacterBaseY(fighter) + layout.selected.y).setScale(this.gateCharacterBaseScale(fighter, selectedArt) * layout.selected.scale);
         });
         this.selectFighter(this.selectedFighter, true);
+    }
+
+    private drawGateOpeningMask(mask: GameObjects.Graphics, width: number) {
+        mask.clear();
+        mask.fillStyle(0xffffff);
+        mask.fillRect(-width / 2, -GATE_OPENING_HEIGHT / 2, width, GATE_OPENING_HEIGHT);
     }
 
     private gateCharacterBaseScale(fighter: FighterDefinition, art: GameObjects.Image) {
