@@ -610,6 +610,19 @@ export class Game extends Scene {
                 .tc-remaster-gate-tuner button { min-height:34px; padding:7px; color:#d7ffe5; background:#162b29; border:1px solid #8ee9b6; border-radius:0; font:700 10px Arial,sans-serif; letter-spacing:.8px; }
                 .tc-remaster-gate-tuner button + button { color:#c8dae8; background:#111f31; border-color:#5d7892; }
                 .tc-remaster-gate-tuner__status { min-height:13px; margin:8px 0 0; color:#8fe5c0; font-size:10px; letter-spacing:.4px; }
+                .tc-remaster-gate-tuner__header { margin:0 0 12px; border:1px solid rgba(113,198,223,.35); }
+                .tc-remaster-gate-tuner__header summary { min-height:30px; padding:9px; color:#a9c6d8; font-size:9px; }
+                @media (max-width:1100px) {
+                    .tc-remaster-gate-tuner { max-height:31vh; }
+                    .tc-remaster-gate-tuner__body { padding:0 10px 10px; }
+                    .tc-remaster-gate-tuner__header { display:none; }
+                    .tc-remaster-gate-tuner__header-actions { display:none; }
+                    .tc-remaster-gate-tuner__section { margin:0 0 5px; padding:0; border:0; }
+                    .tc-remaster-gate-tuner__hint { display:none; }
+                    .tc-remaster-gate-tuner__choice { margin:6px 0; }
+                    .tc-remaster-gate-tuner__row { margin:5px 0; }
+                    .tc-remaster-gate-tuner__actions { margin-top:7px; }
+                }
                 @media (min-width:1101px) { .tc-remaster-gate-tuner { left:50%; right:auto; width:360px; transform:translateX(-50%); bottom:18px; max-height:58vh; } .tc-remaster-gate-tuner.is-top { top:18px; bottom:auto; } }
             `;
             document.head.appendChild(style);
@@ -629,18 +642,24 @@ export class Game extends Scene {
         summary.textContent = 'GATE TUNER  /  TAP TO OPEN';
         const body = document.createElement('div');
         body.className = 'tc-remaster-gate-tuner__body';
+        const headerSettings = document.createElement('details');
+        headerSettings.className = 'tc-remaster-gate-tuner__header';
+        const headerSummary = document.createElement('summary');
+        headerSummary.textContent = 'HEADER SETTINGS (PC ONLY)';
+        headerSettings.appendChild(headerSummary);
         const hint = document.createElement('p');
         hint.className = 'tc-remaster-gate-tuner__hint';
         hint.textContent = '全7ゲート共通。スライダーか右の数値入力で、番号・マーク・名前・肩書きを個別調整できる。';
-        body.appendChild(hint);
-        this.addGateHeaderField(body, 'NUMBER Y', -410, -320, this.gateHeaderLayout.numberY, 1, (value) => { this.gateHeaderLayout.numberY = value; });
-        this.addGateHeaderField(body, 'NUMBER SIZE', 12, 28, this.gateHeaderLayout.numberSize, 1, (value) => { this.gateHeaderLayout.numberSize = value; });
-        this.addGateHeaderField(body, 'MARK Y', -360, -260, this.gateHeaderLayout.markY, 1, (value) => { this.gateHeaderLayout.markY = value; });
-        this.addGateHeaderField(body, 'MARK SIZE', 36, 86, this.gateHeaderLayout.markSize, 1, (value) => { this.gateHeaderLayout.markSize = value; });
-        this.addGateHeaderField(body, 'NAME Y', -300, -210, this.gateHeaderLayout.nameY, 1, (value) => { this.gateHeaderLayout.nameY = value; });
-        this.addGateHeaderField(body, 'NAME SIZE', 10, 24, this.gateHeaderLayout.nameSize, 1, (value) => { this.gateHeaderLayout.nameSize = value; });
-        this.addGateHeaderField(body, 'TITLE Y', -270, -190, this.gateHeaderLayout.subtitleY, 1, (value) => { this.gateHeaderLayout.subtitleY = value; });
-        this.addGateHeaderField(body, 'TITLE SIZE', 7, 16, this.gateHeaderLayout.subtitleSize, 1, (value) => { this.gateHeaderLayout.subtitleSize = value; });
+        headerSettings.appendChild(hint);
+        this.addGateHeaderField(headerSettings, 'NUMBER Y', -410, -320, this.gateHeaderLayout.numberY, 1, (value) => { this.gateHeaderLayout.numberY = value; });
+        this.addGateHeaderField(headerSettings, 'NUMBER SIZE', 12, 28, this.gateHeaderLayout.numberSize, 1, (value) => { this.gateHeaderLayout.numberSize = value; });
+        this.addGateHeaderField(headerSettings, 'MARK Y', -360, -260, this.gateHeaderLayout.markY, 1, (value) => { this.gateHeaderLayout.markY = value; });
+        this.addGateHeaderField(headerSettings, 'MARK SIZE', 36, 86, this.gateHeaderLayout.markSize, 1, (value) => { this.gateHeaderLayout.markSize = value; });
+        this.addGateHeaderField(headerSettings, 'NAME Y', -300, -210, this.gateHeaderLayout.nameY, 1, (value) => { this.gateHeaderLayout.nameY = value; });
+        this.addGateHeaderField(headerSettings, 'NAME SIZE', 10, 24, this.gateHeaderLayout.nameSize, 1, (value) => { this.gateHeaderLayout.nameSize = value; });
+        this.addGateHeaderField(headerSettings, 'TITLE Y', -270, -190, this.gateHeaderLayout.subtitleY, 1, (value) => { this.gateHeaderLayout.subtitleY = value; });
+        this.addGateHeaderField(headerSettings, 'TITLE SIZE', 7, 16, this.gateHeaderLayout.subtitleSize, 1, (value) => { this.gateHeaderLayout.subtitleSize = value; });
+        body.appendChild(headerSettings);
         const characterSection = document.createElement('h3');
         characterSection.className = 'tc-remaster-gate-tuner__section';
         characterSection.textContent = 'GATE CHARACTER TUNER';
@@ -706,7 +725,7 @@ export class Game extends Scene {
         characterActions.append(copyCharacter, resetCharacter);
         body.appendChild(characterActions);
         const actions = document.createElement('div');
-        actions.className = 'tc-remaster-gate-tuner__actions';
+        actions.className = 'tc-remaster-gate-tuner__actions tc-remaster-gate-tuner__header-actions';
         const copy = document.createElement('button');
         copy.type = 'button';
         copy.textContent = 'COPY HEADER VALUES';

@@ -1523,3 +1523,9 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `Game.ts`の選択画面は`gate-character-*-lineup-v7.webp`／`selected-v7.webp`を読む。既存のキャラ別X/Y/SIZE調整値は変更していないため、`?debug=1`のGATE TUNERでユーザーがサイズ・位置を調整できる
 - v7原画は生成時のalphaのみを使う。旧v6にあった市松背景の後処理除去はビルドスクリプトから廃止した
 - `npx tsc --noEmit`、ルート`npm run verify`、`npm run test:champion`（20件）、Remaster公開用ビルド、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-08-31 — Codex（Remaster：携帯GATE TUNERの視認性、未公開）
+
+- 携帯では従来の調整パネルがゲートとキャラを覆い、見ながら調整できなかった。画面幅1100px以下では見出し設定とヘッダー用操作を隠し、キャラ選択／NORMAL・SELECTED／X・Y・SIZE／キャラ値コピーだけを下端31%以内へ圧縮した
+- PCは従来どおり見出し設定を折りたたみで開ける。キャラ調整機能・数値入力・値のコピーは維持する
+- `npx tsc --noEmit`、ルート`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
