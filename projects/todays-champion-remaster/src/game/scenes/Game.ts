@@ -613,7 +613,8 @@ export class Game extends Scene {
                 .tc-remaster-gate-tuner__header { margin:0 0 12px; border:1px solid rgba(113,198,223,.35); }
                 .tc-remaster-gate-tuner__header summary { min-height:30px; padding:9px; color:#a9c6d8; font-size:9px; }
                 @media (max-width:1100px) {
-                    .tc-remaster-gate-tuner { max-height:31vh; }
+                    /* 携帯ではゲートを隠さず、下端のゲーム操作とも重ならない上端に固定する。 */
+                    .tc-remaster-gate-tuner { top:8px; bottom:auto; max-height:31vh; touch-action:manipulation; }
                     .tc-remaster-gate-tuner__body { padding:0 10px 10px; }
                     .tc-remaster-gate-tuner__header { display:none; }
                     .tc-remaster-gate-tuner__header-actions { display:none; }
@@ -631,6 +632,11 @@ export class Game extends Scene {
             tuner.className = 'tc-remaster-gate-tuner';
             tuner.open = this.gateHeaderTunerOpen;
             tuner.addEventListener('toggle', () => { this.gateHeaderTunerOpen = tuner.open; });
+            // Phaser は画面全体のポインタを監視するため、調整UIへの操作をゲート選択へ渡さない。
+            const stopGateInput = (event: Event) => event.stopPropagation();
+            tuner.addEventListener('pointerdown', stopGateInput);
+            tuner.addEventListener('pointerup', stopGateInput);
+            tuner.addEventListener('click', stopGateInput);
             document.body.appendChild(tuner);
             this.gateHeaderTuner = tuner;
         }

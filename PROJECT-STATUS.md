@@ -1529,3 +1529,9 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 携帯では従来の調整パネルがゲートとキャラを覆い、見ながら調整できなかった。画面幅1100px以下では見出し設定とヘッダー用操作を隠し、キャラ選択／NORMAL・SELECTED／X・Y・SIZE／キャラ値コピーだけを下端31%以内へ圧縮した
 - PCは従来どおり見出し設定を折りたたみで開ける。キャラ調整機能・数値入力・値のコピーは維持する
 - `npx tsc --noEmit`、ルート`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-08-31 — Codex（Remaster：携帯GATE TUNERの上端固定、未公開）
+
+- 携帯幅では`GATE TUNER`を常に画面上端へ固定した。ゲートとキャラを見ながら、下側のゲームボタンを隠さず調整できる
+- 調整UI上の`pointerdown`／`pointerup`／`click`は伝播を止める。スライダー・数値欄・選択ボタンを触った操作が背後のPhaserゲート選択へ渡らないようにした
+- ルート`npm run verify`、`npm run test:champion`（20件）、`git diff --check`成功。公開はユーザーの明示`push`待ち
