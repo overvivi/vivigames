@@ -35,6 +35,7 @@ type GateCharacterState = 'lineup' | 'selected';
 type GateCharacterLayout = { x: number; y: number; scale: number };
 type RectLayout = { x: number; y: number; width: number; height: number };
 type SummonStageLayout = {
+    title: RectLayout;
     miniGate: { x: number; y: number; width: number; height: number; gap: number };
     gate: RectLayout;
     interior: RectLayout;
@@ -58,6 +59,7 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 // 素材を作る前に、参考モックの構図を基準キャンバスへ固定する。
 // 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
+    title: { x: 60, y: 64, width: 820, height: 166 },
     miniGate: { x: 48, y: 254, width: 96, height: 284, gap: 28 },
     gate: { x: 65, y: 561, width: 805, height: 830 },
     interior: { x: 178, y: 660, width: 585, height: 731 },
@@ -175,7 +177,7 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
-        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v1.webp');
+        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v2.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
@@ -277,7 +279,12 @@ export class Game extends Scene {
         const archive = this.add.text(VIEW_WIDTH - 110, 60, 'CHARACTER ARCHIVE →', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1.2 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
         archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
         // PCでも主題として読める横幅を取る。選択情報は各ゲート内へ集約する。
-        const titleLogo = this.add.image(VIEW_WIDTH / 2, this.summonStagePreviewEnabled ? 165 : 245, 'championship-re-title').setDisplaySize(820, this.summonStagePreviewEnabled ? 190 : 205);
+        const previewTitle = this.summonStageLayout.title;
+        const titleLogo = this.add.image(
+            this.summonStagePreviewEnabled ? previewTitle.x + previewTitle.width / 2 : VIEW_WIDTH / 2,
+            this.summonStagePreviewEnabled ? previewTitle.y + previewTitle.height / 2 : 245,
+            'championship-re-title'
+        ).setDisplaySize(this.summonStagePreviewEnabled ? previewTitle.width : 820, this.summonStagePreviewEnabled ? previewTitle.height : 205);
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
         layer.add([gameBase, archive, titleLogo, this.selectTitle]);
 
@@ -321,6 +328,7 @@ export class Game extends Scene {
             guide.add([rect, text]);
         };
         const mini = layout.miniGate;
+        addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
         FIGHTERS.forEach((fighter, index) => {
             const x = mini.x + index * (mini.width + mini.gap);
             const selected = index === 5;
@@ -749,6 +757,11 @@ export class Game extends Scene {
             title.textContent = text;
             body.appendChild(title);
         };
+        addSection('TITLE ART');
+        this.addSummonStageField(body, 'TITLE X', 0, 180, layout.title.x, 1, (value) => { layout.title.x = value; });
+        this.addSummonStageField(body, 'TITLE Y', 20, 150, layout.title.y, 1, (value) => { layout.title.y = value; });
+        this.addSummonStageField(body, 'TITLE WIDTH', 620, 900, layout.title.width, 1, (value) => { layout.title.width = value; });
+        this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
         addSection('TOP ROSTER / 7 MINI GATES');
         this.addSummonStageField(body, 'ROW Y', 220, 390, layout.miniGate.y, 1, (value) => { layout.miniGate.y = value; });
         this.addSummonStageField(body, 'GATE WIDTH', 72, 118, layout.miniGate.width, 1, (value) => { layout.miniGate.width = value; });

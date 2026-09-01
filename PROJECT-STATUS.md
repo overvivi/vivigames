@@ -1576,3 +1576,4 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 確認用として、門・キャラ・UIを焼き込まない共通外側背景`source/assets/championship-re/references/summon-stage-outer-background-master-v1.png`を追加した。`?debug=1&layout=1`だけが`select/summon-stage-preview-bg-v1.webp`を読み、通常の7ゲート選択背景は変更しない。大型門の敷居とキャラの足元`Y=1390`が、背景の濡れた横方向の路面へ接地するかを実画面で評価できる
 - `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、Remaster公開用ビルド成功。公開はユーザーの明示`push`待ち
 - PC表示で外側背景が寄りすぎて見えたため、建物・床目地を遠ざけた引きの`source/assets/championship-re/references/summon-stage-outer-background-master-v2.png`へ差し替えた。確認画面は`select/summon-stage-preview-bg-v2.webp`を読む。型チェック、素材参照検査、公開用ビルド成功。公開はユーザーの明示`push`待ち
+- タイトルも大型召喚ステージのレイアウト対象へ追加。`title(x/y/width/height)`を`SUMMON STAGE TUNER`で直接調整でき、ガイド枠も表示される。新しい透明タイトルは`championship-re-title-master-v2.png`を原画に、`CHAMPIONSHIP / RE / REMASTER`の横長メカニカルエンブレムとして出力した。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、公開用ビルド成功。公開はユーザーの明示`push`待ち
