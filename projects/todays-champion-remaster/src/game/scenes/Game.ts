@@ -160,6 +160,7 @@ export class Game extends Scene {
     private summonStageTuner?: HTMLDetailsElement;
     private summonStageTunerStyle?: HTMLStyleElement;
     private summonStageGuide?: GameObjects.Container;
+    private summonStageLayoutGuidesVisible = true;
     private summonStageLayout: SummonStageLayout = JSON.parse(JSON.stringify(DEFAULT_SUMMON_STAGE_LAYOUT));
     private gateCharacterTunerFighterId = 'raven';
     private gateCharacterTunerState: GateCharacterState = 'lineup';
@@ -328,11 +329,13 @@ export class Game extends Scene {
     private createSummonStagePreview(layer: GameObjects.Container) {
         this.summonStageGuide?.destroy();
         const guide = this.add.container().setDepth(8);
+        // 完成イメージを確認する時は、素材そのものを残して測定用の線だけ消せるよう分離する。
+        const annotations = this.add.container().setVisible(this.summonStageLayoutGuidesVisible);
         const layout = this.summonStageLayout;
         const addBox = (box: RectLayout, color: number, alpha: number, label: string) => {
             const rect = this.add.rectangle(box.x, box.y, box.width, box.height, color, alpha).setOrigin(0).setStrokeStyle(3, color, 0.95);
             const text = this.add.text(box.x + 10, box.y + 10, label, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f4fbff', letterSpacing: 1.2 });
-            guide.add([rect, text]);
+            annotations.add([rect, text]);
         };
         const mini = layout.miniGate;
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
@@ -371,11 +374,12 @@ export class Game extends Scene {
         const characterLabel = this.add.text(VIEW_WIDTH / 2, characterTop + 16, `CHARACTER SAFE AREA  H=${layout.character.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 }).setOrigin(0.5);
         const baseline = this.add.rectangle(100, layout.character.baseline, VIEW_WIDTH - 200, 3, 0x5ff1cf, 0.98).setOrigin(0, 0.5);
         const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
-        guide.add([character, characterLabel, baseline, baselineLabel]);
+        annotations.add([character, characterLabel, baseline, baselineLabel]);
         const hint = this.add.text(VIEW_WIDTH / 2, layout.hintY, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#e3ecf6', letterSpacing: 3 }).setOrigin(0.5);
         const cta = this.add.rectangle(layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height, 0xe8c878, 0.16).setOrigin(0).setStrokeStyle(3, 0xe8c878, 0.95);
         const ctaLabel = this.add.text(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, `START DUEL  ${layout.cta.width} × ${layout.cta.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffedb2', letterSpacing: 3 }).setOrigin(0.5);
-        guide.add([hint, cta, ctaLabel]);
+        annotations.add([cta, ctaLabel]);
+        guide.add([annotations, hint]);
         layer.add(guide);
         this.summonStageGuide = guide;
     }
@@ -823,9 +827,17 @@ export class Game extends Scene {
             this.createSummonStagePreview(this.selectionLayer!);
             this.createSummonStageTuner();
         });
+        const toggleGuides = document.createElement('button');
+        toggleGuides.type = 'button';
+        toggleGuides.textContent = this.summonStageLayoutGuidesVisible ? 'HIDE GUIDE FRAMES' : 'SHOW GUIDE FRAMES';
+        toggleGuides.addEventListener('click', () => {
+            this.summonStageLayoutGuidesVisible = !this.summonStageLayoutGuidesVisible;
+            this.createSummonStagePreview(this.selectionLayer!);
+            this.createSummonStageTuner();
+        });
         const status = document.createElement('p');
         status.className = 'tc-remaster-summon-tuner__status';
-        actions.append(copy, reset);
+        actions.append(copy, reset, toggleGuides);
         body.append(actions, status);
         tuner.append(summary, body);
     }
