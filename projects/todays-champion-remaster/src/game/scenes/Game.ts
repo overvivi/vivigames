@@ -60,8 +60,8 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 // 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     title: { x: 60, y: 64, width: 820, height: 166 },
-    miniGate: { x: 48, y: 254, width: 96, height: 284, gap: 28 },
-    gate: { x: 65, y: 561, width: 805, height: 830 },
+    miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
+    gate: { x: 84, y: 561, width: 772, height: 830 },
     interior: { x: 178, y: 660, width: 585, height: 731 },
     character: { baseline: 1390, height: 706 },
     hintY: 1465,

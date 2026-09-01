@@ -1579,3 +1579,4 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - タイトルも大型召喚ステージのレイアウト対象へ追加。`title(x/y/width/height)`を`SUMMON STAGE TUNER`で直接調整でき、ガイド枠も表示される。新しい透明タイトルは`championship-re-title-master-v2.png`を原画に、`CHAMPIONSHIP / RE / REMASTER`の横長メカニカルエンブレムとして出力した。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、公開用ビルド成功。公開はユーザーの明示`push`待ち
 - タイトル枠はロゴを引き伸ばす寸法ではなく安全領域として扱うよう修正。v3は原画比率を保持し、ゲーム側で領域内へcontain配置する。左右の`GAME BASE`／`CHARACTER ARCHIVE`導線は重ねずに残る。型チェック、公開用ビルド成功。公開はユーザーの明示`push`待ち
 - `SUMMON STAGE TUNER`のミニゲート列にはYだけでなく`ROW X`を追加。7本をまとめて左右移動できる。型チェック、公開はユーザーの明示`push`待ち
+- ユーザー確定の最新版: タイトル安全領域`x=60/y=64/w=820/h=166`、ミニゲート`x=88/y=254/w=90/h=284/gap=22`、大型門`x=84/y=561/w=772/h=830`。内側背景・キャラ接地線・CTAは既存値のまま。既定値、RESET GUIDE、素材発注基準へ反映済み
