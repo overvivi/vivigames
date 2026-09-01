@@ -177,6 +177,7 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
+        this.load.image('summon-interior-test', 'assets/championship-re/summon/summon-interior-test-final-v1.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
@@ -355,6 +356,10 @@ export class Game extends Scene {
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
             guide.add([gate, number, icon, name, role]);
         });
+        // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
+        // 7種の実枠で開口の端を一度に検査できる。
+        const summonInterior = this.add.image(layout.interior.x + layout.interior.width / 2, layout.interior.y + layout.interior.height / 2, 'summon-interior-test').setDisplaySize(layout.interior.width, layout.interior.height);
+        guide.add(summonInterior);
         // 各キャラの門は共通寸法だけを揃え、意匠はロスター選択と連動して切り替える。
         // ガイド枠は門の実占有領域を見失わないよう上から薄く残す。
         const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `summon-gate-${this.selectedFighter.id}`).setDisplaySize(layout.gate.width, layout.gate.height);
