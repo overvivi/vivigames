@@ -61,9 +61,9 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     title: { x: 60, y: 64, width: 820, height: 166 },
     miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
-    gate: { x: 84, y: 561, width: 772, height: 830 },
-    interior: { x: 178, y: 660, width: 585, height: 731 },
-    character: { baseline: 1390, height: 706 },
+    gate: { x: 84, y: 561, width: 772, height: 790 },
+    interior: { x: 178, y: 660, width: 585, height: 692 },
+    character: { baseline: 1390, height: 727 },
     hintY: 1465,
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
@@ -177,7 +177,7 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
-        this.load.image('summon-gate-frame', 'assets/championship-re/summon/summon-gate-frame-final-v1.webp');
+        FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
@@ -340,7 +340,12 @@ export class Game extends Scene {
             const selected = index === 5;
             const scale = selected ? 1.06 : 1;
             const y = mini.y - (selected ? 12 : 0);
-            const gate = this.add.rectangle(x, y, mini.width, mini.height, fighter.color, selected ? 0.34 : 0.16).setOrigin(0).setStrokeStyle(selected ? 4 : 2, fighter.color, 0.98).setScale(scale);
+            const gate = this.add.rectangle(x, y, mini.width, mini.height, fighter.color, selected ? 0.34 : 0.16).setOrigin(0).setStrokeStyle(selected ? 4 : 2, fighter.color, 0.98).setScale(scale).setInteractive({ useHandCursor: true });
+            gate.on('pointerdown', () => {
+                this.selectedFighter = fighter;
+                this.createSummonStagePreview(this.selectionLayer!);
+                this.createSummonStageTuner();
+            });
             const number = this.add.text(x + mini.width / 2, y + 34, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#eefaff' }).setOrigin(0.5).setScale(scale);
             // setDisplaySize後にsetScaleすると元画像の巨大な寸法へ戻るため、選択時の拡大分も表示寸法へ含める。
             const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
@@ -348,9 +353,9 @@ export class Game extends Scene {
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
             guide.add([gate, number, icon, name, role]);
         });
-        // 門そのものを先に置き、次元背景・キャラは次工程でこの内側へ重ねる。
+        // 各キャラの門は共通寸法だけを揃え、意匠はロスター選択と連動して切り替える。
         // ガイド枠は門の実占有領域を見失わないよう上から薄く残す。
-        const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-frame').setDisplaySize(layout.gate.width, layout.gate.height);
+        const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `summon-gate-${this.selectedFighter.id}`).setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
         addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
