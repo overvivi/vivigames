@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/summon-interior-test-master-v1.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/summon');
 const publicDir = path.join(root, 'public/assets/championship-re/summon');
 const width = 585;
@@ -16,13 +15,24 @@ const gates = ['raven', 'mika', 'brick', 'noise', 'kiri', 'vivi', 'tomega9'];
 
 async function build() {
     await Promise.all([mkdir(sourceDir, { recursive: true }), mkdir(publicDir, { recursive: true })]);
-    const metadata = await sharp(masterPath).metadata();
-    const cropWidth = Math.round(metadata.height * width / height);
-    const left = Math.round((metadata.width - cropWidth) / 2);
-    // 地面と消失点の遠近感を変えないよう、正方形原画は横だけを中心トリミングして等比縮小する。
-    const interior = await sharp(masterPath)
-        .extract({ left, top: 0, width: cropWidth, height: metadata.height })
-        .resize({ width, height, fit: 'contain' })
+    // 背景Bは門の内側だけに存在する別世界で、ここに足場を描かない。
+    // 足元は背景Aの濡れた路面へ接地させるため、検証中は奥行きだけを持つ暗い虚空に留める。
+    const interior = await sharp(Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="void" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#080c18"/>
+          <stop offset="0.58" stop-color="#11172a"/>
+          <stop offset="1" stop-color="#1a1230"/>
+        </linearGradient>
+        <radialGradient id="haze" cx="50%" cy="68%" r="58%">
+          <stop offset="0" stop-color="#5274a8" stop-opacity="0.26"/>
+          <stop offset="0.55" stop-color="#232d58" stop-opacity="0.1"/>
+          <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#void)"/>
+      <rect width="100%" height="100%" fill="url(#haze)"/>
+    </svg>`))
         .png()
         .toBuffer();
     await Promise.all([
@@ -65,7 +75,7 @@ async function build() {
             sharp(framedInterior).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, `summon-interior-test-${id}-final-v2.webp`))
         ]);
     }));
-    console.log('大型召喚ゲート内のテスト背景を規格化: 585×692 / 門ごとの実開口maskで切り抜き');
+    console.log('大型召喚ゲート内の床なし背景Bテストを規格化: 585×692 / 門ごとの実開口maskで切り抜き');
 }
 
 build().catch((error) => {

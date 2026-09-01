@@ -177,8 +177,9 @@ export class Game extends Scene {
     preload() {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
-        this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
+        this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v3.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-interior-test-${fighter.id}`, `assets/championship-re/summon/summon-interior-test-${fighter.id}-final-v2.webp`));
+        this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v4.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
@@ -363,9 +364,9 @@ export class Game extends Scene {
         // 7種の実枠で開口の端を一度に検査できる。
         const summonInterior = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `summon-interior-test-${this.selectedFighter.id}`).setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonInterior);
-        // 各キャラの門は共通寸法だけを揃え、意匠はロスター選択と連動して切り替える。
-        // ガイド枠は門の実占有領域を見失わないよう上から薄く残す。
-        const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `summon-gate-${this.selectedFighter.id}`).setDisplaySize(layout.gate.width, layout.gate.height);
+        // Bの窓寸法に門の外形を従わせない。まず全員共通の大きな骨格で、
+        // 背景Aの路面への接地と横幅を評価してから、固有の発光・紋章を重ねる。
+        const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-common').setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
         addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
