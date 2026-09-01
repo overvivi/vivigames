@@ -768,6 +768,7 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'TITLE WIDTH', 620, 900, layout.title.width, 1, (value) => { layout.title.width = value; });
         this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
         addSection('TOP ROSTER / 7 MINI GATES');
+        this.addSummonStageField(body, 'ROW X', 0, 160, layout.miniGate.x, 1, (value) => { layout.miniGate.x = value; });
         this.addSummonStageField(body, 'ROW Y', 220, 390, layout.miniGate.y, 1, (value) => { layout.miniGate.y = value; });
         this.addSummonStageField(body, 'GATE WIDTH', 72, 118, layout.miniGate.width, 1, (value) => { layout.miniGate.width = value; });
         this.addSummonStageField(body, 'GATE HEIGHT', 220, 370, layout.miniGate.height, 1, (value) => { layout.miniGate.height = value; });
