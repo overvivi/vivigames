@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/summon-gate-common-master-v4.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/summon-gate-common-master-v5.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/summon');
 const publicDir = path.join(root, 'public/assets/championship-re/summon');
 const width = 772;
@@ -20,8 +20,8 @@ async function build() {
         .png()
         .toBuffer();
     await Promise.all([
-        sharp(gate).png().toFile(path.join(sourceDir, 'summon-gate-common-final-v4.png')),
-        sharp(gate).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'summon-gate-common-final-v4.webp'))
+        sharp(gate).png().toFile(path.join(sourceDir, 'summon-gate-common-final-v5.png')),
+        sharp(gate).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'summon-gate-common-final-v5.webp'))
     ]);
     console.log('共通大型召喚ゲートを規格化: 772×790 / alpha維持');
 }
