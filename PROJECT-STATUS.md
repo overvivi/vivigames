@@ -1575,3 +1575,4 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - ユーザー確定のガイド値: ミニゲート`x=48/y=254/w=96/h=284/gap=28`、大型ゲート`x=65/y=561/w=805/h=830`、内側背景`x=178/y=660/w=585/h=731`、キャラ`baseline=1390/h=706`、CTA`x=130/y=1445/w=680/h=170`。既定値と素材発注基準へ反映済み
 - 確認用として、門・キャラ・UIを焼き込まない共通外側背景`source/assets/championship-re/references/summon-stage-outer-background-master-v1.png`を追加した。`?debug=1&layout=1`だけが`select/summon-stage-preview-bg-v1.webp`を読み、通常の7ゲート選択背景は変更しない。大型門の敷居とキャラの足元`Y=1390`が、背景の濡れた横方向の路面へ接地するかを実画面で評価できる
 - `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、Remaster公開用ビルド成功。公開はユーザーの明示`push`待ち
+- PC表示で外側背景が寄りすぎて見えたため、建物・床目地を遠ざけた引きの`source/assets/championship-re/references/summon-stage-outer-background-master-v2.png`へ差し替えた。確認画面は`select/summon-stage-preview-bg-v2.webp`を読む。型チェック、素材参照検査、公開用ビルド成功。公開はユーザーの明示`push`待ち

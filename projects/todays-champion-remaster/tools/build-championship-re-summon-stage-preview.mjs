@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/summon-stage-outer-background-master-v1.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/summon-stage-outer-background-master-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/select');
 const publicDir = path.join(root, 'public/assets/championship-re/select');
 const width = 941;
@@ -20,8 +20,8 @@ async function build() {
         .png()
         .toBuffer();
     await Promise.all([
-        sharp(background).png().toFile(path.join(sourceDir, 'summon-stage-preview-bg-v1.png')),
-        sharp(background).webp({ quality: 92 }).toFile(path.join(publicDir, 'summon-stage-preview-bg-v1.webp'))
+        sharp(background).png().toFile(path.join(sourceDir, 'summon-stage-preview-bg-v2.png')),
+        sharp(background).webp({ quality: 92 }).toFile(path.join(publicDir, 'summon-stage-preview-bg-v2.webp'))
     ]);
     console.log('大型召喚ステージ確認用の外側背景を規格化: 941×1672');
 }

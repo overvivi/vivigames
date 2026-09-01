@@ -174,7 +174,7 @@ export class Game extends Scene {
     preload() {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
-        this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v1.webp');
+        this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v1.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
