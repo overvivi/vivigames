@@ -177,6 +177,7 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
+        this.load.image('summon-gate-frame', 'assets/championship-re/summon/summon-gate-frame-final-v1.webp');
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
@@ -347,6 +348,10 @@ export class Game extends Scene {
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
             guide.add([gate, number, icon, name, role]);
         });
+        // 門そのものを先に置き、次元背景・キャラは次工程でこの内側へ重ねる。
+        // ガイド枠は門の実占有領域を見失わないよう上から薄く残す。
+        const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-frame').setDisplaySize(layout.gate.width, layout.gate.height);
+        guide.add(summonGate);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
         addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
         const characterTop = layout.character.baseline - layout.character.height;
