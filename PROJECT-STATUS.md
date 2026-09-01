@@ -1577,3 +1577,4 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、Remaster公開用ビルド成功。公開はユーザーの明示`push`待ち
 - PC表示で外側背景が寄りすぎて見えたため、建物・床目地を遠ざけた引きの`source/assets/championship-re/references/summon-stage-outer-background-master-v2.png`へ差し替えた。確認画面は`select/summon-stage-preview-bg-v2.webp`を読む。型チェック、素材参照検査、公開用ビルド成功。公開はユーザーの明示`push`待ち
 - タイトルも大型召喚ステージのレイアウト対象へ追加。`title(x/y/width/height)`を`SUMMON STAGE TUNER`で直接調整でき、ガイド枠も表示される。新しい透明タイトルは`championship-re-title-master-v2.png`を原画に、`CHAMPIONSHIP / RE / REMASTER`の横長メカニカルエンブレムとして出力した。`npx tsc --noEmit`、ルート`npm run test:champion`（20件）、`npm run verify`、公開用ビルド成功。公開はユーザーの明示`push`待ち
+- タイトル枠はロゴを引き伸ばす寸法ではなく安全領域として扱うよう修正。v3は原画比率を保持し、ゲーム側で領域内へcontain配置する。左右の`GAME BASE`／`CHARACTER ARCHIVE`導線は重ねずに残る。型チェック、公開用ビルド成功。公開はユーザーの明示`push`待ち

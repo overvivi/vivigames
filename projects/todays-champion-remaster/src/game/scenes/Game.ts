@@ -177,7 +177,7 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v2.webp');
-        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v2.webp');
+        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
@@ -278,13 +278,18 @@ export class Game extends Scene {
         gameBase.on('pointerdown', () => { window.location.href = '../..'; });
         const archive = this.add.text(VIEW_WIDTH - 110, 60, 'CHARACTER ARCHIVE →', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1.2 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
         archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
-        // PCでも主題として読める横幅を取る。選択情報は各ゲート内へ集約する。
-        const previewTitle = this.summonStageLayout.title;
+        // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収め、
+        // 左右上端のGAME BASE／ARCHIVE導線を避ける。
+        const titleSafeArea = this.summonStagePreviewEnabled
+            ? this.summonStageLayout.title
+            : { x: 60, y: 142, width: 820, height: 205 };
         const titleLogo = this.add.image(
-            this.summonStagePreviewEnabled ? previewTitle.x + previewTitle.width / 2 : VIEW_WIDTH / 2,
-            this.summonStagePreviewEnabled ? previewTitle.y + previewTitle.height / 2 : 245,
+            titleSafeArea.x + titleSafeArea.width / 2,
+            titleSafeArea.y + titleSafeArea.height / 2,
             'championship-re-title'
-        ).setDisplaySize(this.summonStagePreviewEnabled ? previewTitle.width : 820, this.summonStagePreviewEnabled ? previewTitle.height : 205);
+        );
+        const titleScale = Math.min(titleSafeArea.width / titleLogo.width, titleSafeArea.height / titleLogo.height);
+        titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
         layer.add([gameBase, archive, titleLogo, this.selectTitle]);
 

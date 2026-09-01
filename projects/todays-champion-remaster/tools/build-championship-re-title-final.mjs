@@ -8,18 +8,17 @@ const root = path.resolve(here, '..');
 const masterPath = path.join(root, 'source/assets/championship-re/references/championship-re-title-master-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/ui');
 const publicDir = path.join(root, 'public/assets/championship-re/ui');
-const width = 1440;
-const height = 360;
 
 async function build() {
     await Promise.all([mkdir(sourceDir, { recursive: true }), mkdir(publicDir, { recursive: true })]);
-    // PCでも主題として読める横幅を優先し、透明余白で小さくしない。
-    const finalLogo = await sharp(masterPath).resize({ width, height, fit: 'fill' }).png().toBuffer();
+    // レイアウト枠は最大安全領域であって、ロゴを引き伸ばすための寸法ではない。
+    // 原画の縦横比をそのまま出力し、ゲーム側で枠内へ等比配置する。
+    const finalLogo = await sharp(masterPath).png().toBuffer();
     await Promise.all([
-        sharp(finalLogo).png().toFile(path.join(sourceDir, 'championship-re-title-final-v2.png')),
-        sharp(finalLogo).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-title-final-v2.webp'))
+        sharp(finalLogo).png().toFile(path.join(sourceDir, 'championship-re-title-final-v3.png')),
+        sharp(finalLogo).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'championship-re-title-final-v3.webp'))
     ]);
-    console.log('新規タイトルを共通原図へ規格化: 1440×360 / 表示720×180');
+    console.log('新規タイトルを等比のまま出力: ゲーム側で安全領域へcontain配置');
 }
 
 build().catch((error) => {
