@@ -1584,3 +1584,4 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - ユーザーが大型召喚ステージを再調整。大型門は`x=84/y=561/w=772/h=790`、内側背景は`x=178/y=660/w=585/h=692`、選択キャラは接地線`y=1390`・標準高`727`へ更新した。下側は大きな台座を置かず、キャラが門内の床から手前の濡れた床へ踏み出せる薄い敷居だけにする。次は共通形状を守ったキャラ別7種の大型門意匠を検討する
 - 大型門の意匠をRAVEN／MIKA／BRICK／NOISE／KIRI／VIVI／TΩ9の7種へ制作。原画は`source/assets/championship-re/references/summon-gates-v2/`、公開素材は`public/assets/championship-re/summon/summon-gate-*-final-v2.webp`。全素材は`772×790`へ**等比**で規格化し、底を揃えた。中央と下側の開口はalpha=0を実測済みで、キャラ別の異次元背景・透過立ち絵を後から重ねられる
 - `?debug=1&layout=1`では、上のミニゲートをクリックすると大型門の意匠も対応キャラへ切り替わる。通常の細いゲート式選択画面にはまだ影響しない。`npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+- 大型門の切替先とミニゲートの選択表示を同じ`selectedFighter`状態へ統一。従来はVIVIだけが固定で強調されていたため、他のミニゲートを押しても切替結果が読めなかった。通常の7ゲート選択画面には影響しない

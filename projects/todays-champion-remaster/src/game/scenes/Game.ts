@@ -337,7 +337,9 @@ export class Game extends Scene {
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
         FIGHTERS.forEach((fighter, index) => {
             const x = mini.x + index * (mini.width + mini.gap);
-            const selected = index === 5;
+            // 大型門の切替先と上段ロスターの強調を同じ選択状態へ揃える。
+            // 固定のVIVI強調のままだと、タップが反映されたか見分けられない。
+            const selected = fighter.id === this.selectedFighter.id;
             const scale = selected ? 1.06 : 1;
             const y = mini.y - (selected ? 12 : 0);
             const gate = this.add.rectangle(x, y, mini.width, mini.height, fighter.color, selected ? 0.34 : 0.16).setOrigin(0).setStrokeStyle(selected ? 4 : 2, fighter.color, 0.98).setScale(scale).setInteractive({ useHandCursor: true });
