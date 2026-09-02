@@ -1731,3 +1731,9 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 各採用原画は無料のローカル背景除去で実alphaを持つPNGへ変換し、`references/summon-characters/summon-character-*-master-v2.png`へ保存。色判定による市松除去は髪・発光を壊すため廃止し、変換スクリプトはalphaをそのまま保持してv2 PNG/WebPを出力する
 - `Game.ts`はv2素材をpreloadする。全員の足元は`FOOT BASELINE`へ揃え、体格差は表示高比で明示した（TΩ9=`0.72`、MIKA=`0.83`、KIRI=`1.00`）。生成時の背景・地面はゲームへ含めない
 - `npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`成功。ユーザーによる実機確認・明示`push`待ち
+
+### 2026-09-03 — Codex（Remaster：召喚キャラ別チューナー、未公開）
+
+- `SUMMON STAGE TUNER`へ、選択中キャラだけに効く`CHARACTER X`／`CHARACTER Y`／`CHARACTER SIZE`を追加。上部ミニゲートを押して対象を切り替えると、下部の`SELECTED CHARACTER / 名前`欄が対応値を表示する
+- 値は7人ごとに独立しており、共有の安全領域・FOOT BASELINE・他キャラの配置へ影響しない。JSONコピーと`RESET GUIDE`にも全キャラ分を含める
+- `npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち

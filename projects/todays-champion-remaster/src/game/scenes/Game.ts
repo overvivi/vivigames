@@ -33,6 +33,7 @@ type FighterDefinition = {
 type FighterPose = 'guard' | 'dash' | 'attack' | 'win' | 'lose';
 type GateCharacterState = 'lineup' | 'selected';
 type GateCharacterLayout = { x: number; y: number; scale: number };
+type SummonCharacterLayout = { x: number; y: number; scale: number };
 type RectLayout = { x: number; y: number; width: number; height: number };
 type SummonStageLayout = {
     title: RectLayout;
@@ -45,7 +46,7 @@ type SummonStageLayout = {
     summonEmblem: { x: number; y: number; size: number; alpha: number };
     gate: RectLayout;
     interior: RectLayout;
-    character: { x: number; width: number; baseline: number; height: number };
+    character: { x: number; width: number; baseline: number; height: number; fighters: Record<string, SummonCharacterLayout> };
     selectionHint: {
         tap: { x: number; y: number; size: number };
         swipe: { x: number; y: number; size: number };
@@ -79,7 +80,19 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     summonEmblem: { x: 0, y: 0, size: 344, alpha: 0.48 },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
-    character: { x: 0, width: 720, baseline: 1349, height: 773 },
+    character: {
+        x: 0, width: 720, baseline: 1349, height: 773,
+        // 原画の構図差は共有安全域を変えず、キャラごとの微調整へ閉じ込める。
+        fighters: {
+            raven: { x: 0, y: 0, scale: 1 },
+            mika: { x: 0, y: 0, scale: 1 },
+            brick: { x: 0, y: 0, scale: 1 },
+            noise: { x: 0, y: 0, scale: 1 },
+            kiri: { x: 0, y: 0, scale: 1 },
+            vivi: { x: 0, y: 0, scale: 1 },
+            tomega9: { x: 0, y: 0, scale: 1 }
+        }
+    },
     selectionHint: {
         tap: { x: -72, y: 567, size: 15 },
         swipe: { x: 113, y: 567, size: 15 }
@@ -450,8 +463,9 @@ export class Game extends Scene {
         guide.add(summonGate);
         // 素材はalpha実体の下端でトリミング済み。originを下端に固定すれば、
         // 翼・武器・浮遊物の大きさに関係なく足元だけを共通の地面へ揃えられる。
-        const summonCharacterHeight = layout.character.height * SUMMON_CHARACTER_HEIGHT_RATIOS[this.selectedFighter.id];
-        const summonCharacter = this.add.image(VIEW_WIDTH / 2 + layout.character.x, layout.character.baseline, `summon-character-${this.selectedFighter.id}`)
+        const characterLayout = layout.character.fighters[this.selectedFighter.id];
+        const summonCharacterHeight = layout.character.height * SUMMON_CHARACTER_HEIGHT_RATIOS[this.selectedFighter.id] * characterLayout.scale;
+        const summonCharacter = this.add.image(VIEW_WIDTH / 2 + layout.character.x + characterLayout.x, layout.character.baseline + characterLayout.y, `summon-character-${this.selectedFighter.id}`)
             .setOrigin(0.5, 1);
         summonCharacter.setDisplaySize(summonCharacter.width / summonCharacter.height * summonCharacterHeight, summonCharacterHeight);
         guide.add(summonCharacter);
@@ -924,6 +938,11 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'CHARACTER WIDTH', 240, 720, layout.character.width, 1, (value) => { layout.character.width = value; });
         this.addSummonStageField(body, 'FOOT BASELINE', 1260, 1460, layout.character.baseline, 1, (value) => { layout.character.baseline = value; });
         this.addSummonStageField(body, 'CHARACTER H', 600, 900, layout.character.height, 1, (value) => { layout.character.height = value; });
+        const selectedCharacterLayout = layout.character.fighters[this.selectedFighter.id];
+        addSection(`SELECTED CHARACTER / ${this.selectedFighter.name}`);
+        this.addSummonStageField(body, 'CHARACTER X', -280, 280, selectedCharacterLayout.x, 1, (value) => { selectedCharacterLayout.x = value; });
+        this.addSummonStageField(body, 'CHARACTER Y', -280, 280, selectedCharacterLayout.y, 1, (value) => { selectedCharacterLayout.y = value; });
+        this.addSummonStageField(body, 'CHARACTER SIZE', 0.55, 1.5, selectedCharacterLayout.scale, 0.01, (value) => { selectedCharacterLayout.scale = value; });
         addSection('CTA');
         this.addSummonStageField(body, 'CTA X', 60, 180, layout.cta.x, 1, (value) => { layout.cta.x = value; });
         this.addSummonStageField(body, 'CTA Y', 1430, 1520, layout.cta.y, 1, (value) => { layout.cta.y = value; });
