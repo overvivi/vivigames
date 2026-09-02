@@ -68,7 +68,7 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 // 素材を作る前に、参考モックの構図を基準キャンバスへ固定する。
 // 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
-    title: { x: 60, y: 64, width: 820, height: 166 },
+    title: { x: 60, y: 42, width: 820, height: 202 },
     miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
     miniGateHeader: {
         number: { x: 0, y: 56, size: 19 },
@@ -860,10 +860,10 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
         addSection('SELECTION HINT');
         this.addSummonStageField(body, 'TAP X', -260, 120, layout.selectionHint.tap.x, 1, (value) => { layout.selectionHint.tap.x = value; });
-        this.addSummonStageField(body, 'TAP Y', 1180, 1440, layout.selectionHint.tap.y, 1, (value) => { layout.selectionHint.tap.y = value; });
+        this.addSummonStageField(body, 'TAP Y', 100, 1440, layout.selectionHint.tap.y, 1, (value) => { layout.selectionHint.tap.y = value; });
         this.addSummonStageField(body, 'TAP SIZE', 9, 28, layout.selectionHint.tap.size, 1, (value) => { layout.selectionHint.tap.size = value; });
         this.addSummonStageField(body, 'SWIPE X', -120, 260, layout.selectionHint.swipe.x, 1, (value) => { layout.selectionHint.swipe.x = value; });
-        this.addSummonStageField(body, 'SWIPE Y', 1180, 1440, layout.selectionHint.swipe.y, 1, (value) => { layout.selectionHint.swipe.y = value; });
+        this.addSummonStageField(body, 'SWIPE Y', 100, 1440, layout.selectionHint.swipe.y, 1, (value) => { layout.selectionHint.swipe.y = value; });
         this.addSummonStageField(body, 'SWIPE SIZE', 9, 28, layout.selectionHint.swipe.size, 1, (value) => { layout.selectionHint.swipe.size = value; });
         addSection('TOP ROSTER / 7 MINI GATES');
         this.addSummonStageField(body, 'ROW X', 0, 160, layout.miniGate.x, 1, (value) => { layout.miniGate.x = value; });
