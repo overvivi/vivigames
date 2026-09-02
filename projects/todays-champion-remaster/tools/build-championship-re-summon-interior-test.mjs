@@ -40,7 +40,7 @@ async function build() {
         sharp(interior).webp({ quality: 94 }).toFile(path.join(publicDir, 'summon-interior-test-final-v1.webp'))
     ]);
     await Promise.all(gates.map(async (id) => {
-        const gatePath = path.join(sourceDir, `summon-gate-${id}-final-v2.png`);
+        const gatePath = path.join(sourceDir, 'summon-gate-common-final-v12.png');
         const { data } = await sharp(gatePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
         const seen = new Uint8Array(gateWidth * gateHeight);
         const center = Math.floor(gateHeight / 2) * gateWidth + Math.floor(gateWidth / 2);
@@ -66,8 +66,12 @@ async function build() {
         const maskPng = await sharp(mask, { raw: { width: gateWidth, height: gateHeight, channels: 4 } }).png().toBuffer();
         // 背景の原寸は共通のまま、各門で中央に連続する透明開口だけへ抜く。
         // 門の飾り間の小さな透明穴へ街が見えるのを防ぐため、外周alphaをそのまま使わない。
+        const world = await sharp(path.join(sourceDir, `summon-interior-world-${id}-v1.png`))
+            .resize({ width, height, fit: 'cover', position: 'centre' })
+            .png()
+            .toBuffer();
         const framedInterior = await sharp({ create: { width: gateWidth, height: gateHeight, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-            .composite([{ input: interior, left: 94, top: 99 }, { input: maskPng, blend: 'dest-in' }])
+            .composite([{ input: world, left: 94, top: 99 }, { input: maskPng, blend: 'dest-in' }])
             .png()
             .toBuffer();
         await Promise.all([
