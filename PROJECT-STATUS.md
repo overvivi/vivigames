@@ -1688,6 +1688,10 @@ PR: https://github.com/overvivi/vivigames/pull/1
 
 - v4も後処理で形状を推定していたため不採用。v5は最初から実alphaを持つ新規生成素材`championship-re-cta-master-v5.png`を使用する。変換時は原画alphaを一切加工せず、透明余白のトリミングと等比縮小だけを行う。外側66万pxが透明、中央面はalpha=253以上を実測済み
 
+### 2026-09-02 — Codex（Remaster：選択案内を個別調整）
+
+- ひとつの`HINT X/Y/SIZE`でまとめていた案内を、`TAP A GATE |`と`SWIPE TO SELECT`へ分離。`SUMMON STAGE TUNER`から各々のX／Y／SIZEを独立して動かせる。初期位置は、従来の一行表示と同じ並びになるようTAP=`x:-100`、SWIPE=`x:115`にした
+
 ### 2026-09-02 — Codex（Remaster：共通大型ゲートを確認画面へ仮配置、未公開）
 
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。

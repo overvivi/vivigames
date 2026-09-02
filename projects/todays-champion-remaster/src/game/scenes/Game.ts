@@ -46,7 +46,10 @@ type SummonStageLayout = {
     gate: RectLayout;
     interior: RectLayout;
     character: { baseline: number; height: number };
-    selectionHint: { x: number; y: number; size: number };
+    selectionHint: {
+        tap: { x: number; y: number; size: number };
+        swipe: { x: number; y: number; size: number };
+    };
     cta: RectLayout;
 };
 
@@ -76,7 +79,10 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
     character: { baseline: 1390, height: 727 },
-    selectionHint: { x: 0, y: 1360, size: 15 },
+    selectionHint: {
+        tap: { x: -100, y: 1360, size: 15 },
+        swipe: { x: 115, y: 1360, size: 15 }
+    },
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
@@ -312,8 +318,9 @@ export class Game extends Scene {
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
         // 選択操作の案内はゲート群から切り離し、開始CTAの直前で次の行動として読ませる。
         const selectionHint = this.summonStageLayout.selectionHint;
-        const selectedHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.x, selectionHint.y, 'TAP A GATE   |   SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
-        layer.add([selectedHint]);
+        const tapHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.tap.x, selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+        const swipeHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.swipe.x, selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+        layer.add([tapHint, swipeHint]);
         this.selectionLayer = layer;
         this.selectionOpeningMasks.forEach((mask) => mask.destroy());
         this.selectionOpeningMasks.clear();
@@ -835,9 +842,12 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'TITLE WIDTH', 620, 900, layout.title.width, 1, (value) => { layout.title.width = value; });
         this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
         addSection('SELECTION HINT');
-        this.addSummonStageField(body, 'HINT X', -220, 220, layout.selectionHint.x, 1, (value) => { layout.selectionHint.x = value; });
-        this.addSummonStageField(body, 'HINT Y', 1180, 1440, layout.selectionHint.y, 1, (value) => { layout.selectionHint.y = value; });
-        this.addSummonStageField(body, 'HINT SIZE', 9, 28, layout.selectionHint.size, 1, (value) => { layout.selectionHint.size = value; });
+        this.addSummonStageField(body, 'TAP X', -260, 120, layout.selectionHint.tap.x, 1, (value) => { layout.selectionHint.tap.x = value; });
+        this.addSummonStageField(body, 'TAP Y', 1180, 1440, layout.selectionHint.tap.y, 1, (value) => { layout.selectionHint.tap.y = value; });
+        this.addSummonStageField(body, 'TAP SIZE', 9, 28, layout.selectionHint.tap.size, 1, (value) => { layout.selectionHint.tap.size = value; });
+        this.addSummonStageField(body, 'SWIPE X', -120, 260, layout.selectionHint.swipe.x, 1, (value) => { layout.selectionHint.swipe.x = value; });
+        this.addSummonStageField(body, 'SWIPE Y', 1180, 1440, layout.selectionHint.swipe.y, 1, (value) => { layout.selectionHint.swipe.y = value; });
+        this.addSummonStageField(body, 'SWIPE SIZE', 9, 28, layout.selectionHint.swipe.size, 1, (value) => { layout.selectionHint.swipe.size = value; });
         addSection('TOP ROSTER / 7 MINI GATES');
         this.addSummonStageField(body, 'ROW X', 0, 160, layout.miniGate.x, 1, (value) => { layout.miniGate.x = value; });
         this.addSummonStageField(body, 'ROW Y', 220, 390, layout.miniGate.y, 1, (value) => { layout.miniGate.y = value; });
