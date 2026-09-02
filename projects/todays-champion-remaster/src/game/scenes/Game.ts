@@ -355,6 +355,9 @@ export class Game extends Scene {
     }
 
     private createSummonStagePreview(layer: GameObjects.Container) {
+        // Container.destroyだけでは親レイヤーに残った子が古い座標で見える場合がある。
+        // 調整前のタイトル・案内・測定枠を必ず消してから、現在値だけを描き直す。
+        this.summonStageGuide?.removeAll(true);
         this.summonStageGuide?.destroy();
         const guide = this.add.container().setDepth(8);
         // 完成イメージを確認する時は、素材そのものを残して測定用の線だけ消せるよう分離する。
@@ -970,6 +973,7 @@ export class Game extends Scene {
         this.summonStageTunerStyle?.remove();
         this.summonStageTuner = undefined;
         this.summonStageTunerStyle = undefined;
+        this.summonStageGuide?.removeAll(true);
         this.summonStageGuide?.destroy();
         this.summonStageGuide = undefined;
     }
