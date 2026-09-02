@@ -396,11 +396,19 @@ export class Game extends Scene {
         // 背景Aの路面への接地と横幅を評価してから、固有の発光・紋章を重ねる。
         // 選択の手応えを大門にも返す。キャラ本体を置く前の案なので、
         // 顔や立ち絵を増やさず、既存の紋章だけを淡く透かして使う。
-        const summonEmblem = this.add.image(layout.gate.x + layout.gate.width / 2 + layout.summonEmblem.x, layout.gate.y + layout.gate.height / 2 + layout.summonEmblem.y, `gate-icon-${this.selectedFighter.id}`)
+        const summonEmblemX = layout.gate.x + layout.gate.width / 2 + layout.summonEmblem.x;
+        const summonEmblemY = layout.gate.y + layout.gate.height / 2 + layout.summonEmblem.y;
+        // 明度の高い異界背景でも細い紋章線を失わせない。少し大きい黒紺の下層を
+        // 輪郭として重ね、背景そのものを暗くせずに前面色だけを読ませる。
+        const summonEmblemShadow = this.add.image(summonEmblemX, summonEmblemY, `gate-icon-${this.selectedFighter.id}`)
+            .setDisplaySize(layout.summonEmblem.size * 1.12, layout.summonEmblem.size * 1.12)
+            .setTint(0x020611)
+            .setAlpha(Math.min(0.58, layout.summonEmblem.alpha * 1.7));
+        const summonEmblem = this.add.image(summonEmblemX, summonEmblemY, `gate-icon-${this.selectedFighter.id}`)
             .setDisplaySize(layout.summonEmblem.size, layout.summonEmblem.size)
-            .setTint(this.gateHeaderTint(this.selectedFighter.color))
+            .setTint(this.summonEmblemTint(this.selectedFighter))
             .setAlpha(layout.summonEmblem.alpha);
-        guide.add(summonEmblem);
+        guide.add([summonEmblemShadow, summonEmblem]);
         const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-common').setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
@@ -1235,6 +1243,14 @@ export class Game extends Scene {
 
     private gateHeaderTextColor(color: number) {
         return `#${this.gateHeaderTint(color).toString(16).padStart(6, '0')}`;
+    }
+
+    private summonEmblemTint(fighter: FighterDefinition) {
+        // MIKAは背景と同じ濃いマゼンタを避けて白ピンクへ、VIVIは白背景で沈む
+        // 淡い琥珀を避けて金を濃くする。ほかは上部の情報色と同じ基準を使う。
+        if (fighter.id === 'mika') return 0xffcce9;
+        if (fighter.id === 'vivi') return 0xc7933c;
+        return this.gateHeaderTint(fighter.color);
     }
 
     private destroyGateHeaderTuner() {
