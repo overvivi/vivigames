@@ -178,6 +178,8 @@ export class Game extends Scene {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v3.webp');
+        this.load.image('summon-mini-gate-frame', 'assets/championship-re/ui/mini-gates/summon-mini-gate-frame-v1.webp');
+        FIGHTERS.forEach((fighter) => this.load.image(`summon-mini-gate-interior-${fighter.id}`, `assets/championship-re/ui/mini-gates/summon-mini-gate-interior-${fighter.id}-v1.webp`));
         FIGHTERS.forEach((fighter) => this.load.image(`summon-interior-test-${fighter.id}`, `assets/championship-re/summon/summon-interior-test-${fighter.id}-final-v2.webp`));
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
@@ -347,10 +349,14 @@ export class Game extends Scene {
             const selected = fighter.id === this.selectedFighter.id;
             const scale = selected ? 1.06 : 1;
             const y = mini.y - (selected ? 12 : 0);
-            // 大型門と同じ黒鉄の輪郭を先に置き、色は内側のガラスとしてだけ見せる。
-            // これで7色が並んでもロスター全体が玩具っぽく散らばらない。
-            const gate = this.add.rectangle(x, y, mini.width, mini.height, 0x090d14, 0.92).setOrigin(0).setStrokeStyle(selected ? 4 : 2, 0xb6c2cc, selected ? 0.98 : 0.7).setScale(scale).setInteractive({ useHandCursor: true });
-            const glass = this.add.rectangle(x + 5, y + 5, mini.width - 10, mini.height - 10, fighter.color, selected ? 0.38 : 0.22).setOrigin(0).setStrokeStyle(1, fighter.color, 0.9).setScale(scale);
+            // 量産した図形枠ではなく、透明窓を持つ共通の写真素材を重ねる。
+            // 背景を先、枠を後に置くことで、文字と紋章をコード側で安全に差し替えられる。
+            const centreX = x + mini.width / 2;
+            const centreY = y + mini.height / 2;
+            const interior = this.add.image(centreX, centreY, `summon-mini-gate-interior-${fighter.id}`).setDisplaySize(mini.width * scale, mini.height * scale);
+            const frame = this.add.image(centreX, centreY, 'summon-mini-gate-frame').setDisplaySize(mini.width * scale, mini.height * scale);
+            const highlight = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, fighter.color, selected ? 0.12 : 0).setStrokeStyle(selected ? 3 : 0, fighter.color, selected ? 0.9 : 0);
+            const gate = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, 0x000000, 0).setInteractive({ useHandCursor: true });
             gate.on('pointerdown', () => {
                 this.selectedFighter = fighter;
                 this.createSummonStagePreview(this.selectionLayer!);
@@ -361,7 +367,7 @@ export class Game extends Scene {
             const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
             const name = this.add.text(x + mini.width / 2, y + 184, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
-            guide.add([gate, glass, number, icon, name, role]);
+            guide.add([interior, frame, highlight, gate, number, icon, name, role]);
         });
         // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
         // 7種の実枠で開口の端を一度に検査できる。
