@@ -304,23 +304,29 @@ export class Game extends Scene {
         archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
         // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収め、
         // 左右上端のGAME BASE／ARCHIVE導線を避ける。
-        const titleSafeArea = this.summonStageLayout.title;
-        const titleLogo = this.add.image(
-            titleSafeArea.x + titleSafeArea.width / 2,
-            titleSafeArea.y + titleSafeArea.height / 2,
-            'championship-re-title'
-        );
-        const titleScale = Math.min(titleSafeArea.width / titleLogo.width, titleSafeArea.height / titleLogo.height);
-        titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
-        layer.add([gameBase, archive, titleLogo, this.selectTitle]);
+        layer.add([gameBase, archive, this.selectTitle]);
+
+        if (!this.summonStagePreviewEnabled) {
+            const titleSafeArea = this.summonStageLayout.title;
+            const titleLogo = this.add.image(
+                titleSafeArea.x + titleSafeArea.width / 2,
+                titleSafeArea.y + titleSafeArea.height / 2,
+                'championship-re-title'
+            );
+            const titleScale = Math.min(titleSafeArea.width / titleLogo.width, titleSafeArea.height / titleLogo.height);
+            titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
+            layer.add(titleLogo);
+        }
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
         // 選択操作の案内はゲート群から切り離し、開始CTAの直前で次の行動として読ませる。
-        const selectionHint = this.summonStageLayout.selectionHint;
-        const tapHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.tap.x, selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
-        const swipeHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.swipe.x, selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
-        layer.add([tapHint, swipeHint]);
+        if (!this.summonStagePreviewEnabled) {
+            const selectionHint = this.summonStageLayout.selectionHint;
+            const tapHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.tap.x, selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+            const swipeHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.swipe.x, selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+            layer.add([tapHint, swipeHint]);
+        }
         this.selectionLayer = layer;
         this.selectionOpeningMasks.forEach((mask) => mask.destroy());
         this.selectionOpeningMasks.clear();
@@ -359,6 +365,14 @@ export class Game extends Scene {
             const text = this.add.text(box.x + 10, box.y + 10, label, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f4fbff', letterSpacing: 1.2 });
             annotations.add([rect, text]);
         };
+        // 位置調整対象は測定枠だけでなく実素材も同じ再描画コンテナへ入れる。
+        // 以前は外側layerへ一度だけ描いたため、数値だけ変わって見た目が動かなかった。
+        const titleLogo = this.add.image(layout.title.x + layout.title.width / 2, layout.title.y + layout.title.height / 2, 'championship-re-title');
+        const titleScale = Math.min(layout.title.width / titleLogo.width, layout.title.height / titleLogo.height);
+        titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
+        const tapHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.tap.x, layout.selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+        const swipeHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.swipe.x, layout.selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+        guide.add([titleLogo, tapHint, swipeHint]);
         const mini = layout.miniGate;
         const miniHeader = layout.miniGateHeader;
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
