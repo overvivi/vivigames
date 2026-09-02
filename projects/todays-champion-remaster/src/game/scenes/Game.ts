@@ -196,7 +196,7 @@ export class Game extends Scene {
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
-        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v2.webp');
+        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v3.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         FIGHTERS.forEach((fighter) => {
@@ -335,12 +335,10 @@ export class Game extends Scene {
         // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
         const ctaLayout = this.summonStageLayout.cta;
         const startButton = this.add.image(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'championship-re-start-duel').setDisplaySize(ctaLayout.width, ctaLayout.height).setInteractive({ useHandCursor: true });
-        // 画像生成の文字崩れを避け、操作名は実テキストとして常に鮮明に保つ。
-        const startLabel = this.add.text(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'START DUEL', { fontFamily: 'Georgia, serif', fontSize: '46px', fontStyle: 'bold', color: '#ffecad', stroke: '#291506', strokeThickness: 8, letterSpacing: 2 }).setOrigin(0.5);
         startButton.on('pointerdown', () => this.startSelectedDuel());
-        startButton.on('pointerover', () => { startButton.setAlpha(0.92); startLabel.setAlpha(0.92); });
-        startButton.on('pointerout', () => { startButton.setAlpha(1); startLabel.setAlpha(1); });
-        layer.add([startButton, startLabel]);
+        startButton.on('pointerover', () => startButton.setAlpha(0.92));
+        startButton.on('pointerout', () => startButton.setAlpha(1));
+        layer.add(startButton);
     }
 
     private createSummonStagePreview(layer: GameObjects.Container) {

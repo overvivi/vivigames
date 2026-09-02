@@ -1671,6 +1671,11 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 文字を含まない写真調のCTA枠を画像生成で制作。原画は`source/assets/championship-re/references/championship-re-cta-master-v2.png`、規格化素材は`ui/start-duel-final-v2.png`／`public/assets/championship-re/ui/start-duel-final-v2.webp`。中央の`START DUEL`は画像生成の文字崩れを避けるためPhaserテキストで重ねる
 - `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、公開用ビルド成功。公開前に`npm run verify`と差分検査を実行する
 
+### 2026-09-02 — Codex（Remaster：START DUEL文字の素材一体化）
+
+- ユーザー判断により、CTAの`START DUEL`はPhaserテキストではなく写真素材へ一体化した。`championship-re-cta-master-v3.png`を原画とし、白金の立体セリフ体を黒鉄面へ彫り込んだv3を配信する
+- ゲーム側の重ね文字を削除し、通常表示・ホバー時とも写真素材だけが表示される。変換スクリプトとpreload参照は`start-duel-final-v3.webp`へ更新
+
 ### 2026-09-02 — Codex（Remaster：共通大型ゲートを確認画面へ仮配置、未公開）
 
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。
