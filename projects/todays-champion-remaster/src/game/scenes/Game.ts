@@ -80,8 +80,8 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     interior: { x: 178, y: 660, width: 585, height: 692 },
     character: { baseline: 1390, height: 727 },
     selectionHint: {
-        tap: { x: -100, y: 1360, size: 15 },
-        swipe: { x: 115, y: 1360, size: 15 }
+        tap: { x: -72, y: 567, size: 15 },
+        swipe: { x: 113, y: 567, size: 15 }
     },
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
