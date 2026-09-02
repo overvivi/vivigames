@@ -1712,6 +1712,13 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - ミニゲート選択時の色付き矩形ハイライトを削除。選択状態はわずかな持ち上がりと実枠だけで示す
 - 7体の立ち絵制作前に、キャラ安全領域へ`CHARACTER X`と`CHARACTER WIDTH`を追加。現在の幅360を保ちつつ、横方向の描画範囲を`240〜720`で調整できる
 
+### 2026-09-03 — Codex（Remaster：大型召喚ステージの7体立ち絵）
+
+- ユーザーの最新確定値を初期値と`RESET GUIDE`へ反映: キャラ安全領域=`x:0 / width:720 / FOOT BASELINE:1349 / height:773`、`GAME BASE=x:88/y:140`。タイトル・ミニゲート・選択紋章・案内・CTAは共有JSONの値を維持する
+- RAVEN／MIKA／BRICK／NOISE／KIRI／VIVI／TΩ9の大型召喚用ポーズを、背景・地面なしの透過PNGとして制作。原画は`source/assets/championship-re/references/summon-characters/`、配信用WebPは`public/assets/championship-re/summon/characters/`へ保存し、変換手順は`tools/build-championship-re-summon-characters.mjs`に固定した
+- 変換時に透明余白だけをトリミングする。素材下端の実ピクセルをPhaserのbottom originへ合わせたため、翼・武器・浮遊小物の幅に影響されず、全員の足元を`FOOT BASELINE`へ正確に置ける。既存ゲートで確定した身長比も継承し、キリを基準に体格差を保持する
+- `?debug=1&layout=1`の大型門前へ選択キャラを重ね、ミニゲートを切り替えると背景B／紋章／立ち絵が同時に切り替わる。`npx tsc --noEmit`、公開用ビルド、ルート`npm run test:champion`（20件）成功。公開前に`npm run verify`と差分検査を実行する
+
 ### 2026-09-02 — Codex（Remaster：共通大型ゲートを確認画面へ仮配置、未公開）
 
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。

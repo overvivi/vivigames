@@ -79,12 +79,12 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     summonEmblem: { x: 0, y: 0, size: 344, alpha: 0.48 },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
-    character: { x: 0, width: 360, baseline: 1390, height: 761 },
+    character: { x: 0, width: 720, baseline: 1349, height: 773 },
     selectionHint: {
         tap: { x: -72, y: 567, size: 15 },
         swipe: { x: 113, y: 567, size: 15 }
     },
-    navigation: { gameBase: { x: 110, y: 60 } },
+    navigation: { gameBase: { x: 88, y: 140 } },
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
@@ -116,6 +116,11 @@ const GATE_CHARACTER_CANVAS_HEIGHT = 3137;
 const GATE_CHARACTER_BASELINE = 3070;
 const GATE_CHARACTER_CANVAS_SCALE = 767 / GATE_CHARACTER_CANVAS_HEIGHT;
 const GATE_CHARACTER_DISPLAY_HEIGHTS: Record<string, number> = { raven: 2400, mika: 2400, brick: 2250, noise: 2250, kiri: 2540, vivi: 2325, tomega9: 2250 };
+// 既存ゲートで確定した身長比を、召喚画面の安全域へそのまま引き継ぐ。
+// 全員を同じ高さにするとBRICKやTΩ9まで細長くなり、キャラの体格差が消えるため。
+const SUMMON_CHARACTER_HEIGHT_RATIOS: Record<string, number> = Object.fromEntries(
+    Object.entries(GATE_CHARACTER_DISPLAY_HEIGHTS).map(([id, height]) => [id, height / GATE_CHARACTER_DISPLAY_HEIGHTS.kiri])
+);
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
@@ -203,6 +208,7 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => this.load.image(`summon-interior-test-${fighter.id}`, `assets/championship-re/summon/summon-interior-test-${fighter.id}-final-v2.webp`));
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
+        FIGHTERS.forEach((fighter) => this.load.image(`summon-character-${fighter.id}`, `assets/championship-re/summon/characters/summon-character-${fighter.id}-v1.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v5.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
@@ -435,6 +441,13 @@ export class Game extends Scene {
         guide.add([summonEmblemShadow, summonEmblem]);
         const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-common').setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
+        // 素材はalpha実体の下端でトリミング済み。originを下端に固定すれば、
+        // 翼・武器・浮遊物の大きさに関係なく足元だけを共通の地面へ揃えられる。
+        const summonCharacterHeight = layout.character.height * SUMMON_CHARACTER_HEIGHT_RATIOS[this.selectedFighter.id];
+        const summonCharacter = this.add.image(VIEW_WIDTH / 2 + layout.character.x, layout.character.baseline, `summon-character-${this.selectedFighter.id}`)
+            .setOrigin(0.5, 1);
+        summonCharacter.setDisplaySize(summonCharacter.width / summonCharacter.height * summonCharacterHeight, summonCharacterHeight);
+        guide.add(summonCharacter);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
         addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
         const characterTop = layout.character.baseline - layout.character.height;
