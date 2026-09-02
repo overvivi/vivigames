@@ -1724,3 +1724,10 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。
 - `?debug=1&layout=1`は現在、キャラ別v2門ではなく共通門`summon-gate-common-final-v4.webp`を表示する。背景Bは床なしの仮空間のままなので、まず背景Aの濡れた路面への接地と門の横幅だけを評価できる。キャラ別差分は、ここで骨格が確定してから発光色と小紋章に限定して追加する。
 - `npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち。
+
+### 2026-09-03 — Codex（Remaster：大型召喚用キャラ7体の統一v2、未公開）
+
+- RAVEN／MIKA／BRICK／NOISE／KIRI／VIVI／TΩ9を、MIKA／NOISE系のダークファンタジー画風、下から見上げる約8°の画角、共通の線・陰影密度で描き直した。MIKAとKIRIはユーザー判断で露出ありの初稿を採用し、全身装備版は不採用候補として生成元へ残した。TΩ9は新規3案ではなく、最初の案を採用した
+- 各採用原画は無料のローカル背景除去で実alphaを持つPNGへ変換し、`references/summon-characters/summon-character-*-master-v2.png`へ保存。色判定による市松除去は髪・発光を壊すため廃止し、変換スクリプトはalphaをそのまま保持してv2 PNG/WebPを出力する
+- `Game.ts`はv2素材をpreloadする。全員の足元は`FOOT BASELINE`へ揃え、体格差は表示高比で明示した（TΩ9=`0.72`、MIKA=`0.83`、KIRI=`1.00`）。生成時の背景・地面はゲームへ含めない
+- `npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`成功。ユーザーによる実機確認・明示`push`待ち

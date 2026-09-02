@@ -118,9 +118,16 @@ const GATE_CHARACTER_CANVAS_SCALE = 767 / GATE_CHARACTER_CANVAS_HEIGHT;
 const GATE_CHARACTER_DISPLAY_HEIGHTS: Record<string, number> = { raven: 2400, mika: 2400, brick: 2250, noise: 2250, kiri: 2540, vivi: 2325, tomega9: 2250 };
 // 既存ゲートで確定した身長比を、召喚画面の安全域へそのまま引き継ぐ。
 // 全員を同じ高さにするとBRICKやTΩ9まで細長くなり、キャラの体格差が消えるため。
-const SUMMON_CHARACTER_HEIGHT_RATIOS: Record<string, number> = Object.fromEntries(
-    Object.entries(GATE_CHARACTER_DISPLAY_HEIGHTS).map(([id, height]) => [id, height / GATE_CHARACTER_DISPLAY_HEIGHTS.kiri])
-);
+const SUMMON_CHARACTER_HEIGHT_RATIOS: Record<string, number> = {
+    raven: 0.96,
+    mika: 0.83,
+    brick: 0.93,
+    noise: 0.91,
+    kiri: 1,
+    vivi: 0.95,
+    // 小柄なマスコット枠であることを、周囲の浮遊物ではなく本体サイズで見せる。
+    tomega9: 0.72
+};
 const FIGHTERS: FighterDefinition[] = [
     { id: 'raven', name: 'RAVEN', subtitle: 'ZERO BLADE', color: 0x55dffc, portraitKey: 'portrait-raven', gateLineupKey: 'gate-raven-lineup', gateSelectedKey: 'gate-raven-selected', combatKey: 'guard-raven', combatScale: 0.42, naturalFacing: 'left', poseFacing: { dash: 'right', attack: 'right', win: 'right', lose: 'right' }, poseFlipOverrides: { win: true, lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.43, win: 0.49, lose: 0.32 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.29, offsetX: 57, offsetY: -60, layer: 'front' } },
     { id: 'mika', name: 'MIKA', subtitle: 'PINK RIOT', color: 0xff5ca8, portraitKey: 'portrait-mika', gateLineupKey: 'gate-mika-lineup', gateSelectedKey: 'gate-mika-selected', combatKey: 'guard-mika', combatScale: 0.42, naturalFacing: 'right', poseFacing: { attack: 'right', lose: 'left' }, poseFlipOverrides: { lose: true }, poseScales: { guard: 0.42, dash: 0.42, attack: 0.47, win: 0.50, lose: 0.33 }, poseOffsetYs: { win: 10 }, attackEffect: { scale: 0.27, offsetX: 67, offsetY: -83, layer: 'front' } },
@@ -208,7 +215,7 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => this.load.image(`summon-interior-test-${fighter.id}`, `assets/championship-re/summon/summon-interior-test-${fighter.id}-final-v2.webp`));
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
-        FIGHTERS.forEach((fighter) => this.load.image(`summon-character-${fighter.id}`, `assets/championship-re/summon/characters/summon-character-${fighter.id}-v1.webp`));
+        FIGHTERS.forEach((fighter) => this.load.image(`summon-character-${fighter.id}`, `assets/championship-re/summon/characters/summon-character-${fighter.id}-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v5.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
