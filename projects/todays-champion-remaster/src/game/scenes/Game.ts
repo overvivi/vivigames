@@ -45,11 +45,12 @@ type SummonStageLayout = {
     summonEmblem: { x: number; y: number; size: number; alpha: number };
     gate: RectLayout;
     interior: RectLayout;
-    character: { baseline: number; height: number };
+    character: { x: number; width: number; baseline: number; height: number };
     selectionHint: {
         tap: { x: number; y: number; size: number };
         swipe: { x: number; y: number; size: number };
     };
+    navigation: { gameBase: { x: number; y: number } };
     cta: RectLayout;
 };
 
@@ -68,7 +69,7 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 // 素材を作る前に、参考モックの構図を基準キャンバスへ固定する。
 // 大門は横へ広く、内側は背景素材専用の空き窓として扱う。
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
-    title: { x: 60, y: 42, width: 820, height: 202 },
+    title: { x: 60, y: 55, width: 820, height: 193 },
     miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
     miniGateHeader: {
         number: { x: 0, y: 56, size: 19 },
@@ -78,11 +79,12 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     summonEmblem: { x: 0, y: 0, size: 344, alpha: 0.48 },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
-    character: { baseline: 1390, height: 727 },
+    character: { x: 0, width: 360, baseline: 1390, height: 761 },
     selectionHint: {
         tap: { x: -72, y: 567, size: 15 },
         swipe: { x: 113, y: 567, size: 15 }
     },
+    navigation: { gameBase: { x: 110, y: 60 } },
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
@@ -298,16 +300,13 @@ export class Game extends Scene {
         const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 180, VIEW_WIDTH, 360, 0x050a13, 0.24);
         layer.add([selectBackground, shade, upperShade]);
 
-        const gameBase = this.add.text(110, 60, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
-        gameBase.on('pointerdown', () => { window.location.href = '../..'; });
-        const archive = this.add.text(VIEW_WIDTH - 110, 60, 'CHARACTER ARCHIVE →', { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 1.2 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-        archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
-        // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収め、
-        // 左右上端のGAME BASE／ARCHIVE導線を避ける。
+        // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収める。
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
-        layer.add([gameBase, archive, this.selectTitle]);
+        layer.add(this.selectTitle);
 
         if (!this.summonStagePreviewEnabled) {
+            const gameBase = this.add.text(this.summonStageLayout.navigation.gameBase.x, this.summonStageLayout.navigation.gameBase.y, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
+            gameBase.on('pointerdown', () => { window.location.href = '../..'; });
             const titleSafeArea = this.summonStageLayout.title;
             const titleLogo = this.add.image(
                 titleSafeArea.x + titleSafeArea.width / 2,
@@ -316,7 +315,7 @@ export class Game extends Scene {
             );
             const titleScale = Math.min(titleSafeArea.width / titleLogo.width, titleSafeArea.height / titleLogo.height);
             titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
-            layer.add(titleLogo);
+            layer.add([gameBase, titleLogo]);
         }
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
@@ -375,7 +374,9 @@ export class Game extends Scene {
         titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
         const tapHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.tap.x, layout.selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         const swipeHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.swipe.x, layout.selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
-        guide.add([titleLogo, tapHint, swipeHint]);
+        const gameBase = this.add.text(layout.navigation.gameBase.x, layout.navigation.gameBase.y, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
+        gameBase.on('pointerdown', () => { window.location.href = '../..'; });
+        guide.add([titleLogo, tapHint, swipeHint, gameBase]);
         const mini = layout.miniGate;
         const miniHeader = layout.miniGateHeader;
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
@@ -399,7 +400,6 @@ export class Game extends Scene {
             // 外寸で塗ると黒紺の矩形が隣のゲート間へ漏れてしまうため。
             headerScrim.fillRect(x + mini.width * 154 / 753 * scale, y + mini.height * 225 / 2089 * scale, mini.width * (595 - 154) / 753 * scale, mini.height * 1420 / 2089 * scale);
             const frame = this.add.image(centreX, centreY, 'summon-mini-gate-frame').setDisplaySize(mini.width * scale, mini.height * scale);
-            const highlight = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, fighter.color, selected ? 0.12 : 0).setStrokeStyle(selected ? 3 : 0, fighter.color, selected ? 0.9 : 0);
             const gate = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, 0x000000, 0).setInteractive({ useHandCursor: true });
             gate.on('pointerdown', () => {
                 this.selectedFighter = fighter;
@@ -410,7 +410,7 @@ export class Game extends Scene {
             // setDisplaySize後にsetScaleすると元画像の巨大な寸法へ戻るため、選択時の拡大分も表示寸法へ含める。
             const icon = this.add.image(centreX + miniHeader.icon.x * scale, y + miniHeader.icon.y * scale, `gate-icon-${fighter.id}`).setDisplaySize(miniHeader.icon.size * scale, miniHeader.icon.size * scale).setTint(this.gateHeaderTint(fighter.color));
             const name = this.add.text(centreX + miniHeader.name.x * scale, y + miniHeader.name.y * scale, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.name.size}px`, fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
-            guide.add([interior, headerScrim, frame, highlight, gate, number, icon, name]);
+            guide.add([interior, headerScrim, frame, gate, number, icon, name]);
         });
         // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
         // 7種の実枠で開口の端を一度に検査できる。
@@ -438,8 +438,9 @@ export class Game extends Scene {
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
         addBox(layout.interior, 0x7257d6, 0.22, `DIMENSION BG  ${layout.interior.width} × ${layout.interior.height}`);
         const characterTop = layout.character.baseline - layout.character.height;
-        const character = this.add.rectangle(VIEW_WIDTH / 2 - 180, characterTop, 360, layout.character.height, 0x5ff1cf, 0.08).setOrigin(0).setStrokeStyle(3, 0x5ff1cf, 0.95);
-        const characterLabel = this.add.text(VIEW_WIDTH / 2, characterTop + 16, `CHARACTER SAFE AREA  H=${layout.character.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 }).setOrigin(0.5);
+        const characterCenterX = VIEW_WIDTH / 2 + layout.character.x;
+        const character = this.add.rectangle(characterCenterX - layout.character.width / 2, characterTop, layout.character.width, layout.character.height, 0x5ff1cf, 0.08).setOrigin(0).setStrokeStyle(3, 0x5ff1cf, 0.95);
+        const characterLabel = this.add.text(characterCenterX, characterTop + 16, `CHARACTER SAFE AREA  ${layout.character.width} × ${layout.character.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 }).setOrigin(0.5);
         const baseline = this.add.rectangle(100, layout.character.baseline, VIEW_WIDTH - 200, 3, 0x5ff1cf, 0.98).setOrigin(0, 0.5);
         const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
         annotations.add([character, characterLabel, baseline, baselineLabel]);
@@ -858,6 +859,9 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'TITLE Y', 20, 150, layout.title.y, 1, (value) => { layout.title.y = value; });
         this.addSummonStageField(body, 'TITLE WIDTH', 620, 900, layout.title.width, 1, (value) => { layout.title.width = value; });
         this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
+        addSection('NAVIGATION');
+        this.addSummonStageField(body, 'GAME BASE X', 20, 300, layout.navigation.gameBase.x, 1, (value) => { layout.navigation.gameBase.x = value; });
+        this.addSummonStageField(body, 'GAME BASE Y', 20, 240, layout.navigation.gameBase.y, 1, (value) => { layout.navigation.gameBase.y = value; });
         addSection('SELECTION HINT');
         this.addSummonStageField(body, 'TAP X', -260, 120, layout.selectionHint.tap.x, 1, (value) => { layout.selectionHint.tap.x = value; });
         this.addSummonStageField(body, 'TAP Y', 100, 1440, layout.selectionHint.tap.y, 1, (value) => { layout.selectionHint.tap.y = value; });
@@ -896,6 +900,8 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'INNER Y', 570, 830, layout.interior.y, 1, (value) => { layout.interior.y = value; });
         this.addSummonStageField(body, 'INNER WIDTH', 420, 700, layout.interior.width, 1, (value) => { layout.interior.width = value; });
         this.addSummonStageField(body, 'INNER HEIGHT', 560, 840, layout.interior.height, 1, (value) => { layout.interior.height = value; });
+        this.addSummonStageField(body, 'CHARACTER X', -260, 260, layout.character.x, 1, (value) => { layout.character.x = value; });
+        this.addSummonStageField(body, 'CHARACTER WIDTH', 240, 720, layout.character.width, 1, (value) => { layout.character.width = value; });
         this.addSummonStageField(body, 'FOOT BASELINE', 1260, 1460, layout.character.baseline, 1, (value) => { layout.character.baseline = value; });
         this.addSummonStageField(body, 'CHARACTER H', 600, 900, layout.character.height, 1, (value) => { layout.character.height = value; });
         addSection('CTA');
