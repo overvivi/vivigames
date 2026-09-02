@@ -419,6 +419,9 @@ export class Game extends Scene {
         const baseline = this.add.rectangle(100, layout.character.baseline, VIEW_WIDTH - 200, 3, 0x5ff1cf, 0.98).setOrigin(0, 0.5);
         const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
         annotations.add([character, characterLabel, baseline, baselineLabel]);
+        // 確認画面でも実CTAを先に描く。枠線だけでは公開素材の質感を評価できない。
+        const previewCta = this.add.image(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, 'championship-re-start-duel').setDisplaySize(layout.cta.width, layout.cta.height);
+        guide.add(previewCta);
         const cta = this.add.rectangle(layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height, 0xe8c878, 0.16).setOrigin(0).setStrokeStyle(3, 0xe8c878, 0.95);
         const ctaLabel = this.add.text(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, `START DUEL  ${layout.cta.width} × ${layout.cta.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffedb2', letterSpacing: 3 }).setOrigin(0.5);
         annotations.add([cta, ctaLabel]);
