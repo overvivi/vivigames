@@ -196,7 +196,7 @@ export class Game extends Scene {
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
-        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v3.webp');
+        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v4.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         FIGHTERS.forEach((fighter) => {
