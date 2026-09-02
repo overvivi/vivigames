@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const masterPath = path.join(root, 'source/assets/championship-re/references/championship-re-cta-master-v1.png');
+const masterPath = path.join(root, 'source/assets/championship-re/references/championship-re-cta-master-v2.png');
 const sourceDir = path.join(root, 'source/assets/championship-re/ui');
 const publicDir = path.join(root, 'public/assets/championship-re/ui');
 const width = 1600;
@@ -13,7 +13,7 @@ const height = 400;
 
 async function build() {
     await Promise.all([mkdir(sourceDir, { recursive: true }), mkdir(publicDir, { recursive: true })]);
-    // 文字と枠を一体の素材として保持し、Phaserの矩形・文字組みでは再現しない。
+    // 写真調の枠は素材として保ち、読みやすさが必要な操作名だけをPhaserで重ねる。
     const { data, info } = await sharp(masterPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const pixels = Buffer.from(data);
     const seen = new Uint8Array(info.width * info.height);
@@ -39,14 +39,14 @@ async function build() {
         if (y + 1 < info.height) add(x, y + 1);
     }
     const cta = await sharp(pixels, { raw: { width: info.width, height: info.height, channels: 4 } })
-        .resize({ width, height, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .resize({ width, height, fit: 'fill' })
         .png()
         .toBuffer();
     await Promise.all([
-        sharp(cta).png().toFile(path.join(sourceDir, 'start-duel-final-v1.png')),
-        sharp(cta).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'start-duel-final-v1.webp'))
+        sharp(cta).png().toFile(path.join(sourceDir, 'start-duel-final-v2.png')),
+        sharp(cta).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, 'start-duel-final-v2.webp'))
     ]);
-    console.log('新規CTAを共通原図へ規格化: 1600×400 / 表示680×170');
+    console.log('新規CTA写真枠を共通原図へ規格化: 1600×400 / 表示680×170');
 }
 
 build().catch((error) => {

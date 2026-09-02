@@ -1664,6 +1664,13 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - MIKA／VIVIのように背景と紋章が同系色または高明度の場合でも背景の異世界感を減らさないよう、紋章の背後へ1.12倍の黒紺レイヤーを追加して輪郭を確保した。前面のALPHA調整に連動し、背面は最大0.58で止まる
 - MIKAの前面色は白ピンク`#ffcce9`、VIVIは濃い金`#c7933c`へ個別調整。ほか5人は従来どおりキャラ固有色を少し明るくした色を使う
 
+### 2026-09-02 — Codex（Remaster：召喚ステージ操作案内と写真調CTA）
+
+- ユーザー確定値を大型門の選択紋章へ反映: `x=0 / y=0 / size=344 / alpha=0.48`。`RESET GUIDE`も同じ値へ戻る
+- タイトル素材は既存の`TITLE X/Y/WIDTH/HEIGHT`を通常画面にも反映するよう統一。`TAP A GATE | SWIPE TO SELECT`には`HINT X/Y/SIZE`、START DUELには`CTA X/Y/WIDTH/HEIGHT`を`SUMMON STAGE TUNER`へ追加した
+- 文字を含まない写真調のCTA枠を画像生成で制作。原画は`source/assets/championship-re/references/championship-re-cta-master-v2.png`、規格化素材は`ui/start-duel-final-v2.png`／`public/assets/championship-re/ui/start-duel-final-v2.webp`。中央の`START DUEL`は画像生成の文字崩れを避けるためPhaserテキストで重ねる
+- `npx tsc --noEmit`、ルート`npm run test:champion`（20件）、公開用ビルド成功。公開前に`npm run verify`と差分検査を実行する
+
 ### 2026-09-02 — Codex（Remaster：共通大型ゲートを確認画面へ仮配置、未公開）
 
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。

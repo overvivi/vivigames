@@ -46,7 +46,7 @@ type SummonStageLayout = {
     gate: RectLayout;
     interior: RectLayout;
     character: { baseline: number; height: number };
-    hintY: number;
+    selectionHint: { x: number; y: number; size: number };
     cta: RectLayout;
 };
 
@@ -72,11 +72,11 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
         icon: { x: 0, y: 124, size: 62 },
         name: { x: 0, y: 184, size: 15 }
     },
-    summonEmblem: { x: 0, y: 0, size: 398, alpha: 0.22 },
+    summonEmblem: { x: 0, y: 0, size: 344, alpha: 0.48 },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
     character: { baseline: 1390, height: 727 },
-    hintY: 1465,
+    selectionHint: { x: 0, y: 1360, size: 15 },
     cta: { x: 130, y: 1445, width: 680, height: 170 }
 };
 // 実機のGATE TUNERでユーザーが全14状態を見比べて確定した構図。
@@ -196,7 +196,7 @@ export class Game extends Scene {
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
-        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v1.webp');
+        this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v2.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         FIGHTERS.forEach((fighter) => {
@@ -298,9 +298,7 @@ export class Game extends Scene {
         archive.on('pointerdown', () => { window.location.href = 'character-archive.html'; });
         // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収め、
         // 左右上端のGAME BASE／ARCHIVE導線を避ける。
-        const titleSafeArea = this.summonStagePreviewEnabled
-            ? this.summonStageLayout.title
-            : { x: 60, y: 142, width: 820, height: 205 };
+        const titleSafeArea = this.summonStageLayout.title;
         const titleLogo = this.add.image(
             titleSafeArea.x + titleSafeArea.width / 2,
             titleSafeArea.y + titleSafeArea.height / 2,
@@ -313,7 +311,8 @@ export class Game extends Scene {
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
         // 選択操作の案内はゲート群から切り離し、開始CTAの直前で次の行動として読ませる。
-        const selectedHint = this.add.text(VIEW_WIDTH / 2, 1360, 'TAP A GATE   |   SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
+        const selectionHint = this.summonStageLayout.selectionHint;
+        const selectedHint = this.add.text(VIEW_WIDTH / 2 + selectionHint.x, selectionHint.y, 'TAP A GATE   |   SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${selectionHint.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         layer.add([selectedHint]);
         this.selectionLayer = layer;
         this.selectionOpeningMasks.forEach((mask) => mask.destroy());
@@ -334,11 +333,14 @@ export class Game extends Scene {
         this.createGateHeaderTuner();
 
         // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
-        const startButton = this.add.image(VIEW_WIDTH / 2, 1460, 'championship-re-start-duel').setDisplaySize(680, 170).setInteractive({ useHandCursor: true });
+        const ctaLayout = this.summonStageLayout.cta;
+        const startButton = this.add.image(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'championship-re-start-duel').setDisplaySize(ctaLayout.width, ctaLayout.height).setInteractive({ useHandCursor: true });
+        // 画像生成の文字崩れを避け、操作名は実テキストとして常に鮮明に保つ。
+        const startLabel = this.add.text(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'START DUEL', { fontFamily: 'Georgia, serif', fontSize: '46px', fontStyle: 'bold', color: '#ffecad', stroke: '#291506', strokeThickness: 8, letterSpacing: 2 }).setOrigin(0.5);
         startButton.on('pointerdown', () => this.startSelectedDuel());
-        startButton.on('pointerover', () => startButton.setAlpha(0.92));
-        startButton.on('pointerout', () => startButton.setAlpha(1));
-        layer.add(startButton);
+        startButton.on('pointerover', () => { startButton.setAlpha(0.92); startLabel.setAlpha(0.92); });
+        startButton.on('pointerout', () => { startButton.setAlpha(1); startLabel.setAlpha(1); });
+        layer.add([startButton, startLabel]);
     }
 
     private createSummonStagePreview(layer: GameObjects.Container) {
@@ -419,11 +421,10 @@ export class Game extends Scene {
         const baseline = this.add.rectangle(100, layout.character.baseline, VIEW_WIDTH - 200, 3, 0x5ff1cf, 0.98).setOrigin(0, 0.5);
         const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
         annotations.add([character, characterLabel, baseline, baselineLabel]);
-        const hint = this.add.text(VIEW_WIDTH / 2, layout.hintY, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#e3ecf6', letterSpacing: 3 }).setOrigin(0.5);
         const cta = this.add.rectangle(layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height, 0xe8c878, 0.16).setOrigin(0).setStrokeStyle(3, 0xe8c878, 0.95);
         const ctaLabel = this.add.text(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, `START DUEL  ${layout.cta.width} × ${layout.cta.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffedb2', letterSpacing: 3 }).setOrigin(0.5);
         annotations.add([cta, ctaLabel]);
-        guide.add([annotations, hint]);
+        guide.add(annotations);
         layer.add(guide);
         this.summonStageGuide = guide;
     }
@@ -832,6 +833,10 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'TITLE Y', 20, 150, layout.title.y, 1, (value) => { layout.title.y = value; });
         this.addSummonStageField(body, 'TITLE WIDTH', 620, 900, layout.title.width, 1, (value) => { layout.title.width = value; });
         this.addSummonStageField(body, 'TITLE HEIGHT', 110, 230, layout.title.height, 1, (value) => { layout.title.height = value; });
+        addSection('SELECTION HINT');
+        this.addSummonStageField(body, 'HINT X', -220, 220, layout.selectionHint.x, 1, (value) => { layout.selectionHint.x = value; });
+        this.addSummonStageField(body, 'HINT Y', 1180, 1440, layout.selectionHint.y, 1, (value) => { layout.selectionHint.y = value; });
+        this.addSummonStageField(body, 'HINT SIZE', 9, 28, layout.selectionHint.size, 1, (value) => { layout.selectionHint.size = value; });
         addSection('TOP ROSTER / 7 MINI GATES');
         this.addSummonStageField(body, 'ROW X', 0, 160, layout.miniGate.x, 1, (value) => { layout.miniGate.x = value; });
         this.addSummonStageField(body, 'ROW Y', 220, 390, layout.miniGate.y, 1, (value) => { layout.miniGate.y = value; });
@@ -866,7 +871,10 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'FOOT BASELINE', 1260, 1460, layout.character.baseline, 1, (value) => { layout.character.baseline = value; });
         this.addSummonStageField(body, 'CHARACTER H', 600, 900, layout.character.height, 1, (value) => { layout.character.height = value; });
         addSection('CTA');
+        this.addSummonStageField(body, 'CTA X', 60, 180, layout.cta.x, 1, (value) => { layout.cta.x = value; });
         this.addSummonStageField(body, 'CTA Y', 1430, 1520, layout.cta.y, 1, (value) => { layout.cta.y = value; });
+        this.addSummonStageField(body, 'CTA WIDTH', 520, 780, layout.cta.width, 1, (value) => { layout.cta.width = value; });
+        this.addSummonStageField(body, 'CTA HEIGHT', 120, 220, layout.cta.height, 1, (value) => { layout.cta.height = value; });
         const actions = document.createElement('div');
         actions.className = 'tc-remaster-summon-tuner__actions';
         const copy = document.createElement('button');
