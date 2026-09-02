@@ -67,9 +67,9 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     title: { x: 60, y: 64, width: 820, height: 166 },
     miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
     miniGateHeader: {
-        number: { x: 0, y: 34, size: 18 },
-        icon: { x: 0, y: 104, size: 52 },
-        name: { x: 0, y: 184, size: 12 }
+        number: { x: 0, y: 56, size: 19 },
+        icon: { x: 0, y: 124, size: 62 },
+        name: { x: 0, y: 184, size: 15 }
     },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
@@ -380,7 +380,7 @@ export class Game extends Scene {
                 this.createSummonStagePreview(this.selectionLayer!);
                 this.createSummonStageTuner();
             });
-            const number = this.add.text(centreX + miniHeader.number.x * scale, y + miniHeader.number.y * scale, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.number.size}px`, fontStyle: 'bold', color: '#eefaff' }).setOrigin(0.5).setScale(scale);
+            const number = this.add.text(centreX + miniHeader.number.x * scale, y + miniHeader.number.y * scale, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.number.size}px`, fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color), letterSpacing: 0.5 }).setOrigin(0.5).setScale(scale);
             // setDisplaySize後にsetScaleすると元画像の巨大な寸法へ戻るため、選択時の拡大分も表示寸法へ含める。
             const icon = this.add.image(centreX + miniHeader.icon.x * scale, y + miniHeader.icon.y * scale, `gate-icon-${fighter.id}`).setDisplaySize(miniHeader.icon.size * scale, miniHeader.icon.size * scale).setTint(this.gateHeaderTint(fighter.color));
             const name = this.add.text(centreX + miniHeader.name.x * scale, y + miniHeader.name.y * scale, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.name.size}px`, fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
@@ -392,6 +392,14 @@ export class Game extends Scene {
         guide.add(summonInterior);
         // Bの窓寸法に門の外形を従わせない。まず全員共通の大きな骨格で、
         // 背景Aの路面への接地と横幅を評価してから、固有の発光・紋章を重ねる。
+        // 選択の手応えを大門にも返す。キャラ本体を置く前の案なので、
+        // 顔や立ち絵を増やさず、既存の紋章だけを淡く透かして使う。
+        const summonEmblemSize = Math.min(layout.interior.width * 0.68, layout.interior.height * 0.58);
+        const summonEmblem = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `gate-icon-${this.selectedFighter.id}`)
+            .setDisplaySize(summonEmblemSize, summonEmblemSize)
+            .setTint(this.gateHeaderTint(this.selectedFighter.color))
+            .setAlpha(0.22);
+        guide.add(summonEmblem);
         const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-common').setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
         addBox(layout.gate, 0xe8c878, 0.1, `SUMMON GATE  ${layout.gate.width} × ${layout.gate.height}`);
