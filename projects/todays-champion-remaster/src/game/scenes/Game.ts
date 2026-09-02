@@ -42,6 +42,7 @@ type SummonStageLayout = {
         icon: { x: number; y: number; size: number };
         name: { x: number; y: number; size: number };
     };
+    summonEmblem: { x: number; y: number; size: number; alpha: number };
     gate: RectLayout;
     interior: RectLayout;
     character: { baseline: number; height: number };
@@ -71,6 +72,7 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
         icon: { x: 0, y: 124, size: 62 },
         name: { x: 0, y: 184, size: 15 }
     },
+    summonEmblem: { x: 0, y: 0, size: 398, alpha: 0.22 },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
     character: { baseline: 1390, height: 727 },
@@ -394,11 +396,10 @@ export class Game extends Scene {
         // 背景Aの路面への接地と横幅を評価してから、固有の発光・紋章を重ねる。
         // 選択の手応えを大門にも返す。キャラ本体を置く前の案なので、
         // 顔や立ち絵を増やさず、既存の紋章だけを淡く透かして使う。
-        const summonEmblemSize = Math.min(layout.interior.width * 0.68, layout.interior.height * 0.58);
-        const summonEmblem = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, `gate-icon-${this.selectedFighter.id}`)
-            .setDisplaySize(summonEmblemSize, summonEmblemSize)
+        const summonEmblem = this.add.image(layout.gate.x + layout.gate.width / 2 + layout.summonEmblem.x, layout.gate.y + layout.gate.height / 2 + layout.summonEmblem.y, `gate-icon-${this.selectedFighter.id}`)
+            .setDisplaySize(layout.summonEmblem.size, layout.summonEmblem.size)
             .setTint(this.gateHeaderTint(this.selectedFighter.color))
-            .setAlpha(0.22);
+            .setAlpha(layout.summonEmblem.alpha);
         guide.add(summonEmblem);
         const summonGate = this.add.image(layout.gate.x + layout.gate.width / 2, layout.gate.y + layout.gate.height / 2, 'summon-gate-common').setDisplaySize(layout.gate.width, layout.gate.height);
         guide.add(summonGate);
@@ -844,6 +845,11 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'GATE Y', 520, 760, layout.gate.y, 1, (value) => { layout.gate.y = value; });
         this.addSummonStageField(body, 'GATE WIDTH', 700, 920, layout.gate.width, 1, (value) => { layout.gate.width = value; });
         this.addSummonStageField(body, 'GATE HEIGHT', 650, 980, layout.gate.height, 1, (value) => { layout.gate.height = value; });
+        addSection('SELECTED EMBLEM');
+        this.addSummonStageField(body, 'EMBLEM X', -220, 220, layout.summonEmblem.x, 1, (value) => { layout.summonEmblem.x = value; });
+        this.addSummonStageField(body, 'EMBLEM Y', -220, 220, layout.summonEmblem.y, 1, (value) => { layout.summonEmblem.y = value; });
+        this.addSummonStageField(body, 'EMBLEM SIZE', 100, 620, layout.summonEmblem.size, 1, (value) => { layout.summonEmblem.size = value; });
+        this.addSummonStageField(body, 'EMBLEM ALPHA', 0, 0.65, layout.summonEmblem.alpha, 0.01, (value) => { layout.summonEmblem.alpha = value; });
         addSection('INNER DIMENSION / CHARACTER');
         this.addSummonStageField(body, 'INNER X', 90, 260, layout.interior.x, 1, (value) => { layout.interior.x = value; });
         this.addSummonStageField(body, 'INNER Y', 570, 830, layout.interior.y, 1, (value) => { layout.interior.y = value; });
