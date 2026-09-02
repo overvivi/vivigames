@@ -1737,3 +1737,9 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - `SUMMON STAGE TUNER`へ、選択中キャラだけに効く`CHARACTER X`／`CHARACTER Y`／`CHARACTER SIZE`を追加。上部ミニゲートを押して対象を切り替えると、下部の`SELECTED CHARACTER / 名前`欄が対応値を表示する
 - 値は7人ごとに独立しており、共有の安全領域・FOOT BASELINE・他キャラの配置へ影響しない。JSONコピーと`RESET GUIDE`にも全キャラ分を含める
 - `npx tsc --noEmit`、Remaster公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。公開はユーザーの明示`push`待ち
+
+### 2026-09-03 — Codex（Remaster：大型召喚キャラの最終表示倍率、未公開）
+
+- ユーザーが実機で確定したキャラ別補正値を初期値と`RESET GUIDE`へ反映。RAVEN=`0.96`、MIKA=`1.00`、BRICK=`1.06`、NOISE=`0.98`、KIRI=`1.00`、VIVI=`1.00`、TΩ9=`0.87`。X/Yは全員`0`
+- この補正は各キャラ固有の体格差比へ掛けるため、TΩ9の小柄さなど設定済みの身長差を維持したまま実機確認値へ合わせられる
+- `npx tsc --noEmit`、Remaster公開用ビルド成功。公開はユーザーの明示`push`待ち

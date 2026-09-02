@@ -84,13 +84,13 @@ const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
         x: 0, width: 720, baseline: 1349, height: 773,
         // 原画の構図差は共有安全域を変えず、キャラごとの微調整へ閉じ込める。
         fighters: {
-            raven: { x: 0, y: 0, scale: 1 },
+            raven: { x: 0, y: 0, scale: 0.96 },
             mika: { x: 0, y: 0, scale: 1 },
-            brick: { x: 0, y: 0, scale: 1 },
-            noise: { x: 0, y: 0, scale: 1 },
+            brick: { x: 0, y: 0, scale: 1.06 },
+            noise: { x: 0, y: 0, scale: 0.98 },
             kiri: { x: 0, y: 0, scale: 1 },
             vivi: { x: 0, y: 0, scale: 1 },
-            tomega9: { x: 0, y: 0, scale: 1 }
+            tomega9: { x: 0, y: 0, scale: 0.87 }
         }
     },
     selectionHint: {
