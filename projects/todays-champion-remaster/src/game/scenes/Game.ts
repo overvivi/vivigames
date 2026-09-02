@@ -347,7 +347,10 @@ export class Game extends Scene {
             const selected = fighter.id === this.selectedFighter.id;
             const scale = selected ? 1.06 : 1;
             const y = mini.y - (selected ? 12 : 0);
-            const gate = this.add.rectangle(x, y, mini.width, mini.height, fighter.color, selected ? 0.34 : 0.16).setOrigin(0).setStrokeStyle(selected ? 4 : 2, fighter.color, 0.98).setScale(scale).setInteractive({ useHandCursor: true });
+            // 大型門と同じ黒鉄の輪郭を先に置き、色は内側のガラスとしてだけ見せる。
+            // これで7色が並んでもロスター全体が玩具っぽく散らばらない。
+            const gate = this.add.rectangle(x, y, mini.width, mini.height, 0x090d14, 0.92).setOrigin(0).setStrokeStyle(selected ? 4 : 2, 0xb6c2cc, selected ? 0.98 : 0.7).setScale(scale).setInteractive({ useHandCursor: true });
+            const glass = this.add.rectangle(x + 5, y + 5, mini.width - 10, mini.height - 10, fighter.color, selected ? 0.38 : 0.22).setOrigin(0).setStrokeStyle(1, fighter.color, 0.9).setScale(scale);
             gate.on('pointerdown', () => {
                 this.selectedFighter = fighter;
                 this.createSummonStagePreview(this.selectionLayer!);
@@ -358,7 +361,7 @@ export class Game extends Scene {
             const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
             const name = this.add.text(x + mini.width / 2, y + 184, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
-            guide.add([gate, number, icon, name, role]);
+            guide.add([gate, glass, number, icon, name, role]);
         });
         // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
         // 7種の実枠で開口の端を一度に検査できる。
