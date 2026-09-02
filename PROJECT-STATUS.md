@@ -1632,6 +1632,12 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - RAVEN／MIKA／BRICK／NOISE／KIRI／VIVI／TΩ9の7種について、景色・地面・キャラを含まない写真調の抽象異界テクスチャを追加。各キャラの固有色・紋章モチーフだけを示し、共通枠の内寸へ中央トリミングで収めた
 - 原画は`source/assets/championship-re/references/mini-gate-interior-*-master-v1.png`、配信用WebPと変換手順は`ui/mini-gates/`および`tools/build-championship-re-mini-gates.mjs`に保存。型チェックと既存の最強決定戦テスト20件は成功
 
+### 2026-09-02 — Codex（Remaster：ミニゲート内側背景の開口マスク）
+
+- 写真枠の外寸全体へ内側背景を置いていたため、透明な外周と柱の上へ背景がはみ出していた。変換処理で枠画像の中央から連続するalpha=0領域だけを抽出し、7種すべての背景へ`dest-in`マスクとして適用した
+- 枠外・柱・上アーチの位置はalpha=0、中央の開口はalpha=255であることを数値検査済み。フレームの見た目に依存せず、今後の素材再変換でも同じ開口だけに収まる
+- `npx tsc --noEmit`、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功
+
 ### 2026-09-02 — Codex（Remaster：共通大型ゲートを確認画面へ仮配置、未公開）
 
 - 大型門の横幅を背景Bの窓に従わせる構造を不採用にした。`772×790`の門外寸そのものを基準とし、左右へ張り出す黒鉄・石のバットレス、薄い敷居、大きい透明開口を持つ共通門v4を制作した。
