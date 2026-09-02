@@ -354,6 +354,11 @@ export class Game extends Scene {
             const centreX = x + mini.width / 2;
             const centreY = y + mini.height / 2;
             const interior = this.add.image(centreX, centreY, `summon-mini-gate-interior-${fighter.id}`).setDisplaySize(mini.width * scale, mini.height * scale);
+            // 7色の背景は残しつつ、情報を読む上側だけを暗くする。
+            // 素材全体を減光すると各キャラの識別色まで弱くなるため、透明度を下へ逃がす。
+            const headerScrim = this.add.graphics();
+            headerScrim.fillGradientStyle(0x02060d, 0x02060d, 0x02060d, 0x02060d, 0.82, 0.82, 0.18, 0.18);
+            headerScrim.fillRect(x + 4 * scale, y + 8 * scale, (mini.width - 8) * scale, 232 * scale);
             const frame = this.add.image(centreX, centreY, 'summon-mini-gate-frame').setDisplaySize(mini.width * scale, mini.height * scale);
             const highlight = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, fighter.color, selected ? 0.12 : 0).setStrokeStyle(selected ? 3 : 0, fighter.color, selected ? 0.9 : 0);
             const gate = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -367,7 +372,7 @@ export class Game extends Scene {
             const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
             const name = this.add.text(x + mini.width / 2, y + 184, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
             const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
-            guide.add([interior, frame, highlight, gate, number, icon, name, role]);
+            guide.add([interior, headerScrim, frame, highlight, gate, number, icon, name, role]);
         });
         // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
         // 7種の実枠で開口の端を一度に検査できる。
