@@ -37,6 +37,11 @@ type RectLayout = { x: number; y: number; width: number; height: number };
 type SummonStageLayout = {
     title: RectLayout;
     miniGate: { x: number; y: number; width: number; height: number; gap: number };
+    miniGateHeader: {
+        number: { x: number; y: number; size: number };
+        icon: { x: number; y: number; size: number };
+        name: { x: number; y: number; size: number };
+    };
     gate: RectLayout;
     interior: RectLayout;
     character: { baseline: number; height: number };
@@ -61,6 +66,11 @@ const DEFAULT_GATE_HEADER_LAYOUT = {
 const DEFAULT_SUMMON_STAGE_LAYOUT: SummonStageLayout = {
     title: { x: 60, y: 64, width: 820, height: 166 },
     miniGate: { x: 88, y: 254, width: 90, height: 284, gap: 22 },
+    miniGateHeader: {
+        number: { x: 0, y: 34, size: 18 },
+        icon: { x: 0, y: 104, size: 52 },
+        name: { x: 0, y: 184, size: 12 }
+    },
     gate: { x: 84, y: 561, width: 772, height: 790 },
     interior: { x: 178, y: 660, width: 585, height: 692 },
     character: { baseline: 1390, height: 727 },
@@ -341,6 +351,7 @@ export class Game extends Scene {
             annotations.add([rect, text]);
         };
         const mini = layout.miniGate;
+        const miniHeader = layout.miniGateHeader;
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
         FIGHTERS.forEach((fighter, index) => {
             const x = mini.x + index * (mini.width + mini.gap);
@@ -358,7 +369,9 @@ export class Game extends Scene {
             // 素材全体を減光すると各キャラの識別色まで弱くなるため、透明度を下へ逃がす。
             const headerScrim = this.add.graphics();
             headerScrim.fillGradientStyle(0x02060d, 0x02060d, 0x02060d, 0x02060d, 0.82, 0.82, 0.18, 0.18);
-            headerScrim.fillRect(x + 4 * scale, y + 8 * scale, (mini.width - 8) * scale, 232 * scale);
+            // 枠の透明開口(原画753×2089のx=154〜595/y=225〜1930)だけへ敷く。
+            // 外寸で塗ると黒紺の矩形が隣のゲート間へ漏れてしまうため。
+            headerScrim.fillRect(x + mini.width * 154 / 753 * scale, y + mini.height * 225 / 2089 * scale, mini.width * (595 - 154) / 753 * scale, mini.height * 1420 / 2089 * scale);
             const frame = this.add.image(centreX, centreY, 'summon-mini-gate-frame').setDisplaySize(mini.width * scale, mini.height * scale);
             const highlight = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, fighter.color, selected ? 0.12 : 0).setStrokeStyle(selected ? 3 : 0, fighter.color, selected ? 0.9 : 0);
             const gate = this.add.rectangle(centreX, centreY, mini.width * scale, mini.height * scale, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -367,12 +380,11 @@ export class Game extends Scene {
                 this.createSummonStagePreview(this.selectionLayer!);
                 this.createSummonStageTuner();
             });
-            const number = this.add.text(x + mini.width / 2, y + 34, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#eefaff' }).setOrigin(0.5).setScale(scale);
+            const number = this.add.text(centreX + miniHeader.number.x * scale, y + miniHeader.number.y * scale, `0${index + 1}`, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.number.size}px`, fontStyle: 'bold', color: '#eefaff' }).setOrigin(0.5).setScale(scale);
             // setDisplaySize後にsetScaleすると元画像の巨大な寸法へ戻るため、選択時の拡大分も表示寸法へ含める。
-            const icon = this.add.image(x + mini.width / 2, y + 104, `gate-icon-${fighter.id}`).setDisplaySize(52 * scale, 52 * scale).setTint(this.gateHeaderTint(fighter.color));
-            const name = this.add.text(x + mini.width / 2, y + 184, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
-            const role = this.add.text(x + mini.width / 2, y + 207, fighter.subtitle, { fontFamily: 'Arial, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#dce9f4' }).setOrigin(0.5).setScale(scale);
-            guide.add([interior, headerScrim, frame, highlight, gate, number, icon, name, role]);
+            const icon = this.add.image(centreX + miniHeader.icon.x * scale, y + miniHeader.icon.y * scale, `gate-icon-${fighter.id}`).setDisplaySize(miniHeader.icon.size * scale, miniHeader.icon.size * scale).setTint(this.gateHeaderTint(fighter.color));
+            const name = this.add.text(centreX + miniHeader.name.x * scale, y + miniHeader.name.y * scale, fighter.name, { fontFamily: 'Arial, sans-serif', fontSize: `${miniHeader.name.size}px`, fontStyle: 'bold', color: this.gateHeaderTextColor(fighter.color) }).setOrigin(0.5).setScale(scale);
+            guide.add([interior, headerScrim, frame, highlight, gate, number, icon, name]);
         });
         // 背景は先に固定の内寸へ置く。門の意匠が変わっても背景を拡縮しないため、
         // 7種の実枠で開口の端を一度に検査できる。
@@ -809,6 +821,16 @@ export class Game extends Scene {
         this.addSummonStageField(body, 'GATE WIDTH', 72, 118, layout.miniGate.width, 1, (value) => { layout.miniGate.width = value; });
         this.addSummonStageField(body, 'GATE HEIGHT', 220, 370, layout.miniGate.height, 1, (value) => { layout.miniGate.height = value; });
         this.addSummonStageField(body, 'GATE GAP', 8, 36, layout.miniGate.gap, 1, (value) => { layout.miniGate.gap = value; });
+        addSection('MINI GATE HEADER');
+        this.addSummonStageField(body, 'NUMBER X', -24, 24, layout.miniGateHeader.number.x, 1, (value) => { layout.miniGateHeader.number.x = value; });
+        this.addSummonStageField(body, 'NUMBER Y', 16, 76, layout.miniGateHeader.number.y, 1, (value) => { layout.miniGateHeader.number.y = value; });
+        this.addSummonStageField(body, 'NUMBER SIZE', 10, 32, layout.miniGateHeader.number.size, 1, (value) => { layout.miniGateHeader.number.size = value; });
+        this.addSummonStageField(body, 'ICON X', -24, 24, layout.miniGateHeader.icon.x, 1, (value) => { layout.miniGateHeader.icon.x = value; });
+        this.addSummonStageField(body, 'ICON Y', 56, 148, layout.miniGateHeader.icon.y, 1, (value) => { layout.miniGateHeader.icon.y = value; });
+        this.addSummonStageField(body, 'ICON SIZE', 24, 72, layout.miniGateHeader.icon.size, 1, (value) => { layout.miniGateHeader.icon.size = value; });
+        this.addSummonStageField(body, 'NAME X', -24, 24, layout.miniGateHeader.name.x, 1, (value) => { layout.miniGateHeader.name.x = value; });
+        this.addSummonStageField(body, 'NAME Y', 142, 230, layout.miniGateHeader.name.y, 1, (value) => { layout.miniGateHeader.name.y = value; });
+        this.addSummonStageField(body, 'NAME SIZE', 8, 24, layout.miniGateHeader.name.size, 1, (value) => { layout.miniGateHeader.name.size = value; });
         addSection('LARGE SUMMON GATE');
         this.addSummonStageField(body, 'GATE X', 0, 100, layout.gate.x, 1, (value) => { layout.gate.x = value; });
         this.addSummonStageField(body, 'GATE Y', 520, 760, layout.gate.y, 1, (value) => { layout.gate.y = value; });
