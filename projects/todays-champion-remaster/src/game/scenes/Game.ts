@@ -246,11 +246,13 @@ export class Game extends Scene {
     }
 
     preload() {
-        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
-        this.load.image('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
-        this.load.image('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
-        this.load.image('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
-        this.load.image('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
+        // Bootで読み終えたタイトル素材は再要求しない。Safariで同じ大画像を二重に掴まないため。
+        const titleAsset = (key: string, path: string) => { if (!this.textures.exists(key)) this.load.image(key, path); };
+        titleAsset('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
+        titleAsset('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
+        titleAsset('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
+        titleAsset('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
+        titleAsset('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
     }
 
     private queueGameplayAssets() {

@@ -1,5 +1,6 @@
 import { AUTO, Game, Scale, Types } from 'phaser';
 import { Game as MainGame } from './scenes/Game';
+import { Boot } from './scenes/Boot';
 
 const config: Types.Core.GameConfig = {
     type: AUTO,
@@ -13,7 +14,7 @@ const config: Types.Core.GameConfig = {
         mode: window.innerHeight > window.innerWidth ? Scale.ENVELOP : Scale.FIT,
         autoCenter: Scale.CENTER_BOTH
     },
-    scene: [MainGame]
+    scene: [Boot, MainGame]
 };
 
 const startGame = (parent: string) => new Game({ ...config, parent });
