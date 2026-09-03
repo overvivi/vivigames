@@ -63,3 +63,19 @@ test('PCの右クリック・ホイールクリックではマスを判定しな
   await page.mouse.click(box.x+box.width/2,box.y+box.height/2,{button:'middle'});
   expect(await unknown()).toBe(before);
 });
+
+// デイリーは曜日で重さが変わる。それが画面に出ていないと「今日は簡単だった」が
+// ただの運に見えてしまうため、ラベルへ出していることを見張る。
+test('デイリーの入口に今日の曜日と重さが出る', async ({ page })=>{
+  await page.goto('/games/hexamine.html');
+  const label = page.locator('#dailyLabel');
+  // 「月曜｜軽め」のような形。曜日はテスト実行日によって変わる
+  await expect(label).toHaveText(/^[日月火水木金土]曜｜(軽め|ふつう|重め|山場)　/);
+
+  // 表示どおりの設定で実際に盤面が作られること（生成経路がmaxDepthを受け取れているか）
+  await page.getByRole('button', { name:'DAILY' }).click();
+  await expect(page.locator('.cell').first()).toBeVisible({ timeout:20000 });
+  const cells = await page.locator('#board .cell').count();
+  expect(cells).toBeGreaterThanOrEqual(61);
+  expect(cells).toBeLessThanOrEqual(121);
+});
