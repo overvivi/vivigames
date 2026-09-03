@@ -422,8 +422,9 @@ export class Game extends Scene {
 
     private showTitleScreen() {
         this.state = 'title';
-        this.raven.setVisible(false);
-        this.mika.setVisible(false);
+        // CPU戦素材はタイトルを押してから作る。入口では旧キャラコンテナがまだ無い。
+        if (this.raven !== undefined) this.raven.setVisible(false);
+        if (this.mika !== undefined) this.mika.setVisible(false);
         this.promptText.setVisible(false);
         this.statusText.setVisible(false);
         this.scoreText.setVisible(false);
