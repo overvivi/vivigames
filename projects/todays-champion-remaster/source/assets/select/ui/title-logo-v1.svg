@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="390" viewBox="0 0 1400 390">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff4bd"/>
+      <stop offset="0.3" stop-color="#e9c66b"/>
+      <stop offset="0.68" stop-color="#a97631"/>
+      <stop offset="1" stop-color="#f1d783"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06131d"/>
+      <stop offset="0.5" stop-color="#203142"/>
+      <stop offset="1" stop-color="#050a11"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="11" result="blur"/>
+      <feOffset in="blur" dy="13" result="offset"/>
+      <feColorMatrix in="offset" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .85 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow" x="-20%" y="-30%" width="140%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="cyan"/>
+      <feColorMatrix in="cyan" type="matrix" values="0 0 0 0 0.05  0 0 0 0 0.8  0 0 0 0 1  0 0 0 .72 0" result="cyanColor"/>
+      <feGaussianBlur stdDeviation="7" result="pink"/>
+      <feColorMatrix in="pink" type="matrix" values="0 0 0 0 1  0 0 0 0 0.08  0 0 0 0 0.55  0 0 0 .38 0" result="pinkColor"/>
+      <feMerge><feMergeNode in="cyanColor"/><feMergeNode in="pinkColor"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g text-anchor="middle" font-family="Arial Black, Arial, sans-serif" filter="url(#shadow)">
+    <text x="700" y="184" fill="#02070c" stroke="#02070c" stroke-width="25" stroke-linejoin="round" font-size="103" letter-spacing="2">TODAY'S CHAMPION</text>
+    <text x="700" y="184" fill="url(#gold)" stroke="#1c160d" stroke-width="7" stroke-linejoin="round" font-size="103" letter-spacing="2">TODAY'S CHAMPION</text>
+    <text x="700" y="184" fill="none" stroke="#fff0a2" stroke-opacity=".42" stroke-width="1.6" font-size="103" letter-spacing="2">TODAY'S CHAMPION</text>
+  </g>
+  <g filter="url(#glow)">
+    <path d="M415 257h570l42 33-42 33H415l-42-33z" fill="url(#steel)" stroke="#d8b35e" stroke-width="4"/>
+    <path d="M386 290h-86m714 0h86" stroke="#52d9ed" stroke-width="5"/>
+    <path d="M386 302h-60m688 0h60" stroke="#ef4da8" stroke-width="4"/>
+    <text x="700" y="307" text-anchor="middle" font-family="Arial, sans-serif" font-size="39" font-weight="700" letter-spacing="13" fill="#f1d37a">/ REMASTER</text>
+  </g>
+</svg>

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#060a11" />
+  <title>CHAMPIONSHIP RE — CHARACTER ARCHIVE</title>
+  <style>
+    :root { color-scheme: dark; --bg:#060a11; --panel:#0c1421; --line:rgba(173,209,231,.28); --ink:#eff7fb; --muted:#a5b7c5; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; color:var(--ink); background:radial-gradient(circle at 50% -10%,#182b3a 0,transparent 34%),linear-gradient(180deg,#070d16 0,#030509 100%); font-family:Arial,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; }
+    main { width:min(720px,100%); margin:0 auto; padding:calc(22px + env(safe-area-inset-top)) 16px calc(42px + env(safe-area-inset-bottom)); }
+    .back { display:inline-flex; min-height:42px; align-items:center; color:#c9efff; text-decoration:none; font-size:12px; font-weight:700; letter-spacing:1.4px; }
+    .eyebrow { margin:24px 0 8px; color:#70e8f5; font-size:11px; font-weight:700; letter-spacing:2px; }
+    h1 { margin:0; font-size:clamp(27px,8vw,42px); line-height:1; letter-spacing:1.6px; }
+    .lead { margin:18px 0 26px; color:var(--muted); font-size:14px; line-height:1.75; }
+    .rule { margin:0 0 22px; padding:14px; border:1px solid rgba(104,235,231,.32); background:rgba(38,126,135,.10); color:#d3f6f4; font-size:12px; line-height:1.7; }
+    h2 { margin:34px 0 12px; font-size:13px; color:#f3d978; letter-spacing:1.4px; }
+    .card { --accent:#55dffc; position:relative; overflow:hidden; margin:10px 0; padding:18px 16px 17px; border:1px solid var(--line); border-left:3px solid var(--accent); background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 13%,#0a111c) 0,#0b121d 58%); box-shadow:inset 0 1px 0 rgba(255,255,255,.03); }
+    .card::after { content:""; position:absolute; right:-26px; top:-25px; width:105px; height:105px; border:1px solid color-mix(in srgb,var(--accent) 52%,transparent); border-radius:50%; opacity:.28; }
+    .card__details { position:relative; z-index:1; margin-top:15px; border-top:1px solid rgba(180,210,225,.17); }
+    .card__details summary { padding:11px 0 2px; color:var(--accent); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; }
+    .card__details dl { margin:9px 0 1px; }
+    .number { color:var(--accent); font-size:11px; font-weight:700; letter-spacing:2px; }
+    h3 { margin:6px 0 2px; font-size:23px; line-height:1; letter-spacing:1.2px; }
+    .title { margin:0 0 15px; color:var(--accent); font-size:11px; font-weight:700; letter-spacing:1.5px; }
+    dl { display:grid; grid-template-columns:74px 1fr; gap:7px 10px; margin:0; font-size:13px; line-height:1.55; }
+    dt { color:#91a9bb; font-size:11px; font-weight:700; letter-spacing:.7px; }
+    dd { margin:0; color:#e7eef3; }
+    .provisional { margin-top:26px; padding:14px; border:1px solid rgba(240,213,155,.3); background:rgba(114,80,23,.13); color:#e9dcc1; font-size:12px; line-height:1.7; }
+    .workflow { margin:0; padding:0; list-style:none; counter-reset:step; }
+    .workflow li { position:relative; min-height:42px; padding:0 0 17px 42px; color:#c5d2dc; font-size:13px; line-height:1.65; counter-increment:step; }
+    .workflow li::before { content:counter(step,decimal-leading-zero); position:absolute; left:0; top:0; color:#65e3ec; font-size:11px; font-weight:700; letter-spacing:1px; }
+    .workflow li:not(:last-child)::after { content:""; position:absolute; left:12px; top:21px; bottom:0; width:1px; background:rgba(101,227,236,.3); }
+    .editor { margin-top:32px; border:1px solid rgba(102,223,236,.36); background:rgba(5,13,23,.74); }
+    .editor summary { padding:17px 16px; color:#b9f9f2; font-size:13px; font-weight:700; letter-spacing:1.1px; cursor:pointer; }
+    .editor__body { padding:0 14px 16px; }
+    .editor__lead { margin:0 0 14px; color:#91a8b7; font-size:12px; line-height:1.65; }
+    .editor__fighter { margin:10px 0; border:1px solid rgba(175,205,223,.22); border-left:3px solid var(--accent); background:rgba(14,24,37,.78); }
+    .editor__fighter summary { padding:14px 13px; color:#eef7fc; font-size:14px; letter-spacing:1px; }
+    .editor__fields { padding:0 12px 13px; }
+    .editor__field { display:block; margin:10px 0; color:#a5bac9; font-size:11px; font-weight:700; letter-spacing:.7px; }
+    .editor__field textarea { display:block; width:100%; min-height:58px; margin-top:5px; resize:vertical; padding:9px; color:#eaf4f7; background:#07101b; border:1px solid rgba(133,177,201,.55); border-radius:0; font:13px/1.5 Arial,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; }
+    .editor__field textarea:focus { outline:1px solid #69e6ea; border-color:#69e6ea; }
+    .editor__actions { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 2px; }
+    .editor button { min-height:39px; padding:8px 11px; color:#d8fbf8; background:#123032; border:1px solid #6bddd5; border-radius:0; font:700 11px Arial,sans-serif; letter-spacing:.7px; }
+    .editor button + button { color:#b9c9d5; background:#121e2d; border-color:#597488; }
+    .editor__status { min-height:16px; margin:10px 0 0; color:#8ee4bf; font-size:11px; line-height:1.4; }
+    .profile-editor { margin-top:30px; border:1px solid rgba(243,217,120,.44); background:rgba(33,27,12,.42); }
+    .profile-editor summary { padding:17px 16px; color:#ffe99a; font-size:13px; font-weight:700; letter-spacing:1.1px; cursor:pointer; }
+    footer { margin-top:34px; color:#718795; font-size:10px; letter-spacing:.7px; text-align:center; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="./">← BACK TO GATES</a>
+    <p class="eyebrow">CHAMPIONSHIP RE / WORKING BIBLE</p>
+    <h1>CHARACTER ARCHIVE</h1>
+    <p class="lead">肩書き・人物像・色と意匠を携帯で確認するための作業台帳。年齢・出身・細かな経歴は正式設定にしない。</p>
+    <p class="rule">攻撃欄は、現行VFXとデザインから整理した<strong>演出案</strong>。正式な技名や物語設定ではないため、キャラクター設定の確定時に更新する。</p>
+
+    <section aria-label="roster">
+      <article class="card" data-fighter="raven" style="--accent:#55dffc"><div class="number">01</div><h3>RAVEN</h3><p class="title">ZERO BLADE</p><dl><dt>種族</dt><dd data-profile="species">ダークエルフ（身長170cm）</dd><dt>人物像</dt><dd data-profile="persona">常に恨みと怒りを内側に抱えた、暗い表情の森の剣士。</dd><dt>意匠</dt><dd data-profile="motif">灰色の編み込みセミロング、長い耳、獣と植物由来の暗い服、一本の青い刀身、背中の弓矢、腰の毒ポーション。</dd><dt>攻撃案</dt><dd data-profile="attack">青いブレードによる直線的な斬撃光。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="mika" style="--accent:#ff5ca8"><div class="number">02</div><h3>MIKA</h3><p class="title">PINK RIOT</p><dl><dt>種族</dt><dd data-profile="species">サキュバス（身長170cm）</dd><dt>人物像</dt><dd data-profile="persona">いたずらしそうに笑う、可愛らしく挑発的なストリート系の対戦者。</dd><dt>意匠</dt><dd data-profile="motif">ピンク〜白ピンクの長髪ツインテール、小さな角・翼・矢印尻尾、ビスチェ、網タイツ、ローラーシューズ。</dd><dt>攻撃案</dt><dd data-profile="attack">ローラーの加速を起点にした接近蹴り／体当たり。小さな蝙蝠とハートが周囲に散る。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="brick" style="--accent:#ffb14f"><div class="number">03</div><h3>BRICK</h3><p class="title">IRON FIST</p><dl><dt>種族</dt><dd data-profile="species">ドワーフ（身長160cm）</dd><dt>人物像</dt><dd data-profile="persona">ぼさぼさ眉と、髪と同化した長いひげを持つ、ガッハッハと笑うような豪快な中年の丸い重戦士。</dd><dt>意匠</dt><dd data-profile="motif">茶の長髪オールバック、革・毛織物・鎧・鍛冶前掛け、左手の武骨なハンマー、背中の大楯。</dd><dt>攻撃案</dt><dd data-profile="attack">重いハンマーを地面に叩き込む近距離攻撃。火花、地面の飛び散り、金属の圧で見せる。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="noise" style="--accent:#a776ff"><div class="number">04</div><h3>NOISE</h3><p class="title">BEAT BRKR</p><dl><dt>種族</dt><dd data-profile="species">ヴァンパイア（身長160cm）</dd><dt>人物像</dt><dd data-profile="persona">人間に近く中性的。まだ成人しておらず、超音波とビートを併用して戦う。</dd><dt>意匠</dt><dd data-profile="motif">紫ベースに黒メッシュのレイヤーミディアム、金の目と牙、制服風パンク、紫のネクタイとヘッドホン、棘ブーツ。</dd><dt>攻撃案</dt><dd data-profile="attack">ビートを圧縮した超音波の近距離衝撃波。小さな蝙蝠が周囲を飛ぶ。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="kiri" style="--accent:#b1c4f6"><div class="number">05</div><h3>KIRI</h3><p class="title">GHOST SIG</p><dl><dt>種族</dt><dd data-profile="species">ゴースト（身長180cm）</dd><dt>人物像</dt><dd data-profile="persona">白目で色白の、落ち着いた大人っぽい美形ゴースト。</dd><dt>意匠</dt><dd data-profile="motif">薄紫の長髪、ぼろいフード布、首・腕・足の包帯、裸足、黒いデスサイス。</dd><dt>攻撃案</dt><dd data-profile="attack">霧と使い魔をまとった静かな斬撃。デスサイスから黒灰の靄が出る。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="vivi" style="--accent:#f0d59b"><div class="number">06</div><h3>VIVI</h3><p class="title">TWO-FACED</p><dl><dt>種族</dt><dd data-profile="species">天使と悪魔のハーフ</dd><dt>人物像</dt><dd data-profile="persona">見た目にも二面性を持つ中性的な超絶美少年。女性に描かない。</dd><dt>意匠</dt><dd data-profile="motif">左右黒白の長髪、右側の赤黒い巻角、白金の割れた光輪、六枚羽（右側は黒、左側は白）、左右で異なる目、白黒の聖職者礼装。</dd><dt>攻撃案</dt><dd data-profile="attack">右側の悪魔の手を前へ出し、六枚翼を振って白黒の羽を飛ばす。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+      <article class="card" data-fighter="tomega9" style="--accent:#ff534c"><div class="number">07</div><h3>TΩ9</h3><p class="title">DRUNK BEAST</p><dl><dt>種族</dt><dd data-profile="species">狸（信楽焼モチーフ、身長160cm）</dd><dt>人物像</dt><dd data-profile="persona">赤い頬の酔っ払い。リアルすぎない、ぽっちゃりした信楽焼狸のゲームキャラ。</dd><dt>意匠</dt><dd data-profile="motif">笠、赤いちゃんちゃんこ、左手の徳利、右手の通い帳。</dd><dt>攻撃案</dt><dd data-profile="attack">徳利の酒を飲んでから繰り出す酔拳。</dd></dl><details class="card__details"><summary>FULL VISUAL DETAILS</summary><dl data-full-details></dl></details></article>
+    </section>
+
+    <p class="provisional">現在の立ち絵14枚は、構図とゲート内への収まりを確認するための試作。最終デザインの正本ではない。</p>
+    <h2>NEXT PRODUCTION RULES</h2>
+    <ol class="workflow"><li>肩書きは維持し、種族・体格・顔・髪・服・装備・戦い方を具体的に確定する。</li><li>通常待機／選択時の一歩目を、写真風ではないゲーム用コンセプトアートとして作る。</li><li>同一キャラの2枚が、顔・髪・衣装・装備・体格から<strong>85%以上同一人物</strong>と判断できなければ不採用にする。</li><li>立ち絵確定後、そのデザインを正本として戦闘ちびキャラ、待機・攻撃・勝敗、攻撃VFXを一新する。</li></ol>
+
+    <details class="editor profile-editor">
+      <summary>CONFIRMED PROFILE EDIT / TAP TO OPEN</summary>
+      <div class="editor__body">
+        <p class="editor__lead">上のカードに表示する「種族・人物像・意匠・攻撃案」そのものを直接変更する欄。入力すると上のカードへすぐ反映され、この端末に保存される。コピーした内容を送れば、正式台帳にも反映できる。</p>
+        <div id="confirmed-profile-form"></div>
+        <div class="editor__actions"><button type="button" id="copy-confirmed-profiles">COPY CONFIRMED PROFILES</button><button type="button" id="reset-confirmed-profiles">RESET CONFIRMED</button></div>
+        <p class="editor__status" id="confirmed-profile-status"></p>
+      </div>
+    </details>
+
+    <details class="editor">
+      <summary>CHARACTER SETTINGS INPUT / TAP TO OPEN</summary>
+      <div class="editor__body">
+        <p class="editor__lead">各キャラの見た目を直接入力する作業用シート。入力内容はこの端末・ブラウザに自動保存される。全員分をコピーして送れば、台帳の確定設定へ反映できる。</p>
+        <div id="character-settings-form"></div>
+        <div class="editor__actions"><button type="button" id="copy-character-settings">COPY ALL SETTINGS</button><button type="button" id="clear-character-settings">RESET TO DEFAULTS</button></div>
+        <p class="editor__status" id="character-settings-status"></p>
+      </div>
+    </details>
+    <footer>CHAMPIONSHIP RE — CHARACTER ARCHIVE / 2026-08-29</footer>
+  </main>
+  <script>
+    (() => {
+      const storageKey = 'championship-re-character-settings-v1';
+      const fighters = [
+        ['raven', '01 / RAVEN', '#55dffc'], ['mika', '02 / MIKA', '#ff5ca8'], ['brick', '03 / BRICK', '#ffb14f'], ['noise', '04 / NOISE', '#a776ff'], ['kiri', '05 / KIRI', '#b1c4f6'], ['vivi', '06 / VIVI', '#f0d59b'], ['tomega9', '07 / TΩ9', '#ff534c']
+      ];
+      const fields = ['体格・身長差', '顔・種族の見せ方', '髪', '肌・傷・特徴', '服・靴', '装備・常に身につける物', '常時見せる種族要素', '攻撃時だけ出す要素', '色の役割', '絶対NG'];
+      const profileFields = [['species', '種族'], ['persona', '人物像'], ['motif', '意匠'], ['attack', '攻撃案']];
+      const defaults = {
+        'raven:体格・身長差':'細身、身長170cm', 'raven:顔・種族の見せ方':'鋭い眼光。何かを常に恨み憎み、内側に怒りを抱くような暗い表情。', 'raven:髪':'灰色メインの暗いセミロング。森の住人らしい編み込みと草木の装飾。', 'raven:肌・傷・特徴':'暗めの肌色、傷なし。', 'raven:服・靴':'獣や植物から作られた暗い色の森の住人の服。革靴。', 'raven:装備・常に身につける物':'青い刀身のブレード、背中の弓矢、腰の毒ポーション。', 'raven:常時見せる種族要素':'長い耳。', 'raven:攻撃時だけ出す要素':'未確定。', 'raven:色の役割':'暗い青と緑。', 'raven:絶対NG':'明るい表情や笑顔。',
+        'mika:体格・身長差':'細身のボンキュッボン、身長170cm。', 'mika:顔・種族の見せ方':'いたずらしそうな笑顔。サキュバスらしく基本的に色気がある。', 'mika:髪':'長髪ツインテール。前髪は目にかからない長さ。ピンク〜白ピンクのグラデーション。', 'mika:肌・傷・特徴':'色白で露出多め、傷なし。', 'mika:服・靴':'小さな悪魔角、黒赤のビスチェ／コルセット、控えめな翼と矢印尻尾、ガーターベルト付き網タイツ。キュートなサキュバスデザインのローラーシューズ。', 'mika:装備・常に身につける物':'サキュバスデザインのキュートなローラーシューズ。', 'mika:常時見せる種族要素':'悪魔の角と翼、矢印尻尾、黒目の中にピンクのハート。', 'mika:攻撃時だけ出す要素':'小さな蝙蝠やハートが周囲をふわふわしてもよい。', 'mika:色の役割':'ピンク、薄ピンク。', 'mika:絶対NG':'お姉さんにしすぎない。翼と角は控えめな大きさ。ローラーシューズ以外の靴は履かない。',
+        'brick:体格・身長差':'身長150cm、筋肉質な丸い体型。', 'brick:顔・種族の見せ方':'ぼさぼさの眉と長いひげを持つ中年。', 'brick:髪':'長髪オールバックを旋毛あたりでまとめて括る。茶色で、髪とひげが一緒になっている。', 'brick:肌・傷・特徴':'暗めの肌色。右腕と頬に傷。', 'brick:服・靴':'鍛冶・戦士スタイル。厚手の革、毛織物、プレートアーマー。短い袖または革の鍛冶場用前掛け。', 'brick:装備・常に身につける物':'腰の鍛冶ハンマー、背中の丸い大楯、左手の武骨なメインハンマー。', 'brick:常時見せる種族要素':'長い編み込み髪と同化したひげ。', 'brick:攻撃時だけ出す要素':'未確定。', 'brick:色の役割':'オレンジ、茶色。', 'brick:絶対NG':'高身長、細身、幼い、ひげがない、武器や盾がないこと。',
+        'noise:体格・身長差':'身長160cm、細身。', 'noise:顔・種族の見せ方':'ヴァンパイアだが人間に近く、中性的。', 'noise:髪':'レイヤーミディアムアッシュ。紫メインに黒メッシュ。', 'noise:肌・傷・特徴':'白い肌、傷なし。', 'noise:服・靴':'現代風・原宿系ヴァンパイア。黒基調の制服風に紫ネクタイ、ヘッドホンと十字架のパンクロック。トゲのあるブーツ。', 'noise:装備・常に身につける物':'紫のヘッドホン。', 'noise:常時見せる種族要素':'瞳孔の開いた金の目、牙（犬歯・八重歯）。', 'noise:攻撃時だけ出す要素':'小さな蝙蝠が周囲を飛んでもよい。', 'noise:色の役割':'紫。', 'noise:絶対NG':'長身。',
+        'kiri:体格・身長差':'細身、身長180cm。', 'kiri:顔・種族の見せ方':'色白、白目。', 'kiri:髪':'薄紫の長髪。前髪も長めだが、隙間から目はしっかり見える。', 'kiri:肌・傷・特徴':'色白。傷はないが、腕・足・首に包帯。', 'kiri:服・靴':'ぼろいフード付きの布で覆われ、腕・足・首に包帯。裸足。', 'kiri:装備・常に身につける物':'黒のデスサイス。', 'kiri:常時見せる種族要素':'腕・首・足の包帯、フード付きの黒い布、デスサイス。', 'kiri:攻撃時だけ出す要素':'デスサイスから黒とグレーの靄。', 'kiri:色の役割':'薄紫、灰色。', 'kiri:絶対NG':'靴を描かない。フードを脱がない。',
+        'vivi:体格・身長差':'身長165cm、細身。', 'vivi:顔・種族の見せ方':'超絶美少年。右側に赤黒い悪魔の巻角、頭上に白金の割れた光輪。左目は白いまつげ＋金の瞳、右目は黒いまつげ＋赤の瞳。', 'vivi:髪':'左半分が黒、右半分が白のツートン。レイヤーロングアッシュ。', 'vivi:肌・傷・特徴':'基本は色白。首から下の右半身にかけて黒くなる。傷なし。', 'vivi:服・靴':'現代風にアレンジした聖職者の礼装。白を基調に黒でアクセント。黒いブーツ。', 'vivi:装備・常に身につける物':'頭上の割れた光輪。', 'vivi:常時見せる種族要素':'背中の天使の6枚羽（右上2枚だけ黒）。割れた光輪、右側の巻角、左右で異なる目。', 'vivi:攻撃時だけ出す要素':'未確定。', 'vivi:色の役割':'白、黒、金。', 'vivi:絶対NG':'羽の枚数と色指定を間違えない。',
+        'tomega9:体格・身長差':'身長180cm、ぽっちゃり。', 'tomega9:顔・種族の見せ方':'狸。リアルすぎず、信楽焼の狸をモチーフにする。頬を赤く染めた酔っ払い。', 'tomega9:髪':'狸。頭に笠。', 'tomega9:肌・傷・特徴':'傷なし。', 'tomega9:服・靴':'赤いちゃんちゃんこを着た信楽焼狸。', 'tomega9:装備・常に身につける物':'笠、左手に徳利、右手に通い帳。', 'tomega9:常時見せる種族要素':'笠、左手の徳利、右手の通い帳。', 'tomega9:攻撃時だけ出す要素':'徳利で酒を飲み、酔拳を使う。', 'tomega9:色の役割':'赤。', 'tomega9:絶対NG':'リアルすぎる狸。'
+      };
+      Object.assign(defaults, {
+        'brick:攻撃時だけ出す要素':'ハンマーを地面へ叩き込み、火花・地面の飛び散り・金属の圧を出す。',
+        'kiri:攻撃時だけ出す要素':'デスサイスから黒とグレーの靄。霧と使い魔をまとった静かな斬撃。',
+        'vivi:攻撃時だけ出す要素':'右側の悪魔の手を前へ出し、六枚翼を振って白と黒の羽を飛ばす。',
+        'raven:装備・常に身につける物':'一本だけの青い刀身のブレード、背中の弓矢、腰の毒ポーション。腰などに予備の刀は持たない。',
+        'raven:絶対NG':'明るい表情や笑顔。二本目以降の刀・腰の刀・左手に持つ物・キャラへ焼き込んだオーラ。',
+        'brick:体格・身長差':'身長160cm、筋肉質な丸い体型。',
+        'brick:顔・種族の見せ方':'ぼさぼさの眉と長いひげを持つ中年。ガッハッハ気質だが、笑顔ではなく「やろうか」とにやりとする豪快な口元。',
+        'vivi:顔・種族の見せ方':'中性的な超絶美少年。女性に描かない。右側に赤黒い悪魔の巻角、頭上に白金の割れた光輪。左目は白いまつげ＋金の瞳、右目は黒いまつげ＋赤の瞳。',
+        'vivi:常時見せる種族要素':'背中の天使の6枚羽（右側は黒、左側は白）。割れた光輪、右側の巻角、左右で異なる目。',
+        'vivi:絶対NG':'女性に描かない。羽の枚数と左右の色指定を間違えない。',
+        'tomega9:体格・身長差':'身長160cm、ぽっちゃり。'
+      });
+      const form = document.getElementById('character-settings-form');
+      const status = document.getElementById('character-settings-status');
+      const profileForm = document.getElementById('confirmed-profile-form');
+      const profileStatus = document.getElementById('confirmed-profile-status');
+      const profileStorageKey = 'championship-re-confirmed-profiles-v1';
+      const profileDefaults = {};
+      document.querySelectorAll('[data-fighter]').forEach((card) => {
+        const fighter = card.dataset.fighter;
+        card.querySelectorAll('[data-profile]').forEach((field) => { profileDefaults[`${fighter}:${field.dataset.profile}`] = field.textContent; });
+      });
+      const readProfiles = () => { try { return { ...profileDefaults, ...JSON.parse(localStorage.getItem(profileStorageKey) || '{}') }; } catch { return { ...profileDefaults }; } };
+      const applyProfiles = (profiles) => {
+        document.querySelectorAll('[data-fighter]').forEach((card) => {
+          const fighter = card.dataset.fighter;
+          card.querySelectorAll('[data-profile]').forEach((field) => { field.textContent = profiles[`${fighter}:${field.dataset.profile}`] || ''; });
+        });
+      };
+      const saveProfiles = () => {
+        const profiles = {};
+        profileForm.querySelectorAll('textarea').forEach((input) => { profiles[input.dataset.key] = input.value; });
+        localStorage.setItem(profileStorageKey, JSON.stringify(profiles));
+        applyProfiles({ ...profileDefaults, ...profiles });
+        profileStatus.textContent = 'CONFIRMED PROFILE SAVED ON THIS DEVICE';
+      };
+      const renderProfileEditor = () => {
+        const profiles = readProfiles();
+        applyProfiles(profiles);
+        fighters.forEach(([id, label, color]) => {
+          const detail = document.createElement('details');
+          detail.className = 'editor__fighter';
+          detail.style.setProperty('--accent', color);
+          const summary = document.createElement('summary');
+          summary.textContent = label;
+          const fieldBox = document.createElement('div');
+          fieldBox.className = 'editor__fields';
+          profileFields.forEach(([field, captionText]) => {
+            const key = `${id}:${field}`;
+            const caption = document.createElement('label');
+            caption.className = 'editor__field';
+            caption.textContent = captionText;
+            const input = document.createElement('textarea');
+            input.dataset.key = key;
+            input.value = profiles[key] || '';
+            input.addEventListener('input', saveProfiles);
+            caption.appendChild(input);
+            fieldBox.appendChild(caption);
+          });
+          detail.append(summary, fieldBox);
+          profileForm.appendChild(detail);
+        });
+      };
+      const read = () => { try { return { ...defaults, ...JSON.parse(localStorage.getItem(storageKey) || '{}') }; } catch { return { ...defaults }; } };
+      const applyFullDetails = (values) => {
+        document.querySelectorAll('[data-fighter]').forEach((card) => {
+          const fighter = card.dataset.fighter;
+          const detail = card.querySelector('[data-full-details]');
+          detail.replaceChildren();
+          fields.forEach((field) => {
+            const label = document.createElement('dt');
+            label.textContent = field;
+            const value = document.createElement('dd');
+            value.textContent = values[`${fighter}:${field}`] || '未入力';
+            detail.append(label, value);
+          });
+        });
+      };
+      const save = () => {
+        const values = {};
+        form.querySelectorAll('textarea').forEach((input) => { values[input.dataset.key] = input.value; });
+        localStorage.setItem(storageKey, JSON.stringify(values));
+        applyFullDetails({ ...defaults, ...values });
+        status.textContent = 'SAVED ON THIS DEVICE';
+      };
+      const render = () => {
+        const values = read();
+        applyFullDetails(values);
+        fighters.forEach(([id, label, color]) => {
+          const detail = document.createElement('details');
+          detail.className = 'editor__fighter';
+          detail.style.setProperty('--accent', color);
+          const summary = document.createElement('summary');
+          summary.textContent = label;
+          const fieldBox = document.createElement('div');
+          fieldBox.className = 'editor__fields';
+          fields.forEach((field) => {
+            const key = `${id}:${field}`;
+            const caption = document.createElement('label');
+            caption.className = 'editor__field';
+            caption.textContent = field;
+            const input = document.createElement('textarea');
+            input.dataset.key = key;
+            input.value = values[key] || '';
+            input.placeholder = 'ここに入力';
+            input.addEventListener('input', save);
+            caption.appendChild(input);
+            fieldBox.appendChild(caption);
+          });
+          detail.append(summary, fieldBox);
+          form.appendChild(detail);
+        });
+      };
+      document.getElementById('copy-character-settings').addEventListener('click', async () => {
+        const values = read();
+        const text = fighters.map(([id, label]) => `${label}\n${fields.map((field) => `- ${field}: ${values[`${id}:${field}`] || '未入力'}`).join('\n')}`).join('\n\n');
+        try { await navigator.clipboard.writeText(text); status.textContent = 'COPIED — このまま送ってOK'; }
+        catch { status.textContent = 'コピーできなかったため、入力内容はこの端末に保存済み'; }
+      });
+      document.getElementById('clear-character-settings').addEventListener('click', () => {
+        if (!window.confirm('この端末に保存した変更を消し、初期設定へ戻しますか？')) return;
+        localStorage.removeItem(storageKey);
+        form.querySelectorAll('textarea').forEach((input) => { input.value = defaults[input.dataset.key] || ''; });
+        applyFullDetails(read());
+        status.textContent = 'RESET TO DEFAULTS';
+      });
+      document.getElementById('copy-confirmed-profiles').addEventListener('click', async () => {
+        const profiles = readProfiles();
+        const text = fighters.map(([id, label]) => `${label}\n${profileFields.map(([field, caption]) => `- ${caption}: ${profiles[`${id}:${field}`] || '未入力'}`).join('\n')}`).join('\n\n');
+        try { await navigator.clipboard.writeText(text); profileStatus.textContent = 'COPIED — このまま送ってOK'; }
+        catch { profileStatus.textContent = 'コピーできなかったため、入力内容はこの端末に保存済み'; }
+      });
+      document.getElementById('reset-confirmed-profiles').addEventListener('click', () => {
+        if (!window.confirm('確定項目への変更を消し、初期設定へ戻しますか？')) return;
+        localStorage.removeItem(profileStorageKey);
+        const profiles = readProfiles();
+        applyProfiles(profiles);
+        profileForm.querySelectorAll('textarea').forEach((input) => { input.value = profiles[input.dataset.key] || ''; });
+        profileStatus.textContent = 'RESET TO INITIAL CONFIRMED PROFILE';
+      });
+      renderProfileEditor();
+      render();
+    })();
+  </script>
+</body>
+</html>
