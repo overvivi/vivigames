@@ -358,9 +358,9 @@ export class Game extends Scene {
         this.selectionTimer?.destroy();
         this.raven.setVisible(false);
         this.mika.setVisible(false);
-        this.promptText.setVisible(false);
-        this.statusText.setVisible(false);
-        this.scoreText.setVisible(false);
+        if (this.promptText !== undefined) this.promptText.setVisible(false);
+        if (this.statusText !== undefined) this.statusText.setVisible(false);
+        if (this.scoreText !== undefined) this.scoreText.setVisible(false);
         this.hideCountdownChrome();
 
         const layer = this.add.container().setDepth(100);
@@ -425,9 +425,9 @@ export class Game extends Scene {
         // CPU戦素材はタイトルを押してから作る。入口では旧キャラコンテナがまだ無い。
         if (this.raven !== undefined) this.raven.setVisible(false);
         if (this.mika !== undefined) this.mika.setVisible(false);
-        this.promptText.setVisible(false);
-        this.statusText.setVisible(false);
-        this.scoreText.setVisible(false);
+        if (this.promptText !== undefined) this.promptText.setVisible(false);
+        if (this.statusText !== undefined) this.statusText.setVisible(false);
+        if (this.scoreText !== undefined) this.scoreText.setVisible(false);
         const layer = this.add.container().setDepth(110);
         this.titleLayer = layer;
         layer.add(this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'title-orb-seven-fighters').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT));
