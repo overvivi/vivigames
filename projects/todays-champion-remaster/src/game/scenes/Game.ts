@@ -237,6 +237,7 @@ export class Game extends Scene {
     private mindDuelLocked = false;
     private mindDuelLastPlayerMove?: MindDuelMove;
     private mindDuelAttackStart?: { x: number; y: number; at: number };
+    private gameplayAssetsLoaded = false;
 
     constructor() {
         super('Game');
@@ -245,6 +246,14 @@ export class Game extends Scene {
     }
 
     preload() {
+        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
+        this.load.image('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
+        this.load.image('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
+        this.load.image('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
+        this.load.image('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
+    }
+
+    private queueGameplayAssets() {
         this.load.image('stage-mobile', 'assets/stages/neon-crosswalk-mobile-v3.webp');
         this.load.image('select-bg-mobile', 'assets/championship-re/select/select-bg-final-v2.webp');
         this.load.image('summon-stage-preview-bg', 'assets/championship-re/select/summon-stage-preview-bg-v3.webp');
@@ -254,12 +263,7 @@ export class Game extends Scene {
         this.load.image('summon-gate-common', 'assets/championship-re/summon/summon-gate-common-final-v12.webp');
         FIGHTERS.forEach((fighter) => this.load.image(`summon-gate-${fighter.id}`, `assets/championship-re/summon/summon-gate-${fighter.id}-final-v2.webp`));
         FIGHTERS.forEach((fighter) => this.load.image(`summon-character-${fighter.id}`, `assets/championship-re/summon/characters/summon-character-${fighter.id}-v2.webp`));
-        this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v5.webp');
-        this.load.image('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
-        this.load.image('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
-        this.load.image('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
-        this.load.image('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
         this.load.image('battle-arena-background', 'assets/championship-re/battle/battle-arena-background-v1.webp');
@@ -304,9 +308,6 @@ export class Game extends Scene {
         });
         this.motionPreviewEnabled = params.has('motionPreview') || this.debugEnabled;
         void this.motionPreviewEnabled;
-        this.createArena();
-        this.createFighters();
-        this.createHud();
         this.showTitleScreen();
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             this.captureSelectSwipe(pointer);
@@ -433,7 +434,7 @@ export class Game extends Scene {
         const logoScale = Math.min(700 / logo.width, 170 / logo.height);
         logo.setDisplaySize(logo.width * logoScale, logo.height * logoScale);
         layer.add([gameBase, logo]);
-        this.createTitleModeButton(layer, 1210, 'title-cpu-battle', () => this.showFighterSelect());
+        this.createTitleModeButton(layer, 1210, 'title-cpu-battle', () => this.startCpuMode());
         this.createTitleModeButton(layer, 1360, 'title-friend-battle', () => this.showTitleComingSoon('FRIEND BATTLE'));
         this.createTitleModeButton(layer, 1510, 'title-online-battle', () => this.showTitleComingSoon('ONLINE BATTLE'));
     }
@@ -444,6 +445,25 @@ export class Game extends Scene {
         button.on('pointerover', () => this.tweens.add({ targets: button, scale: 1.035, duration: 100, ease: 'Sine.easeOut' }));
         button.on('pointerout', () => this.tweens.add({ targets: button, scale: 1, duration: 100, ease: 'Sine.easeOut' }));
         layer.add(button);
+    }
+
+    private startCpuMode() {
+        if (this.gameplayAssetsLoaded) {
+            this.showFighterSelect();
+            return;
+        }
+        this.state = 'settling';
+        const loading = this.add.text(VIEW_WIDTH / 2, 1070, 'SUMMONING...', { fontFamily: 'Arial, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#fff2bd', stroke: '#070b10', strokeThickness: 7, letterSpacing: 4 }).setOrigin(0.5).setDepth(140);
+        this.load.once('complete', () => {
+            this.gameplayAssetsLoaded = true;
+            loading.destroy();
+            this.createArena();
+            this.createFighters();
+            this.createHud();
+            this.showFighterSelect();
+        });
+        this.queueGameplayAssets();
+        this.load.start();
     }
 
     private showTitleComingSoon(mode: string) {
