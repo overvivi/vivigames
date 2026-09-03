@@ -1819,3 +1819,30 @@ PR: https://github.com/overvivi/vivigames/pull/1
 **ユーザーが挙げた今後の課題**: 難易度調整・見た目の工夫・**操作性の向上**。
 今回マス数を増やしたぶん指の当たる幅が 27→24px に狭まっているので、
 操作性に手を入れる時はここも一緒に見直すこと。
+### 2026-09-03 — Codex（Remaster：高速3択決闘の写真素材、未公開）
+
+- 新ゲーム性は、攻撃／ガード／崩しの先行入力型3択。攻撃同士は相打ち、ガード成功で必殺ゲージ+1、2本で必殺解放、ガード同士・崩されたガードではゲージ増加なしとする
+- 決闘場背景、一体型のHP HUD、ATTACK／GUARD／BREAK、`CHOOSE YOUR MOVE`板、必殺READYリング、上スワイプ軌跡を制作。原画は`references/battle-ui/`、変換済み素材は`battle/`、変換手順は`tools/build-championship-re-battle-ui.mjs`
+- 必殺ゲージは、実alphaを持つ白金の発光クリスタル`battle-ultimate-crystal-master-v1.png`を1個だけ制作。同じ素材をコード側で2つのHUDソケットへ重ね、ゲージ数に応じて表示・脈動させる。後処理による背景抜きは、発光縁を壊すため行わない
+- 静的な枠・ボタン・軌跡は写真素材、HP残量・プレイヤー名・ラウンド数字・ゲージ点灯・`HOLD + SWIPE UP`はコードで描画する。iPhoneのノッチとホームバーの安全域を、背景とHUD配置の両方で確保する
+- 次は素材を接続してCPU戦の画面レイヤー、HP1000、3択判定、必殺ゲージ／長押し上スワイプを実装する。公開はユーザーの明示`push`待ち
+
+### 2026-09-03 — Codex（Remaster：高速3択CPU決闘の初回実装、未公開）
+
+- START DUELから入る先を、無印の反射神経ゲームとは別のCPU戦へ差し替えた。タイトル・7人選択・召喚画面は共通のまま、決闘画面だけを新しいゲーム性へ切り替える。無印側のファイルは変更していない
+- HPは双方1000。ATTACK対BREAKはBREAK側へ120、BREAK対GUARDはGUARD側へ170、ATTACK対ATTACKは双方80。GUARDでATTACKを受けると結晶ゲージ+1、GUARD対GUARDとBREAKに崩されたGUARDは増加なし。結晶2つでULTIMATEが解放され、ATTACKを330ms以上長押しして上へ80px以上スワイプすると300ダメージのガード貫通必殺を出せる
+- CPUは完全固定ではなく、直前にGUARDを選んだ相手へ少しBREAKを出しやすくする軽い読みを持つ。決闘画面は写真素材の背景・HUD・3ボタン・結晶・READYリング／軌跡と、コード側のHP・名前・ラウンド・点灯を組み合わせた
+- `npx tsc --noEmit`、公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。今は未公開で、実機確認・ゲームテンポ調整・ユーザーの明示`push`待ち
+
+### 2026-09-03 — Codex（Remaster：モード選択タイトル用ボタン素材、未公開）
+
+- リマスターの入口を、キャラ選択ではなくモード選択タイトルへ分離する方針を確定。タイトルは「ゲーム置き場へ戻る／ロゴ／7人が中央へ向かう背景／CPU・FRIEND・ONLINE」の順、既存の7ゲートはモード選択後のキャラ選択として再利用する
+- 写真調の`CPU BATTLE`（青）、`FRIEND BATTLE`（ピンク）、`ONLINE BATTLE`（紫）を実alpha PNGとして制作。原画は`source/assets/championship-re/references/title-ui/`、ゲーム用素材は`public/assets/championship-re/title/`。いずれも画像生成の文字を含めた黒鉄・白金ボタンで、通常文字の重ね描きは不要
+- 次はこの3素材と既存7人の立ち絵を新タイトル画面へ接続し、CPUだけを有効化、FRIEND／ONLINEは「準備中」表示にしてから、キャラ選択の10秒カウントダウンを入れる。公開はユーザーの明示`push`待ち
+
+### 2026-09-03 — Codex（Remaster：モード選択タイトルと10秒キャラ選択、未公開）
+
+- 新規タイトル背景`title-orb-seven-fighters-v1.webp`を接続。7人が中央の白金・プリズム光球へ伸ばす専用キービジュアルで、上部20%はタイトルロゴ、下部のホームバー安全域直上はモードボタン3段のために使う
+- CPU／FRIEND／ONLINEの写真調ボタンを同じ`650×124`表示サイズ・同じ縦間隔で配置。CPUはキャラ選択へ進み、FRIEND／ONLINEは現時点では`COMING SOON`表示に留める
+- 既存の7ゲート画面からロゴを外して`SELECT IN 10`を上部へ表示。残り0秒で現在選択中のキャラをロックしてCPU戦へ入る。CTAを押せば待たずに開始できる
+- `tools/build-championship-re-title-ui.mjs`で原画をトリミング／WebP化し、背景の構図は維持、各ボタンの透明余白だけを削る。`npx tsc --noEmit`、公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開

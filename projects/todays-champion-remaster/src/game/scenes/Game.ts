@@ -1,7 +1,8 @@
 import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
-type DuelState = 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result';
+type DuelState = 'title' | 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result' | 'mind-duel';
 type CountdownValue = '3' | '2' | '1' | 'FIGHT';
+type MindDuelMove = 'attack' | 'guard' | 'break' | 'ultimate';
 
 type AttackEffectDefinition = {
     scale: number;
@@ -172,6 +173,9 @@ export class Game extends Scene {
     private npcFighter = FIGHTERS[1];
     private selectTitle?: GameObjects.Text;
     private selectionLayer?: GameObjects.Container;
+    private titleLayer?: GameObjects.Container;
+    private selectionTimerText?: GameObjects.Text;
+    private selectionTimer?: Phaser.Time.TimerEvent;
     private selectionFrames = new Map<string, GameObjects.Image>();
     private selectionCards = new Map<string, GameObjects.Container>();
     private selectionOpeningMasks = new Map<string, GameObjects.Graphics>();
@@ -214,9 +218,30 @@ export class Game extends Scene {
         selected: { ...DEFAULT_GATE_CHARACTER_LAYOUTS[fighter.id].selected }
     }])) as Record<string, Record<GateCharacterState, GateCharacterLayout>>;
     private flash!: GameObjects.Rectangle;
+    private mindDuelLayer?: GameObjects.Container;
+    private mindDuelStatus?: GameObjects.Text;
+    private mindDuelPlayerHpFill?: GameObjects.Rectangle;
+    private mindDuelNpcHpFill?: GameObjects.Rectangle;
+    private mindDuelPlayerHpText?: GameObjects.Text;
+    private mindDuelNpcHpText?: GameObjects.Text;
+    private mindDuelRoundText?: GameObjects.Text;
+    private mindDuelPlayerGems: GameObjects.Image[] = [];
+    private mindDuelNpcGems: GameObjects.Image[] = [];
+    private mindDuelReadyRing?: GameObjects.Image;
+    private mindDuelSwipeTrail?: GameObjects.Image;
+    private mindDuelPlayerHp = 1000;
+    private mindDuelNpcHp = 1000;
+    private mindDuelPlayerGauge = 0;
+    private mindDuelNpcGauge = 0;
+    private mindDuelRound = 1;
+    private mindDuelLocked = false;
+    private mindDuelLastPlayerMove?: MindDuelMove;
+    private mindDuelAttackStart?: { x: number; y: number; at: number };
 
     constructor() {
         super('Game');
+        // 旧ポーズ確認は制作素材の検査導線として残す。通常のSTART DUELでは呼ばない。
+        void this.showMotionPreview;
     }
 
     preload() {
@@ -231,8 +256,21 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter) => this.load.image(`summon-character-${fighter.id}`, `assets/championship-re/summon/characters/summon-character-${fighter.id}-v2.webp`));
         this.load.image('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         this.load.image('championship-re-start-duel', 'assets/championship-re/ui/start-duel-final-v5.webp');
+        this.load.image('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
+        this.load.image('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
+        this.load.image('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
+        this.load.image('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
         this.load.image('championship-re-frame-normal', 'assets/championship-re/frames/championship-re-frame-normal-final-v3.webp');
         this.load.image('championship-re-frame-select', 'assets/championship-re/frames/championship-re-frame-select-final-v3.webp');
+        this.load.image('battle-arena-background', 'assets/championship-re/battle/battle-arena-background-v1.webp');
+        this.load.image('battle-hud-frame', 'assets/championship-re/battle/battle-hud-frame-v1.webp');
+        this.load.image('battle-action-attack', 'assets/championship-re/battle/battle-action-attack-v1.webp');
+        this.load.image('battle-action-guard', 'assets/championship-re/battle/battle-action-guard-v1.webp');
+        this.load.image('battle-action-break', 'assets/championship-re/battle/battle-action-break-v1.webp');
+        this.load.image('battle-ultimate-crystal', 'assets/championship-re/battle/battle-ultimate-crystal-v1.webp');
+        this.load.image('battle-ultimate-ready-ring', 'assets/championship-re/battle/battle-ultimate-ready-ring-v1.webp');
+        this.load.image('battle-ultimate-swipe-trail', 'assets/championship-re/battle/battle-ultimate-swipe-trail-v1.webp');
+        this.load.image('battle-choose-move', 'assets/championship-re/battle/battle-choose-move-v1.webp');
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-art-v1.webp`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
@@ -265,15 +303,19 @@ export class Game extends Scene {
             this.destroySummonStageTuner();
         });
         this.motionPreviewEnabled = params.has('motionPreview') || this.debugEnabled;
+        void this.motionPreviewEnabled;
         this.createArena();
         this.createFighters();
         this.createHud();
-        this.showFighterSelect();
+        this.showTitleScreen();
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             this.captureSelectSwipe(pointer);
             this.handleAction();
         });
-        this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.finishSelectSwipe(pointer));
+        this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            this.finishSelectSwipe(pointer);
+            this.finishMindDuelAttackGesture(pointer);
+        });
         this.input.keyboard?.on('keydown-SPACE', () => this.handleAction());
         this.input.keyboard?.on('keydown-LEFT', () => this.stepSelect(-1));
         this.input.keyboard?.on('keydown-RIGHT', () => this.stepSelect(1));
@@ -308,6 +350,9 @@ export class Game extends Scene {
 
     private showFighterSelect() {
         this.state = 'select';
+        this.titleLayer?.destroy();
+        this.titleLayer = undefined;
+        this.selectionTimer?.destroy();
         this.raven.setVisible(false);
         this.mika.setVisible(false);
         this.promptText.setVisible(false);
@@ -326,22 +371,14 @@ export class Game extends Scene {
         const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 180, VIEW_WIDTH, 360, 0x050a13, 0.24);
         layer.add([selectBackground, shade, upperShade]);
 
-        // タイトル枠は最大安全領域。ロゴ自体は元の比率を守って中央へ収める。
+        // モード選択後はロゴを退け、残り時間を置く。オンラインで選択画面を止め続けられないようにする。
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
         layer.add(this.selectTitle);
 
         if (!this.summonStagePreviewEnabled) {
             const gameBase = this.add.text(this.summonStageLayout.navigation.gameBase.x, this.summonStageLayout.navigation.gameBase.y, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
             gameBase.on('pointerdown', () => { window.location.href = '../..'; });
-            const titleSafeArea = this.summonStageLayout.title;
-            const titleLogo = this.add.image(
-                titleSafeArea.x + titleSafeArea.width / 2,
-                titleSafeArea.y + titleSafeArea.height / 2,
-                'championship-re-title'
-            );
-            const titleScale = Math.min(titleSafeArea.width / titleLogo.width, titleSafeArea.height / titleLogo.height);
-            titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
-            layer.add([gameBase, titleLogo]);
+            layer.add(gameBase);
         }
 
         // 採用構図は「7本のゲートそのものが主役」。別の大型モニターは置かない。
@@ -369,6 +406,7 @@ export class Game extends Scene {
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter, true);
         this.createGateHeaderTuner();
+        this.startSelectionTimer(layer);
 
         // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
         const ctaLayout = this.summonStageLayout.cta;
@@ -377,6 +415,51 @@ export class Game extends Scene {
         startButton.on('pointerover', () => startButton.setAlpha(0.92));
         startButton.on('pointerout', () => startButton.setAlpha(1));
         layer.add(startButton);
+    }
+
+    private showTitleScreen() {
+        this.state = 'title';
+        this.raven.setVisible(false);
+        this.mika.setVisible(false);
+        this.promptText.setVisible(false);
+        this.statusText.setVisible(false);
+        this.scoreText.setVisible(false);
+        const layer = this.add.container().setDepth(110);
+        this.titleLayer = layer;
+        layer.add(this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'title-orb-seven-fighters').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT));
+        const gameBase = this.add.text(60, 124, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
+        gameBase.on('pointerdown', () => { window.location.href = '../..'; });
+        const logo = this.add.image(VIEW_WIDTH / 2, 222, 'championship-re-title');
+        const logoScale = Math.min(700 / logo.width, 170 / logo.height);
+        logo.setDisplaySize(logo.width * logoScale, logo.height * logoScale);
+        layer.add([gameBase, logo]);
+        this.createTitleModeButton(layer, 1210, 'title-cpu-battle', () => this.showFighterSelect());
+        this.createTitleModeButton(layer, 1360, 'title-friend-battle', () => this.showTitleComingSoon('FRIEND BATTLE'));
+        this.createTitleModeButton(layer, 1510, 'title-online-battle', () => this.showTitleComingSoon('ONLINE BATTLE'));
+    }
+
+    private createTitleModeButton(layer: GameObjects.Container, y: number, key: string, action: () => void) {
+        const button = this.add.image(VIEW_WIDTH / 2, y, key).setDisplaySize(650, 124).setInteractive({ useHandCursor: true });
+        button.on('pointerdown', action);
+        button.on('pointerover', () => this.tweens.add({ targets: button, scale: 1.035, duration: 100, ease: 'Sine.easeOut' }));
+        button.on('pointerout', () => this.tweens.add({ targets: button, scale: 1, duration: 100, ease: 'Sine.easeOut' }));
+        layer.add(button);
+    }
+
+    private showTitleComingSoon(mode: string) {
+        const notice = this.add.text(VIEW_WIDTH / 2, 1080, `${mode}\nCOMING SOON`, { fontFamily: 'Arial, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#fff2bd', stroke: '#070b10', strokeThickness: 7, align: 'center', letterSpacing: 3 }).setOrigin(0.5).setDepth(140);
+        this.tweens.add({ targets: notice, alpha: 0, y: 1035, duration: 1100, ease: 'Sine.easeOut', onComplete: () => notice.destroy() });
+    }
+
+    private startSelectionTimer(layer: GameObjects.Container) {
+        let remaining = 10;
+        this.selectionTimerText = this.add.text(VIEW_WIDTH / 2, 160, `SELECT IN ${remaining}`, { fontFamily: 'Arial, sans-serif', fontSize: '26px', fontStyle: 'bold', color: '#fff2bd', stroke: '#070b10', strokeThickness: 6, letterSpacing: 3 }).setOrigin(0.5);
+        layer.add(this.selectionTimerText);
+        this.selectionTimer = this.time.addEvent({ delay: 1000, repeat: 9, callback: () => {
+            remaining -= 1;
+            this.selectionTimerText?.setText(remaining > 0 ? `SELECT IN ${remaining}` : 'LOCKED IN');
+            if (remaining === 0) this.startSelectedDuel();
+        } });
     }
 
     private createSummonStagePreview(layer: GameObjects.Container) {
@@ -635,38 +718,212 @@ export class Game extends Scene {
     private startSelectedDuel() {
         if (this.state !== 'select') return;
         this.playerFighter = this.selectedFighter;
-        this.npcFighter = FIGHTERS.find((fighter) => fighter.id !== this.playerFighter.id && fighter.id === 'mika') ?? FIGHTERS[0];
-        const fighters = [this.playerFighter, this.npcFighter];
-        if (fighters.some((fighter) => this.needsMotionLoad(fighter))) {
-            this.state = 'settling';
-            this.selectTitle?.setText(`PREPARING ${this.playerFighter.name}`);
-            this.loadFighterMotions(fighters, () => this.beginSelectedDuel());
-            return;
-        }
-        this.beginSelectedDuel();
+        const rivals = FIGHTERS.filter((fighter) => fighter.id !== this.playerFighter.id);
+        this.npcFighter = PhaserMath.RND.pick(rivals);
+        this.beginMindDuel();
     }
 
-    private beginSelectedDuel() {
-        this.tweens.killTweensOf(this.raven);
-        this.tweens.killTweensOf(this.mika);
-        this.raven.destroy();
-        this.mika.destroy();
-        this.createFighters();
+    private beginMindDuel() {
+        this.state = 'mind-duel';
         this.selectionLayer?.destroy();
         this.selectionLayer = undefined;
         this.destroyGateHeaderTuner();
-        this.promptText.setVisible(true);
-        this.statusText.setVisible(true);
-        this.raven.setVisible(true);
-        this.mika.setVisible(true);
-        this.resetDuel();
-        if (this.motionPreviewEnabled && this.playerFighter.attackEffect !== undefined) {
-            this.showMotionPreview();
+        this.destroySummonStageTuner();
+        this.raven.setVisible(false);
+        this.mika.setVisible(false);
+        this.promptText.setVisible(false);
+        this.statusText.setVisible(false);
+        this.scoreText.setVisible(false);
+        this.hideCountdownChrome();
+        this.createMindDuelScreen();
+    }
+
+    private createMindDuelScreen() {
+        this.resultLayer?.destroy();
+        this.resultLayer = undefined;
+        this.mindDuelLayer?.destroy();
+        this.mindDuelPlayerHp = 1000;
+        this.mindDuelNpcHp = 1000;
+        this.mindDuelPlayerGauge = 0;
+        this.mindDuelNpcGauge = 0;
+        this.mindDuelRound = 1;
+        this.mindDuelLocked = false;
+        this.mindDuelLastPlayerMove = undefined;
+        this.mindDuelPlayerGems = [];
+        this.mindDuelNpcGems = [];
+
+        const layer = this.add.container().setDepth(120);
+        this.mindDuelLayer = layer;
+        const background = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'battle-arena-background').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
+        layer.add(background);
+
+        // HUDの穴にだけコードのHPを通す。枠そのものを画像に固定して、端末ごとの質感差を避ける。
+        const leftHpBack = this.add.rectangle(228, 224, 282, 26, 0x070b10, 0.94).setOrigin(0.5);
+        const rightHpBack = this.add.rectangle(713, 224, 282, 26, 0x070b10, 0.94).setOrigin(0.5);
+        this.mindDuelPlayerHpFill = this.add.rectangle(88, 224, 282, 18, this.playerFighter.color, 0.94).setOrigin(0, 0.5);
+        this.mindDuelNpcHpFill = this.add.rectangle(854, 224, 282, 18, this.npcFighter.color, 0.94).setOrigin(1, 0.5);
+        const hud = this.add.image(VIEW_WIDTH / 2, 205, 'battle-hud-frame').setDisplaySize(900, 300);
+        const playerName = this.add.text(226, 156, this.playerFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: `#${this.playerFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
+        const npcName = this.add.text(715, 156, `CPU · ${this.npcFighter.name}`, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: `#${this.npcFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 2 }).setOrigin(0.5);
+        this.mindDuelRoundText = this.add.text(VIEW_WIDTH / 2, 202, '01', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5 }).setOrigin(0.5);
+        this.mindDuelPlayerHpText = this.add.text(228, 254, '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
+        this.mindDuelNpcHpText = this.add.text(713, 254, '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
+        layer.add([leftHpBack, rightHpBack, this.mindDuelPlayerHpFill, this.mindDuelNpcHpFill, hud, playerName, npcName, this.mindDuelRoundText, this.mindDuelPlayerHpText, this.mindDuelNpcHpText]);
+
+        this.createMindDuelGems(layer, 160, true);
+        this.createMindDuelGems(layer, 780, false);
+        const playerArt = this.add.image(270, 1190, `summon-character-${this.playerFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760);
+        const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
+        playerArt.setAlpha(0.98);
+        npcArt.setAlpha(0.98);
+        layer.add([playerArt, npcArt]);
+        this.tweens.add({ targets: playerArt, y: 1182, duration: 1250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: npcArt, y: 1182, duration: 1280, delay: 140, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+        const choosePlate = this.add.image(VIEW_WIDTH / 2, 1180, 'battle-choose-move').setDisplaySize(560, 110);
+        this.mindDuelStatus = this.add.text(VIEW_WIDTH / 2, 1191, 'CHOOSE YOUR MOVE', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#fff2bd', stroke: '#080b12', strokeThickness: 5, letterSpacing: 3 }).setOrigin(0.5);
+        layer.add([choosePlate, this.mindDuelStatus]);
+        this.createMindDuelButton(layer, 173, 'battle-action-break', 'break');
+        this.createMindDuelButton(layer, VIEW_WIDTH / 2, 'battle-action-guard', 'guard');
+        const attack = this.createMindDuelButton(layer, 768, 'battle-action-attack', 'attack');
+        this.mindDuelReadyRing = this.add.image(768, 1435, 'battle-ultimate-ready-ring').setDisplaySize(245, 245).setAlpha(0).setVisible(false);
+        this.mindDuelSwipeTrail = this.add.image(768, 1328, 'battle-ultimate-swipe-trail').setDisplaySize(155, 210).setAlpha(0).setVisible(false);
+        this.mindDuelReadyRing.setDepth(2);
+        this.mindDuelSwipeTrail.setDepth(2);
+        layer.add([this.mindDuelReadyRing, this.mindDuelSwipeTrail]);
+        attack.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startMindDuelAttackGesture(pointer));
+        this.updateMindDuelUi();
+    }
+
+    private createMindDuelGems(layer: GameObjects.Container, x: number, playerSide: boolean) {
+        for (let index = 0; index < 2; index++) {
+            const gem = this.add.image(x + index * 46, 285, 'battle-ultimate-crystal').setDisplaySize(38, 52).setAlpha(0.18);
+            layer.add(gem);
+            (playerSide ? this.mindDuelPlayerGems : this.mindDuelNpcGems).push(gem);
+        }
+    }
+
+    private createMindDuelButton(layer: GameObjects.Container, x: number, key: string, move: Exclude<MindDuelMove, 'ultimate'>) {
+        const button = this.add.image(x, 1435, key).setDisplaySize(230, 230).setInteractive({ useHandCursor: true });
+        layer.add(button);
+        if (move !== 'attack') button.on('pointerdown', () => this.chooseMindDuelMove(move));
+        button.on('pointerover', () => !this.mindDuelLocked && this.tweens.add({ targets: button, scale: 1.04, duration: 90, ease: 'Sine.easeOut' }));
+        button.on('pointerout', () => this.tweens.add({ targets: button, scale: 1, duration: 90, ease: 'Sine.easeOut' }));
+        return button;
+    }
+
+    private startMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {
+        if (this.state !== 'mind-duel' || this.mindDuelLocked) return;
+        this.mindDuelAttackStart = { x: pointer.x, y: pointer.y, at: this.time.now };
+    }
+
+    private finishMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {
+        if (this.state !== 'mind-duel' || this.mindDuelAttackStart === undefined || this.mindDuelLocked) return;
+        const start = this.mindDuelAttackStart;
+        this.mindDuelAttackStart = undefined;
+        const heldLongEnough = this.time.now - start.at >= 330;
+        const swipedUp = start.y - pointer.y >= 80 && Math.abs(pointer.x - start.x) < 120;
+        this.chooseMindDuelMove(this.mindDuelPlayerGauge >= 2 && heldLongEnough && swipedUp ? 'ultimate' : 'attack');
+    }
+
+    private chooseMindDuelMove(move: MindDuelMove) {
+        if (this.state !== 'mind-duel' || this.mindDuelLocked || (move === 'ultimate' && this.mindDuelPlayerGauge < 2)) return;
+        this.mindDuelLocked = true;
+        const playerMove = move;
+        const npcMove = this.chooseMindDuelCpuMove();
+        this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ?`);
+        this.time.delayedCall(480, () => this.resolveMindDuelRound(playerMove, npcMove));
+    }
+
+    private chooseMindDuelCpuMove(): MindDuelMove {
+        if (this.mindDuelNpcGauge >= 2 && Math.random() < 0.55) return 'ultimate';
+        // 完全ランダムだと「ガードした次に崩される」読み合いが生まれないため、直前の手だけ軽く参照する。
+        if (this.mindDuelLastPlayerMove === 'guard' && Math.random() < 0.48) return 'break';
+        return PhaserMath.RND.pick(['attack', 'guard', 'break'] as MindDuelMove[]);
+    }
+
+    private resolveMindDuelRound(playerMove: MindDuelMove, npcMove: MindDuelMove) {
+        let playerDamage = 0;
+        let npcDamage = 0;
+        let playerGauge = 0;
+        let npcGauge = 0;
+        if (playerMove === 'ultimate' || npcMove === 'ultimate') {
+            if (playerMove === 'ultimate') npcDamage = 300;
+            if (npcMove === 'ultimate') playerDamage = 300;
+            if (playerMove === 'ultimate') this.mindDuelPlayerGauge = 0;
+            if (npcMove === 'ultimate') this.mindDuelNpcGauge = 0;
+        } else if (playerMove === 'attack' && npcMove === 'attack') {
+            playerDamage = 80;
+            npcDamage = 80;
+        } else if (playerMove === 'attack' && npcMove === 'break') {
+            npcDamage = 120;
+        } else if (playerMove === 'break' && npcMove === 'attack') {
+            playerDamage = 120;
+        } else if (playerMove === 'break' && npcMove === 'guard') {
+            npcDamage = 170;
+        } else if (playerMove === 'guard' && npcMove === 'break') {
+            playerDamage = 170;
+        } else if (playerMove === 'guard' && npcMove === 'attack') {
+            playerGauge = 1;
+        } else if (playerMove === 'attack' && npcMove === 'guard') {
+            npcGauge = 1;
+        }
+        this.mindDuelPlayerHp = Math.max(0, this.mindDuelPlayerHp - playerDamage);
+        this.mindDuelNpcHp = Math.max(0, this.mindDuelNpcHp - npcDamage);
+        this.mindDuelPlayerGauge = Math.min(2, this.mindDuelPlayerGauge + playerGauge);
+        this.mindDuelNpcGauge = Math.min(2, this.mindDuelNpcGauge + npcGauge);
+        this.mindDuelLastPlayerMove = playerMove;
+        this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ${this.moveLabel(npcMove)}`);
+        this.updateMindDuelUi();
+        const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
+        if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
+        this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
+        if (this.mindDuelPlayerHp === 0 || this.mindDuelNpcHp === 0) {
+            this.time.delayedCall(720, () => this.showMindDuelResult());
             return;
         }
-        this.startCountdown();
-        // START DUELを押した同じタップをフライング判定へ流さない。
-        this.lastActionAt = this.time.now;
+        this.mindDuelRound += 1;
+        this.mindDuelRoundText?.setText(String(this.mindDuelRound).padStart(2, '0'));
+        this.time.delayedCall(900, () => {
+            if (this.state !== 'mind-duel') return;
+            this.mindDuelLocked = false;
+            this.mindDuelStatus?.setText('CHOOSE YOUR MOVE');
+        });
+    }
+
+    private updateMindDuelUi() {
+        const playerRatio = this.mindDuelPlayerHp / 1000;
+        const npcRatio = this.mindDuelNpcHp / 1000;
+        this.mindDuelPlayerHpFill?.setDisplaySize(282 * playerRatio, 18);
+        this.mindDuelNpcHpFill?.setDisplaySize(282 * npcRatio, 18);
+        this.mindDuelPlayerHpText?.setText(String(this.mindDuelPlayerHp));
+        this.mindDuelNpcHpText?.setText(String(this.mindDuelNpcHp));
+        this.mindDuelPlayerGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelPlayerGauge ? 1 : 0.18));
+        this.mindDuelNpcGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelNpcGauge ? 1 : 0.18));
+        const ultimateReady = this.mindDuelPlayerGauge >= 2;
+        this.mindDuelReadyRing?.setVisible(ultimateReady).setAlpha(ultimateReady ? 0.92 : 0);
+        this.mindDuelSwipeTrail?.setVisible(ultimateReady).setAlpha(ultimateReady ? 0.8 : 0);
+        if (ultimateReady && this.mindDuelReadyRing !== undefined) {
+            this.tweens.killTweensOf(this.mindDuelReadyRing);
+            this.tweens.add({ targets: this.mindDuelReadyRing, scale: 1.08, alpha: 0.5, duration: 780, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        }
+    }
+
+    private moveLabel(move: MindDuelMove) {
+        return move === 'ultimate' ? 'ULTIMATE' : move.toUpperCase();
+    }
+
+    private showMindDuelResult() {
+        this.state = 'result';
+        const playerWins = this.mindDuelNpcHp === 0;
+        const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x04070c, 0.66);
+        const panel = this.add.rectangle(VIEW_WIDTH / 2, 1190, 690, 220, 0x101925, 0.96).setStrokeStyle(2, playerWins ? 0x65ffe2 : 0xff6d88, 0.9).setInteractive({ useHandCursor: true });
+        const title = this.add.text(VIEW_WIDTH / 2, 1135, playerWins ? `${this.playerFighter.name} WINS` : `${this.npcFighter.name} WINS`, { fontFamily: 'Arial, sans-serif', fontSize: '32px', fontStyle: 'bold', color: playerWins ? '#8dfff0' : '#ff9aae', letterSpacing: 4 }).setOrigin(0.5);
+        const detail = this.add.text(VIEW_WIDTH / 2, 1200, 'TAP TO REMATCH', { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#fff2bd', letterSpacing: 3 }).setOrigin(0.5);
+        const result = this.add.container(0, 0, [shade, panel, title, detail]).setDepth(130);
+        this.resultLayer = result;
+        panel.on('pointerdown', () => this.createMindDuelScreen());
+        this.tweens.add({ targets: result, alpha: { from: 0, to: 1 }, duration: 220, ease: 'Quad.easeOut' });
     }
 
     private motionKey(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
@@ -1953,7 +2210,7 @@ export class Game extends Scene {
     private handleAction() {
         const now = this.time.now;
         // タップとSpaceの重なり、または連打が演出途中の状態を飛び越えないよう短く受け付けを止める。
-        if (now - this.lastActionAt < 160 || this.state === 'settling' || this.state === 'select' || this.state === 'preview') return;
+        if (now - this.lastActionAt < 160 || this.state === 'settling' || this.state === 'select' || this.state === 'preview' || this.state === 'mind-duel') return;
         this.lastActionAt = now;
         if (this.state === 'idle' || this.state === 'result') {
             this.resetDuel();
