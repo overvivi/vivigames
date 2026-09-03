@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/style.css">
     <title>Today's Champion Remaster</title>
+    <style>
+        #boot-overlay { position:fixed; inset:0; display:grid; place-content:center; gap:22px; background:#070b12; color:#fff2bd; font:700 14px Arial,sans-serif; letter-spacing:4px; text-align:center; z-index:10; }
+        #boot-overlay::after { content:''; width:240px; height:4px; background:linear-gradient(90deg,#26384c,#9be8ff,#26384c); animation:rift-loading 1.2s ease-in-out infinite; }
+        @keyframes rift-loading { 50% { opacity:.25; transform:scaleX(.55); } }
+    </style>
 </head>
 
 <body>
     <div id="app">
         <div id="game-container"></div>
     </div>
+    <div id="boot-overlay">SUMMONING RIFT</div>
     <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
