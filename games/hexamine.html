@@ -854,7 +854,7 @@ if(typeof importScripts === 'function'){
     // 生成に失敗する種(青が偏りすぎ等)は隣の種へずらして再挑戦する
     for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
       puzzle = generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio, notation:req.notation, omitBlue:req.omitBlue,
-         silentRatio:req.silentRatio },
+         silentRatio:req.silentRatio, maxDepth:req.maxDepth },
         (done,total)=> postMessage({ type:'progress', done:done, total:total, attempt:attempt }));
     }
     postMessage({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
@@ -956,10 +956,6 @@ if(typeof importScripts === 'function'){
     { name:'MONSTER', cells:271, note:'数秒' }
   ];
 
-  // デイリーは携帯でも無理なく解ける規模にする。速さとミスの少なさを competing させたいので、
-  // 画面を何度も動かす必要がある大きさにはしない。
-  const DAILY_CELLS = 91;
-
   // ---------- 記録(端末保存) ----------
   const REC_KEY = 'hexamineRecords_v1';
   let records = {};
@@ -990,6 +986,55 @@ if(typeof importScripts === 'function'){
     const d = dailyDate();
     return d.getUTCFullYear() + '/' + (d.getUTCMonth()+1) + '/' + d.getUTCDate();
   };
+
+  // ---------- デイリーの曜日割り ----------
+  // 以前は毎日 91マス・穴3個・density 0.44・深さ2 の固定だった。150日ぶんを生成して
+  // 測ったところ難易度は横ばいで、日が経つほど易しくなってはいなかった。
+  // 起きていたのは「毎日ほぼ同じ形・同じ手筋」で、慣れると単調に感じることだった。
+  //
+  // そこで3つの軸を分けて振る。実測でこの3つはきれいに役割が分かれている。
+  //   maxDepth … 解き方。1=ヒント単独だけで解ける / 2=2ヒントの突き合わせが要る
+  //               (ソルバーは深さ2までしか実装していないので、この2値しかない)
+  //   density  … 重さ。低いほど初期表示が減り手数が増える
+  //   cells/holes … 見た目。難易度にはほぼ効かないが、印象は大きく変わる
+  //
+  // 月だけを軽い日にして、週末へ向けて重くする。平均手数は据え置き(約83→88)のまま、
+  // 日ごとの差だけを広げてある(手数のばらつきが約2倍)。
+  //
+  // マス数を増やすと1マスが小さくなる(盤面は画面へ自動フィットする)。390x844で測ると
+  // 91マスで約15.7px、95マス以上はどれも約14.0pxで頭打ちになる。増やす以上は代償が
+  // 同じなので、土曜だけ大きく取っている。指の当たる幅は27px→24px相当。
+  // これ以上は増やさないこと。デイリーは画面を動かさずに解ける規模に留める。
+  const DAILY_PLAN = [
+    { key:'sun', label:'日',   cells: 97, holes: 8,  density:0.42, maxDepth:2, weight:'重め' },
+    { key:'mon', label:'月',   cells: 81, holes: 3,  density:0.48, maxDepth:1, weight:'軽め' },
+    { key:'tue', label:'火',   cells: 91, holes: 6,  density:0.46, maxDepth:2, weight:'ふつう' },
+    { key:'wed', label:'水',   cells: 91, holes: 3,  density:0.44, maxDepth:2, weight:'ふつう' },
+    { key:'thu', label:'木',   cells: 97, holes:10,  density:0.42, maxDepth:2, weight:'重め' },
+    { key:'fri', label:'金',   cells:103, holes: 5,  density:0.40, maxDepth:2, weight:'重め' },
+    { key:'sat', label:'土',   cells:113, holes:13,  density:0.37, maxDepth:2, weight:'山場' }
+  ];
+
+  // 同じ曜日でも毎週まったく同じ規模にならないよう、種から小さな揺らぎを足す。
+  // 種だけで決まるので、全員が同じ盤面になるという前提は変わらない。
+  const dailyJitter = (seed, salt, n)=>{
+    let a = (seed ^ (salt * 0x9E3779B9)) >>> 0;
+    a = Math.imul(a ^ (a >>> 15), 1 | a);
+    a = (a + Math.imul(a ^ (a >>> 7), 61 | a)) ^ a;
+    return ((a ^ (a >>> 14)) >>> 0) % n;
+  };
+
+  // その日の設定。seed を渡せば任意の日を再現できる(テスト用)
+  function dailyPlanFor(seed, dow){
+    const base = DAILY_PLAN[dow];
+    return {
+      cells: base.cells + dailyJitter(seed, 1, 13) - 6,          // ±6マス
+      holes: Math.max(1, base.holes + dailyJitter(seed, 2, 5) - 2), // ±2個
+      density: base.density, maxDepth: base.maxDepth,
+      label: base.label, weight: base.weight
+    };
+  }
+  const dailyPlan = ()=> dailyPlanFor(dailySeed(), dailyDate().getUTCDay());
 
   const UNKNOWN = 0, BLUE = 1, BLACK = 2;
   const LONG_MS = 340; // 長押しで空孔。実機で詰める値
@@ -1069,7 +1114,7 @@ if(typeof importScripts === 'function'){
       const board = api.makeBoard(req.shape);
       let puzzle = null, seed = req.seed;
       for(let attempt=0; attempt<40 && !puzzle; attempt++, seed++){
-        puzzle = api.generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio, notation:req.notation, omitBlue:req.omitBlue, silentRatio:req.silentRatio });
+        puzzle = api.generate(board, { seed:seed, density:req.density, keepRatio:req.keepRatio, notation:req.notation, omitBlue:req.omitBlue, silentRatio:req.silentRatio, maxDepth:req.maxDepth });
       }
       onDone({ type:'done', puzzle:puzzle, seed:seed, shape:req.shape });
     }, 60);
@@ -1089,10 +1134,13 @@ if(typeof importScripts === 'function'){
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  function organicShape(seed, cells){
+  // holeCount を渡すと穴の数を指定できる。省略時はマス数から決める(従来どおり)。
+  // 91マスだと Math.round(91/30) が必ず 3 になり、毎日まったく同じ穴の数になっていた。
+  // デイリーは曜日ごとに変えて、盤面の見た目に差を出す。
+  function organicShape(seed, cells, holeCount){
     const r = shapeRnd(seed);
     const key = c => c[0] + ',' + c[1];
-    const holes = Math.max(1, Math.round(cells / 30));
+    const holes = Math.max(1, holeCount === undefined ? Math.round(cells / 30) : holeCount);
     const grow = cells + holes;
     // 既に接している数が多いマスを優先して伸ばす。細長い形にならず輪郭が丸くなる。
     // wobble は「隣接数より乱数を優先する度合い」。大きいほど輪郭が暴れる。
@@ -2113,15 +2161,22 @@ if(typeof importScripts === 'function'){
   }
   function refreshDailyLabel(){
     const d = loadDailyRun();
+    // 曜日で重さが変わるので、それを出しておく。出さないと「今日は簡単だった」が
+    // ただの運に見えてしまい、曜日ごとの手応えが伝わらない。
+    const plan = dailyPlan();
     $('dailyLabel').textContent = d.submitted
       ? '今日は記録済み。順位は結果画面で見られます'
       : (d.startedAt ? '挑戦中。抜けても時間とミスは引き継ぎます'
-                     : '今日の分子。全員が同じ盤面／記録は1回だけ');
+                     : plan.label + '曜｜' + plan.weight + '　全員が同じ盤面／記録は1回だけ');
   }
-  $('dailyBtn').addEventListener('click', ()=> startMode({
-    type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(), onStart:()=>{ dailyRun = loadDailyRun(); },
-    shape:organicShape(dailySeed(), DAILY_CELLS), keepRatio:0, density:0.44
-  }));
+  $('dailyBtn').addEventListener('click', ()=>{
+    const plan = dailyPlan();
+    startMode({
+      type:'daily', id:'daily-'+dailySeed(), seed:dailySeed(), onStart:()=>{ dailyRun = loadDailyRun(); },
+      shape:organicShape(dailySeed(), plan.cells, plan.holes), keepRatio:0,
+      density:plan.density, maxDepth:plan.maxDepth
+    });
+  });
 
   // ---------- 生成 ----------
   function newPuzzle(){
@@ -2176,7 +2231,8 @@ if(typeof importScripts === 'function'){
     };
 
     const req = { shape:shape, seed:seed, density:current.density, keepRatio:current.keepRatio,
-                  notation:current.notation, omitBlue:current.omitBlue, silentRatio:current.silentRatio };
+                  notation:current.notation, omitBlue:current.omitBlue, silentRatio:current.silentRatio,
+                  maxDepth:current.maxDepth };
     if(w){ w.onmessage = e => handle(e.data); w.postMessage(req); }
     else  { generateLocally(req, handle); }
   }
