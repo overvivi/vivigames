@@ -1014,7 +1014,7 @@ export class Game extends Scene {
     }
 
     private hasMindDuelCharacter(fighter: FighterDefinition) {
-        return fighter.id === 'raven' || fighter.id === 'mika';
+        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick';
     }
 
     private mindDuelCharacterKey(fighter: FighterDefinition, pose: BattleCharacterPose) {
@@ -1027,9 +1027,17 @@ export class Game extends Scene {
     }
 
     private mindDuelUltimateEffectKey(fighter: FighterDefinition) {
-        return fighter.id === 'raven'
-            ? 'battle-effect-raven-ultimate-arrow-rain'
-            : 'battle-effect-mika-ultimate-shockwave';
+        if (fighter.id === 'raven') return 'battle-effect-raven-ultimate-arrow-rain';
+        if (fighter.id === 'mika') return 'battle-effect-mika-ultimate-shockwave';
+        if (fighter.id === 'brick') return 'battle-effect-brick-ultimate-ground-slam';
+        return undefined;
+    }
+
+    private mindDuelUltimateEffectPath(fighter: FighterDefinition) {
+        if (fighter.id === 'raven') return 'assets/championship-re/battle/effects/raven-ultimate-arrow-rain-v1.webp';
+        if (fighter.id === 'mika') return 'assets/championship-re/battle/effects/mika-ultimate-shockwave-v2.webp';
+        if (fighter.id === 'brick') return 'assets/championship-re/battle/effects/brick-ultimate-ground-slam-v1.webp';
+        return undefined;
     }
 
     private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
@@ -1041,7 +1049,10 @@ export class Game extends Scene {
                 if (!this.textures.exists(key)) toLoad.push({ key, path: `assets/championship-re/battle/characters/${fighter.id}-battle-${pose}-v1.webp` });
             });
             const effectKey = this.mindDuelUltimateEffectKey(fighter);
-            if (!this.textures.exists(effectKey)) toLoad.push({ key: effectKey, path: `assets/championship-re/battle/effects/${fighter.id}-ultimate-${fighter.id === 'raven' ? 'arrow-rain-v1' : 'shockwave-v2'}.webp` });
+            const effectPath = this.mindDuelUltimateEffectPath(fighter);
+            if (effectKey !== undefined && effectPath !== undefined && !this.textures.exists(effectKey)) {
+                toLoad.push({ key: effectKey, path: effectPath });
+            }
         });
         if (!toLoad.length) {
             onComplete();
@@ -1054,11 +1065,17 @@ export class Game extends Scene {
 
     private playMindDuelUltimateEffect(fighter: FighterDefinition) {
         const key = this.mindDuelUltimateEffectKey(fighter);
-        if (!this.textures.exists(key) || this.mindDuelLayer === undefined) return;
+        if (key === undefined || !this.textures.exists(key) || this.mindDuelLayer === undefined) return;
         // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
         // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
         const enemySide = fighter.id === this.npcFighter.id;
-        const effect = this.add.image(VIEW_WIDTH / 2, 940, key).setOrigin(0.5).setDisplaySize(1000, 1500).setFlipX(enemySide).setBlendMode('ADD').setAlpha(0);
+        const brickGroundSlam = fighter.id === 'brick';
+        const effect = this.add.image(VIEW_WIDTH / 2, brickGroundSlam ? 1010 : 940, key)
+            .setOrigin(0.5)
+            .setDisplaySize(brickGroundSlam ? 1440 : 1000, brickGroundSlam ? 960 : 1500)
+            .setFlipX(enemySide)
+            .setBlendMode('ADD')
+            .setAlpha(0);
         // キャラの上に出しつつ、HUDと操作ボタンの下へ置く。黒背景を加算合成するので、
         // 発光の縁をalpha抜きした時に起きるガビつきを避けられる。
         this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
