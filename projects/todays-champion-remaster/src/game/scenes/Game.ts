@@ -887,21 +887,21 @@ export class Game extends Scene {
         let playerGauge = 0;
         let npcGauge = 0;
         if (playerMove === 'ultimate' || npcMove === 'ultimate') {
-            if (playerMove === 'ultimate') npcDamage = 300;
-            if (npcMove === 'ultimate') playerDamage = 300;
+            if (playerMove === 'ultimate') npcDamage = 380;
+            if (npcMove === 'ultimate') playerDamage = 380;
             if (playerMove === 'ultimate') this.mindDuelPlayerGauge = 0;
             if (npcMove === 'ultimate') this.mindDuelNpcGauge = 0;
         } else if (playerMove === 'attack' && npcMove === 'attack') {
-            playerDamage = 80;
-            npcDamage = 80;
+            playerDamage = 110;
+            npcDamage = 110;
         } else if (playerMove === 'attack' && npcMove === 'break') {
-            npcDamage = 120;
+            npcDamage = 160;
         } else if (playerMove === 'break' && npcMove === 'attack') {
-            playerDamage = 120;
+            playerDamage = 160;
         } else if (playerMove === 'break' && npcMove === 'guard') {
-            npcDamage = 170;
+            npcDamage = 220;
         } else if (playerMove === 'guard' && npcMove === 'break') {
-            playerDamage = 170;
+            playerDamage = 220;
         } else if (playerMove === 'guard' && npcMove === 'attack') {
             playerGauge = 1;
         } else if (playerMove === 'attack' && npcMove === 'guard') {

@@ -1855,6 +1855,11 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、`tools/build-championship-re-battle-ui.mjs`、結晶原画／変換済み素材、公開バンドル
 - 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
 
+### 2026-09-04 — Codex（Remaster：決闘テンポ短縮、未公開）
+
+- HP1000は維持しつつ、決着までが長い実機感触を短縮。ATTACK同士`80→110`、ATTACK対BREAK`120→160`、BREAK対GUARD`170→220`、必殺`300→380`へ引き上げ、4〜6回程度の読み合いで決まりやすくした
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。ユーザー明示pushにより公開予定
+
 ### 2026-09-04 — Codex（Remaster：CPU戦の選択確定フロー、未公開）
 
 - CPU戦のキャラ選択は、ゲートを押した時点で10秒タイマーが動き続ける誤った導線だった。タイマーと自動開始を完全に削除し、キャラ選択後に`START DUEL`を押した時だけ決闘開始へ統一した
