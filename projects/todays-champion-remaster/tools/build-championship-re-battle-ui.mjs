@@ -15,6 +15,7 @@ const assets = [
     { id: 'action-guard', trim: true },
     { id: 'action-break', trim: true },
     { id: 'ultimate-crystal', trim: true },
+    { id: 'ultimate-socket-crystal', trim: true },
     { id: 'ultimate-ready-ring', trim: true },
     { id: 'ultimate-swipe-trail', trim: true },
     { id: 'choose-move', trim: true }

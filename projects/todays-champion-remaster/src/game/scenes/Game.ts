@@ -274,6 +274,7 @@ export class Game extends Scene {
         this.load.image('battle-action-guard', 'assets/championship-re/battle/battle-action-guard-v1.webp');
         this.load.image('battle-action-break', 'assets/championship-re/battle/battle-action-break-v1.webp');
         this.load.image('battle-ultimate-crystal', 'assets/championship-re/battle/battle-ultimate-crystal-v1.webp');
+        this.load.image('battle-ultimate-socket-crystal', 'assets/championship-re/battle/battle-ultimate-socket-crystal-v1.webp');
         this.load.image('battle-ultimate-ready-ring', 'assets/championship-re/battle/battle-ultimate-ready-ring-v1.webp');
         this.load.image('battle-ultimate-swipe-trail', 'assets/championship-re/battle/battle-ultimate-swipe-trail-v1.webp');
         this.load.image('battle-choose-move', 'assets/championship-re/battle/battle-choose-move-v1.webp');
@@ -445,9 +446,14 @@ export class Game extends Scene {
 
     private createTitleModeButton(layer: GameObjects.Container, y: number, key: string, action: () => void) {
         const button = this.add.image(VIEW_WIDTH / 2, y, key).setDisplaySize(650, 124).setInteractive({ useHandCursor: true });
-        button.on('pointerdown', action);
-        button.on('pointerover', () => this.tweens.add({ targets: button, scale: 1.035, duration: 100, ease: 'Sine.easeOut' }));
-        button.on('pointerout', () => this.tweens.add({ targets: button, scale: 1, duration: 100, ease: 'Sine.easeOut' }));
+        // 表示サイズを指定した画像にscaleを直接掛けると、原寸基準へ跳ね上がる。
+        // ボタンの写真素材はサイズを固定し、押下時だけ明度を落として反応を返す。
+        button.on('pointerdown', () => {
+            button.setAlpha(0.84);
+            action();
+        });
+        button.on('pointerup', () => button.setAlpha(1));
+        button.on('pointerout', () => button.setAlpha(1));
         layer.add(button);
     }
 
@@ -826,7 +832,11 @@ export class Game extends Scene {
 
     private createMindDuelGems(layer: GameObjects.Container, positions: [number, number], playerSide: boolean) {
         positions.forEach((x) => {
-            const gem = this.add.image(x, 269, 'battle-ultimate-crystal').setDisplaySize(34, 46).setAlpha(0.18);
+            // HUD原画の丸ソケット中心へ合わせる。生成素材の縁ノイズも円形マスクで確実に遮断する。
+            const gem = this.add.image(x, 263, 'battle-ultimate-socket-crystal').setDisplaySize(38, 38).setAlpha(0.16);
+            const circleMask = this.make.graphics({ x: 0, y: 0 });
+            circleMask.fillStyle(0xffffff, 1).fillCircle(x, 263, 19);
+            gem.setMask(circleMask.createGeometryMask());
             layer.add(gem);
             (playerSide ? this.mindDuelPlayerGems : this.mindDuelNpcGems).push(gem);
         });
@@ -836,8 +846,10 @@ export class Game extends Scene {
         const button = this.add.image(x, 1435, key).setDisplaySize(230, 230).setInteractive({ useHandCursor: true });
         layer.add(button);
         if (move !== 'attack') button.on('pointerdown', () => this.chooseMindDuelMove(move));
-        button.on('pointerover', () => !this.mindDuelLocked && this.tweens.add({ targets: button, scale: 1.04, duration: 90, ease: 'Sine.easeOut' }));
-        button.on('pointerout', () => this.tweens.add({ targets: button, scale: 1, duration: 90, ease: 'Sine.easeOut' }));
+        // setDisplaySize後にscaleを1へ戻すと、縮めた見た目ではなく原寸へ戻ってしまう。
+        button.on('pointerdown', () => !this.mindDuelLocked && button.setAlpha(0.84));
+        button.on('pointerup', () => button.setAlpha(1));
+        button.on('pointerout', () => button.setAlpha(1));
         return button;
     }
 

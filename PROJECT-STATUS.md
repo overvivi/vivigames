@@ -1846,3 +1846,11 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - CPU／FRIEND／ONLINEの写真調ボタンを同じ`650×124`表示サイズ・同じ縦間隔で配置。CPUはキャラ選択へ進み、FRIEND／ONLINEは現時点では`COMING SOON`表示に留める
 - 既存の7ゲート画面からロゴを外して`SELECT IN 10`を上部へ表示。残り0秒で現在選択中のキャラをロックしてCPU戦へ入る。CTAを押せば待たずに開始できる
 - `tools/build-championship-re-title-ui.mjs`で原画をトリミング／WebP化し、背景の構図は維持、各ボタンの透明余白だけを削る。`npx tsc --noEmit`、公開用ビルド、ルート`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開
+
+### 2026-09-04 — Codex（Remaster：決闘HUD結晶ソケット・ボタン拡大修正、未公開）
+
+- 必殺ゲージを汎用の縦長結晶から、既存HUDの丸ソケット専用に作り直した。原画は`source/assets/championship-re/references/battle-ui/battle-ultimate-socket-crystal-master-v1.png`、ゲーム用は`battle-ultimate-socket-crystal-v1.webp`。既存の黒鉄ソケット枠を生かすため、素材は円形の結晶面だけにし、コード側でも同じ円径のGeometryMaskを掛けて外周のはみ出しを完全に防いでいる
+- HUD原画上のソケット中心へ再配置（左右ともY=263、左X=196/237、右X=703/748）。結晶サイズは38px正方で、表示上は円形マスク内だけが見える
+- 写真素材を`setDisplaySize`した後で`scale: 1`へ戻していたため、PCホバー時に原寸へ跳ね上がる不具合があった。タイトルの3モードボタンと決闘3択ボタンから拡大Tweenを削除し、押下時だけアルファを落とす一定サイズの反応に統一した
+- 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、`tools/build-championship-re-battle-ui.mjs`、結晶原画／変換済み素材、公開バンドル
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
