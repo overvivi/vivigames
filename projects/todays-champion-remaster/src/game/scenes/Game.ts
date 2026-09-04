@@ -179,8 +179,6 @@ export class Game extends Scene {
     private selectTitle?: GameObjects.Text;
     private selectionLayer?: GameObjects.Container;
     private titleLayer?: GameObjects.Container;
-    private selectionTimerText?: GameObjects.Text;
-    private selectionTimer?: Phaser.Time.TimerEvent;
     private selectionFrames = new Map<string, GameObjects.Image>();
     private selectionCards = new Map<string, GameObjects.Container>();
     private selectionOpeningMasks = new Map<string, GameObjects.Graphics>();
@@ -361,7 +359,6 @@ export class Game extends Scene {
         this.state = 'select';
         this.titleLayer?.destroy();
         this.titleLayer = undefined;
-        this.selectionTimer?.destroy();
         this.raven.setVisible(false);
         this.mika.setVisible(false);
         if (this.promptText !== undefined) this.promptText.setVisible(false);
@@ -380,7 +377,7 @@ export class Game extends Scene {
         const upperShade = this.add.rectangle(VIEW_WIDTH / 2, 180, VIEW_WIDTH, 360, 0x050a13, 0.24);
         layer.add([selectBackground, shade, upperShade]);
 
-        // モード選択後はロゴを退け、残り時間を置く。オンラインで選択画面を止め続けられないようにする。
+        // キャラを確定するまでは開始しない。CPU戦はプレイヤーがSTART DUELを押すまで待つ。
         this.selectTitle = this.add.text(VIEW_WIDTH / 2, 330, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f5d45e', letterSpacing: 4 }).setOrigin(0.5).setVisible(false);
         layer.add(this.selectTitle);
 
@@ -409,15 +406,12 @@ export class Game extends Scene {
             // 既存の細いゲートは出さず、ここでは「何をどこへ置くか」だけを確認する。
             this.createSummonStagePreview(layer);
             if (this.debugEnabled) this.createSummonStageTuner();
-            if (!this.debugEnabled) this.startSelectionTimer(layer);
             return;
         }
 
         FIGHTERS.forEach((fighter, index) => this.createSelectionCard(fighter, index));
         this.selectFighter(this.selectedFighter, true);
         this.createGateHeaderTuner();
-        this.startSelectionTimer(layer);
-
         // CTAは床の反射だけが残る下部デッドゾーンより上へ、透過素材として置く。
         const ctaLayout = this.summonStageLayout.cta;
         const startButton = this.add.image(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'championship-re-start-duel').setDisplaySize(ctaLayout.width, ctaLayout.height).setInteractive({ useHandCursor: true });
@@ -490,17 +484,6 @@ export class Game extends Scene {
         this.tweens.add({ targets: notice, alpha: 0, y: 1035, duration: 1100, ease: 'Sine.easeOut', onComplete: () => notice.destroy() });
     }
 
-    private startSelectionTimer(layer: GameObjects.Container) {
-        let remaining = 10;
-        this.selectionTimerText = this.add.text(VIEW_WIDTH / 2, 160, `SELECT IN ${remaining}`, { fontFamily: 'Arial, sans-serif', fontSize: '26px', fontStyle: 'bold', color: '#fff2bd', stroke: '#070b10', strokeThickness: 6, letterSpacing: 3 }).setOrigin(0.5);
-        layer.add(this.selectionTimerText);
-        this.selectionTimer = this.time.addEvent({ delay: 1000, repeat: 9, callback: () => {
-            remaining -= 1;
-            this.selectionTimerText?.setText(remaining > 0 ? `SELECT IN ${remaining}` : 'LOCKED IN');
-            if (remaining === 0) this.startSelectedDuel();
-        } });
-    }
-
     private createSummonStagePreview(layer: GameObjects.Container) {
         // Container.destroyだけでは親レイヤーに残った子が古い座標で見える場合がある。
         // 調整前のタイトル・案内・測定枠を必ず消してから、現在値だけを描き直す。
@@ -515,16 +498,11 @@ export class Game extends Scene {
             const text = this.add.text(box.x + 10, box.y + 10, label, { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f4fbff', letterSpacing: 1.2 });
             annotations.add([rect, text]);
         };
-        // 位置調整対象は測定枠だけでなく実素材も同じ再描画コンテナへ入れる。
-        // 以前は外側layerへ一度だけ描いたため、数値だけ変わって見た目が動かなかった。
-        const titleLogo = this.add.image(layout.title.x + layout.title.width / 2, layout.title.y + layout.title.height / 2, 'championship-re-title');
-        const titleScale = Math.min(layout.title.width / titleLogo.width, layout.title.height / titleLogo.height);
-        titleLogo.setDisplaySize(titleLogo.width * titleScale, titleLogo.height * titleScale);
         const tapHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.tap.x, layout.selectionHint.tap.y, 'TAP A GATE   |', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.tap.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         const swipeHint = this.add.text(VIEW_WIDTH / 2 + layout.selectionHint.swipe.x, layout.selectionHint.swipe.y, 'SWIPE TO SELECT', { fontFamily: 'Arial, sans-serif', fontSize: `${layout.selectionHint.swipe.size}px`, fontStyle: 'bold', color: '#d9e6ef', letterSpacing: 3 }).setOrigin(0.5);
         const gameBase = this.add.text(layout.navigation.gameBase.x, layout.navigation.gameBase.y, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
         gameBase.on('pointerdown', () => { window.location.href = '../..'; });
-        guide.add([titleLogo, tapHint, swipeHint, gameBase]);
+        guide.add([tapHint, swipeHint, gameBase]);
         const mini = layout.miniGate;
         const miniHeader = layout.miniGateHeader;
         addBox(layout.title, 0xf2cf70, 0.08, `TITLE  ${layout.title.width} × ${layout.title.height}`);
@@ -765,6 +743,7 @@ export class Game extends Scene {
 
     private beginMindDuel() {
         this.state = 'mind-duel';
+        this.selectTitle = undefined;
         this.selectionLayer?.destroy();
         this.selectionLayer = undefined;
         this.destroyGateHeaderTuner();
@@ -811,12 +790,14 @@ export class Game extends Scene {
         const playerName = this.add.text(mindDuelHudX(476), mindDuelHudY(124), this.playerFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: `#${this.playerFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
         const npcName = this.add.text(mindDuelHudX(1695), mindDuelHudY(124), `CPU · ${this.npcFighter.name}`, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: `#${this.npcFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 2 }).setOrigin(0.5);
         this.mindDuelRoundText = this.add.text(mindDuelHudX(1086), mindDuelHudY(267), '01', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5 }).setOrigin(0.5);
-        this.mindDuelPlayerHpText = this.add.text(mindDuelHudX(476), mindDuelHudY(416), '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
-        this.mindDuelNpcHpText = this.add.text(mindDuelHudX(1695), mindDuelHudY(416), '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
+        // 数字をソケットへ重ねると結晶ゲージの意味が弱くなるため、HPはバーの残量だけで見せる。
+        this.mindDuelPlayerHpText = this.add.text(0, 0, '').setVisible(false);
+        this.mindDuelNpcHpText = this.add.text(0, 0, '').setVisible(false);
         layer.add([leftHpBack, rightHpBack, this.mindDuelPlayerHpFill, this.mindDuelNpcHpFill, hud, playerName, npcName, this.mindDuelRoundText, this.mindDuelPlayerHpText, this.mindDuelNpcHpText]);
 
-        this.createMindDuelGems(layer, [457, 548], true);
-        this.createMindDuelGems(layer, [1624, 1716], false);
+        // 透過領域を原画ピクセルで実測した丸ソケットの中心。目測値を使うと左右で数十pxずれる。
+        this.createMindDuelGems(layer, [473, 589], true);
+        this.createMindDuelGems(layer, [1581, 1696], false);
         const playerArt = this.add.image(270, 1190, `summon-character-${this.playerFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760);
         const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
         playerArt.setAlpha(0.98);
@@ -842,13 +823,10 @@ export class Game extends Scene {
 
     private createMindDuelGems(layer: GameObjects.Container, positions: [number, number], playerSide: boolean) {
         positions.forEach((sourceX) => {
-            // HUD原画の丸ソケット中心へ合わせる。生成素材の縁ノイズも円形マスクで確実に遮断する。
+            // HUD原画の丸ソケット中心へ合わせる。素材自体が円形alphaなので、WebGL非対応のGeometryMaskは使わない。
             const x = mindDuelHudX(sourceX);
             const y = mindDuelHudY(416);
             const gem = this.add.image(x, y, 'battle-ultimate-socket-crystal').setDisplaySize(38, 38).setAlpha(0.16);
-            const circleMask = this.make.graphics({ x: 0, y: 0 });
-            circleMask.fillStyle(0xffffff, 1).fillCircle(x, y, 19);
-            gem.setMask(circleMask.createGeometryMask());
             layer.add(gem);
             (playerSide ? this.mindDuelPlayerGems : this.mindDuelNpcGems).push(gem);
         });
@@ -951,8 +929,6 @@ export class Game extends Scene {
         const npcRatio = this.mindDuelNpcHp / 1000;
         this.mindDuelPlayerHpFill?.setDisplaySize(282 * playerRatio, 18);
         this.mindDuelNpcHpFill?.setDisplaySize(282 * npcRatio, 18);
-        this.mindDuelPlayerHpText?.setText(String(this.mindDuelPlayerHp));
-        this.mindDuelNpcHpText?.setText(String(this.mindDuelNpcHp));
         this.mindDuelPlayerGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelPlayerGauge ? 1 : 0.18));
         this.mindDuelNpcGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelNpcGauge ? 1 : 0.18));
         const ultimateReady = this.mindDuelPlayerGauge >= 2;

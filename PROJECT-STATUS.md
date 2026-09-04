@@ -1855,9 +1855,29 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、`tools/build-championship-re-battle-ui.mjs`、結晶原画／変換済み素材、公開バンドル
 - 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
 
+### 2026-09-04 — Codex（Remaster：CPU戦の選択確定フロー、未公開）
+
+- CPU戦のキャラ選択は、ゲートを押した時点で10秒タイマーが動き続ける誤った導線だった。タイマーと自動開始を完全に削除し、キャラ選択後に`START DUEL`を押した時だけ決闘開始へ統一した
+- 召喚式の選択画面上部に残っていたタイトルロゴ素材を削除。タイトルロゴはモード選択タイトルだけで表示し、選択画面では7ゲートとキャラ確認を優先する
+- 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、公開バンドル。検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
+### 2026-09-04 — Codex（Remaster：決闘入力停止クラッシュ修正、未公開）
+
+- Chromeで選択→決闘を実際に再現。決闘画面への遷移後、選択画面の10秒タイマーが破棄済みのTextへ`setText`し、Phaser更新処理が例外停止していた。結果として画面は表示されたまま全決闘ボタンが反応しなくなっていた
+- `beginMindDuel`で選択タイマーと関連Text参照を必ず破棄し、タイマー側にも選択画面以外では更新しないガードを追加。ATTACK／GUARD／BREAKの入力停止原因を除去した
+- `GeometryMask`はWebGL非対応の警告を出していたため、実alpha済みの円形結晶素材へ戻して削除。入力停止とは別件だが、公開コンソールの警告をなくした
+- 3択ルール（HP1000、ATTACK／GUARD／BREAK判定、ガード成功の2結晶、長押し上スワイプ必殺、軽いCPU読み）は実装済み。ただしこのクラッシュ修正の公開後に実機で複数ラウンド通すまで「完成」とはしない
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
 ### 2026-09-04 — Codex（Remaster：HUD座標系・決闘入力修正、未公開）
 
 - 決闘HUDのWebPは透明余白を除去した`2171×572`原画であるのに、HP・名前・ラウンド・結晶を個別の固定座標で置いていたため、枠の穴と中身が一致しなかった。HUD本体の実寸比を維持し、すべてを同じ原画座標から換算する`MIND_DUEL_HUD`へ統一した
 - HPバー、名前、ラウンド、HP数値、両陣営の結晶ソケットをすべて原画の対応する位置へ配置し直した。HUDを`900×300`へ縦に歪める表示も廃止した
 - 写真素材のトリム情報へ入力領域を任せず、ATTACK／GUARD／BREAKそれぞれへ見た目と同じ`230×230`の透明`Zone`を明示して配置。入力処理はこの領域へ接続して、ボタンが押せない不具合を防いだ
 - 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、公開バンドル。検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
+### 2026-09-04 — Codex（Remaster：結晶ソケット実測補正、未公開）
+
+- 結晶ソケットは原画から目測した中心を使っていたため左右で最大41pxの原画座標誤差が残っていた。透過領域をピクセル実測し、左`473/589`・右`1581/1696`（Y=416）の正確な中心へ更新した
+- ソケット上の`1000`は結晶ゲージと競合していたため削除。HPの増減は既存の横バーだけで読ませる
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
