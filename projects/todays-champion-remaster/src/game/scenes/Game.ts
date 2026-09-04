@@ -939,6 +939,8 @@ export class Game extends Scene {
         const npcGuardBroken = npcMove === 'guard' && playerMove === 'break';
         this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1, playerGuardBroken);
         this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1, npcGuardBroken);
+        if (playerMove === 'attack') this.playMindDuelAttackEffect(this.playerFighter, -1);
+        if (npcMove === 'attack') this.playMindDuelAttackEffect(this.npcFighter, 1);
         if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter);
         if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter);
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
@@ -1014,7 +1016,7 @@ export class Game extends Scene {
     }
 
     private hasMindDuelCharacter(fighter: FighterDefinition) {
-        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick';
+        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick' || fighter.id === 'noise';
     }
 
     private mindDuelCharacterKey(fighter: FighterDefinition, pose: BattleCharacterPose) {
@@ -1030,6 +1032,7 @@ export class Game extends Scene {
         if (fighter.id === 'raven') return 'battle-effect-raven-ultimate-arrow-rain';
         if (fighter.id === 'mika') return 'battle-effect-mika-ultimate-shockwave';
         if (fighter.id === 'brick') return 'battle-effect-brick-ultimate-ground-slam';
+        if (fighter.id === 'noise') return 'battle-effect-noise-ultimate-beat-drop';
         return undefined;
     }
 
@@ -1037,7 +1040,16 @@ export class Game extends Scene {
         if (fighter.id === 'raven') return 'assets/championship-re/battle/effects/raven-ultimate-arrow-rain-v1.webp';
         if (fighter.id === 'mika') return 'assets/championship-re/battle/effects/mika-ultimate-shockwave-v2.webp';
         if (fighter.id === 'brick') return 'assets/championship-re/battle/effects/brick-ultimate-ground-slam-v1.webp';
+        if (fighter.id === 'noise') return 'assets/championship-re/battle/effects/noise-ultimate-beat-drop-v1.webp';
         return undefined;
+    }
+
+    private mindDuelAttackEffectKey(fighter: FighterDefinition) {
+        return fighter.id === 'noise' ? 'battle-effect-noise-attack-sonic-jab' : undefined;
+    }
+
+    private mindDuelAttackEffectPath(fighter: FighterDefinition) {
+        return fighter.id === 'noise' ? 'assets/championship-re/battle/effects/noise-attack-sonic-jab-v1.webp' : undefined;
     }
 
     private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
@@ -1052,6 +1064,11 @@ export class Game extends Scene {
             const effectPath = this.mindDuelUltimateEffectPath(fighter);
             if (effectKey !== undefined && effectPath !== undefined && !this.textures.exists(effectKey)) {
                 toLoad.push({ key: effectKey, path: effectPath });
+            }
+            const attackEffectKey = this.mindDuelAttackEffectKey(fighter);
+            const attackEffectPath = this.mindDuelAttackEffectPath(fighter);
+            if (attackEffectKey !== undefined && attackEffectPath !== undefined && !this.textures.exists(attackEffectKey)) {
+                toLoad.push({ key: attackEffectKey, path: attackEffectPath });
             }
         });
         if (!toLoad.length) {
@@ -1069,10 +1086,10 @@ export class Game extends Scene {
         // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
         // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
         const enemySide = fighter.id === this.npcFighter.id;
-        const brickGroundSlam = fighter.id === 'brick';
-        const effect = this.add.image(VIEW_WIDTH / 2, brickGroundSlam ? 1010 : 940, key)
+        const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise';
+        const effect = this.add.image(VIEW_WIDTH / 2, wideUltimate ? 1010 : 940, key)
             .setOrigin(0.5)
-            .setDisplaySize(brickGroundSlam ? 1440 : 1000, brickGroundSlam ? 960 : 1500)
+            .setDisplaySize(wideUltimate ? 1440 : 1000, wideUltimate ? 960 : 1500)
             .setFlipX(enemySide)
             .setBlendMode('ADD')
             .setAlpha(0);
@@ -1086,6 +1103,30 @@ export class Game extends Scene {
             ease: 'Quad.easeOut',
             yoyo: true,
             hold: 760,
+            onComplete: () => effect.destroy()
+        });
+    }
+
+    private playMindDuelAttackEffect(fighter: FighterDefinition, direction: -1 | 1) {
+        const key = this.mindDuelAttackEffectKey(fighter);
+        if (key === undefined || !this.textures.exists(key) || this.mindDuelLayer === undefined) return;
+        // 元絵は左側の掌から右へ飛ぶ。黒余白を含む横長素材なので、表示枠の左端を
+        // 掌より少し手前へ置くことで、明るい波の始点だけを正確に掌先へ合わせる。
+        const enemySide = direction === 1;
+        const effect = this.add.image(enemySide ? 108 : 420, 1080, key)
+            .setOrigin(0, 0.5)
+            .setDisplaySize(440, 245)
+            .setFlipX(enemySide)
+            .setBlendMode('ADD')
+            .setAlpha(0);
+        this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
+        this.tweens.add({
+            targets: effect,
+            alpha: { from: 0, to: 0.9 },
+            duration: 100,
+            ease: 'Quad.easeOut',
+            yoyo: true,
+            hold: 220,
             onComplete: () => effect.destroy()
         });
     }
