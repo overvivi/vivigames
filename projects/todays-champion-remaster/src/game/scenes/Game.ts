@@ -799,8 +799,8 @@ export class Game extends Scene {
         this.mindDuelNpcHpText = this.add.text(713, 254, '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
         layer.add([leftHpBack, rightHpBack, this.mindDuelPlayerHpFill, this.mindDuelNpcHpFill, hud, playerName, npcName, this.mindDuelRoundText, this.mindDuelPlayerHpText, this.mindDuelNpcHpText]);
 
-        this.createMindDuelGems(layer, [184, 230], true);
-        this.createMindDuelGems(layer, [757, 711], false);
+        this.createMindDuelGems(layer, [196, 237], true);
+        this.createMindDuelGems(layer, [703, 748], false);
         const playerArt = this.add.image(270, 1190, `summon-character-${this.playerFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760);
         const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
         playerArt.setAlpha(0.98);
@@ -826,7 +826,7 @@ export class Game extends Scene {
 
     private createMindDuelGems(layer: GameObjects.Container, positions: [number, number], playerSide: boolean) {
         positions.forEach((x) => {
-            const gem = this.add.image(x, 285, 'battle-ultimate-crystal').setDisplaySize(38, 52).setAlpha(0.18);
+            const gem = this.add.image(x, 269, 'battle-ultimate-crystal').setDisplaySize(34, 46).setAlpha(0.18);
             layer.add(gem);
             (playerSide ? this.mindDuelPlayerGems : this.mindDuelNpcGems).push(gem);
         });
