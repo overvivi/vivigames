@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<title>STILL</title>
+<style>
+  :root{
+    --bg:#05070d; --panel:#0c1322; --line:rgba(32,230,255,.28);
+    --cyan:#20e6ff; --magenta:#ff2ba6; --gold:#ffd66e;
+    --text:#dfe9ff; --muted:#7d8bab;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden;
+    -webkit-user-select:none; user-select:none; touch-action:none; overscroll-behavior:none;}
+  #app{position:relative; width:100%; height:100%;}
+  #stage{position:absolute; inset:0; width:100%; height:100%; display:block;}
+
+  /* ---- HUD ---- */
+  /* 盤面の上へ重ねる。指やカーソルは常に盤面へ届いてほしいので、
+     押せるのはミュートだけにして残りは pointer-events:none にする。 */
+  #hud{position:absolute; left:0; right:0; top:0; z-index:3; pointer-events:none;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    padding:max(10px,env(safe-area-inset-top)) clamp(12px,3vw,26px) 0;}
+  #hud.hidden{display:none;}
+  .stats{display:flex; gap:clamp(14px,3.2vw,30px);}
+  .stat{min-width:44px;}
+  .stat span{display:block; font-size:9px; letter-spacing:.16em; color:var(--muted);}
+  .stat b{display:block; margin-top:2px; font-size:clamp(17px,2.4vw,24px); line-height:1;
+    font-weight:700; letter-spacing:.02em; font-variant-numeric:tabular-nums;}
+  .stat.score b{color:var(--cyan); text-shadow:0 0 16px rgba(32,230,255,.45);}
+  .stat.graze b{color:var(--magenta);}
+  .stat.graze.off b{color:var(--muted); opacity:.5;}
+  #muteBtn{pointer-events:auto; width:38px; height:38px; flex:0 0 auto; border-radius:4px;
+    border:1px solid rgba(32,230,255,.30); background:rgba(5,9,18,.72); color:var(--cyan);
+    font-size:15px; line-height:1; cursor:pointer; font-family:inherit;}
+  #muteBtn.off{color:var(--muted); border-color:rgba(125,139,171,.28);}
+
+  .portalLink{position:absolute; left:10px; bottom:max(10px,env(safe-area-inset-bottom)); z-index:6;
+    min-height:36px; padding:9px 11px; border:1px solid rgba(32,230,255,.38); border-radius:4px;
+    color:var(--cyan); background:rgba(5,7,13,.78); font-size:10px; letter-spacing:.08em;
+    text-decoration:none; box-shadow:0 0 14px rgba(32,230,255,.10);}
+  .portalLink:hover,.portalLink:focus-visible{border-color:var(--cyan); background:rgba(9,20,32,.96);}
+  /* プレイ中は画面のどこを触っても操作になる。置き場へのリンクが指の下にあると
+     移動のつもりで離脱してしまうため、遊んでいる間だけ消す。 */
+  .is-playing .portalLink{display:none;}
+
+  /* ---- 画面 ---- */
+  .screen{position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; padding:26px 18px;
+    background:radial-gradient(ellipse at 50% 34%,rgba(32,230,255,.08),transparent 62%),rgba(5,7,13,.94);
+    overflow-y:auto; text-align:center; animation:fadeIn .28s ease-out;}
+  .screen.hidden{display:none;}
+  @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+
+  .logo{font-size:clamp(46px,15vw,92px); font-weight:200; letter-spacing:.34em; margin:0 0 0 .34em;
+    color:#eaf7ff; text-shadow:0 0 28px rgba(32,230,255,.55),0 0 70px rgba(255,43,166,.25);}
+  .tagline{margin:-4px 0 0; font-size:clamp(11px,3.1vw,14px); letter-spacing:.22em; color:var(--cyan);}
+  .rules{margin:14px 0 2px; padding:0; list-style:none; width:min(100%,392px);
+    display:flex; flex-direction:column; gap:9px;}
+  .rules li{display:flex; gap:10px; align-items:flex-start; padding:10px 13px; text-align:left;
+    border:1px solid rgba(32,230,255,.16); border-left:2px solid var(--cyan); border-radius:3px;
+    background:linear-gradient(100deg,rgba(15,26,44,.85),rgba(6,9,18,.6));
+    font-size:12px; line-height:1.65; letter-spacing:.03em; color:#c6d6f0;}
+  .rules li i{font-style:normal; color:var(--cyan); font-size:15px; line-height:1.35;}
+  .rules li b{color:#fff; font-weight:600;}
+  .rules li.g{border-left-color:var(--magenta);} .rules li.g i{color:var(--magenta);}
+  .rules li.o{border-left-color:var(--gold);}    .rules li.o i{color:var(--gold);}
+
+  .btn{margin-top:6px; min-width:212px; padding:15px 26px; border-radius:4px; cursor:pointer;
+    border:1px solid rgba(32,230,255,.55); background:linear-gradient(135deg,rgba(20,44,64,.95),rgba(7,12,22,.92));
+    color:var(--cyan); font-size:14px; letter-spacing:.28em; font-family:inherit;
+    box-shadow:0 0 22px rgba(32,230,255,.14); transition:transform .12s, box-shadow .2s, background .2s;}
+  .btn:hover,.btn:focus-visible{background:linear-gradient(135deg,rgba(29,64,90,.98),rgba(10,18,30,.95));
+    box-shadow:0 0 34px rgba(32,230,255,.3); transform:translateY(-1px);}
+  .btn:active{transform:translateY(1px);}
+  .btn.sub{min-width:150px; padding:11px 20px; font-size:11px; letter-spacing:.2em;
+    border-color:rgba(125,139,171,.34); color:var(--muted); box-shadow:none;}
+  .btn.sub:hover{color:var(--text); border-color:rgba(223,233,255,.4); box-shadow:none;}
+  .keyhint{margin:2px 0 0; font-size:10px; letter-spacing:.14em; color:var(--muted); line-height:1.9;}
+  .keyhint kbd{display:inline-block; padding:1px 6px; margin:0 1px; border-radius:3px;
+    border:1px solid rgba(125,139,171,.4); font-family:inherit; font-size:10px; color:#c6d6f0;}
+
+  /* ---- 結果 ---- */
+  .resTitle{margin:0; font-size:12px; letter-spacing:.4em; color:var(--magenta);}
+  .resScore{margin:0; font-size:clamp(52px,16vw,88px); font-weight:200; line-height:1; letter-spacing:.02em;
+    color:#fff; text-shadow:0 0 30px rgba(32,230,255,.5); font-variant-numeric:tabular-nums;}
+  .resRow{display:flex; gap:clamp(18px,6vw,44px); margin-top:6px;}
+  .resRow div{font-size:10px; letter-spacing:.14em; color:var(--muted);}
+  .resRow div b{display:block; margin-top:4px; font-size:19px; color:var(--text); font-variant-numeric:tabular-nums;}
+  .newRec{margin:0; font-size:11px; letter-spacing:.3em; color:var(--gold); text-shadow:0 0 18px rgba(255,214,110,.6);
+    animation:recBlink 1.1s ease-in-out infinite;}
+  .newRec.hidden{display:none;}
+  @keyframes recBlink{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  @media (prefers-reduced-motion: reduce){
+    .screen{animation:none;} .newRec{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="stats">
+      <div class="stat score"><span>SCORE</span><b id="hudScore">0</b></div>
+      <div class="stat"><span>LIGHT</span><b id="hudLevel">0</b></div>
+      <div class="stat graze off"><span>GRAZE</span><b id="hudGraze">&times;1.00</b></div>
+      <div class="stat"><span>BEST</span><b id="hudBest">0</b></div>
+    </div>
+    <button id="muteBtn" type="button" aria-label="音のON/OFF">&#9834;</button>
+  </div>
+
+  <a class="portalLink" href="../index.html">&larr; GAME BASE</a>
+
+  <div id="titleScreen" class="screen">
+    <h1 class="logo">STILL</h1>
+    <p class="tagline">止まれば、世界も止まる。</p>
+    <ul class="rules">
+      <li><i>&#9670;</i><span><b>動いた分だけ</b>世界の時間が進む。手を離せば弾も敵も完全に静止する。<b>考える時間は無料。</b></span></li>
+      <li class="o"><i>&#9679;</i><span>光の粒を拾って加点。<b>拾うたびに弾が増える。</b>粒は世界時間とともに輝きを失う。</span></li>
+      <li class="g"><i>&#9671;</i><span>弾を<b>かすめる</b>ほど、次に拾う光の点数が上がる。当たれば一発で終わり。</span></li>
+    </ul>
+    <button id="startBtn" class="btn" type="button">START</button>
+    <p class="keyhint">
+      PC: <kbd>WASD</kbd> / <kbd>&larr;&uarr;&darr;&rarr;</kbd>、またはマウス長押しでその方向へ<br>
+      スマホ: 画面をドラッグ。指を離すと静止<br>
+      <kbd>Space</kbd> で開始・リトライ
+    </p>
+  </div>
+
+  <div id="overScreen" class="screen hidden">
+    <p class="resTitle">LIGHTS OUT</p>
+    <p class="resScore" id="resScore">0</p>
+    <p class="newRec hidden" id="newRec">NEW RECORD</p>
+    <div class="resRow">
+      <div>LIGHT<b id="resLevel">0</b></div>
+      <div>GRAZE<b id="resGraze">0</b></div>
+      <div>BEST<b id="resBest">0</b></div>
+    </div>
+    <button id="retryBtn" class="btn" type="button">RETRY</button>
+    <button id="titleBtn" class="btn sub" type="button">TITLE</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   STILL — 「動けば世界も動く」回避アクション
+
+   決まりごとは1つだけ。プレイヤーが動いている間しか世界の時間が進まない。
+   止まれば弾も敵も完全に静止するので、考える時間はいくらでも取れる。
+   逆に言えば、死因は必ず「自分が動いた結果」になる。
+   理不尽で死なないことを最優先にした結果のルールなので、ここを崩す変更
+   （時間経過ペナルティ、止まっていても迫る敵など）は入れないこと。
+   ===================================================================== */
+
+// ---- 定数 ----------------------------------------------------------
+var P_SPEED   = 340;   // プレイヤーの最大速度(px/秒・実時間)
+var P_ACCEL_T = 0.05;  // 速度追従の時定数。大きすぎると滑って狙った位置で止まれない
+var TAU_LO    = 0.05;  // この速度比までは世界を止める(指のわずかな揺れで進めないため)
+var TAU_HI    = 0.22;  // この速度比で世界は等速。間はスローモーションとして使える
+var GRAZE_GAP = 21;    // かすめ判定の余白(px)
+var GRAZE_MAX = 10;    // 1往復で乗る最大かすめ数(+5%ずつ)
+var ORB_DECAY = 14;    // 光の粒が最低値まで暗くなるまでの世界時間(秒)
+var BULLET_MAX= 46;    // 弾の総数上限。これ以上は増やさず速度だけ上げる
+var PRED_TIME = 1.5;   // 静止中に見せる弾の予測線の長さ(世界時間・秒)
+var BEST_KEY  = 'stillBest_v1';
+var MUTE_KEY  = 'stillMute_v1';
+var SEEN_KEY  = 'stillSeen_v1';
+
+var DEBUG  = new URLSearchParams(location.search).get('debug') === '1';
+// 指で遊ぶ端末かどうか。最初のタッチ操作でも立てるので、両対応の機械でも切り替わる
+var touchMode = false;
+try{ touchMode = window.matchMedia('(pointer: coarse)').matches; }catch(e){}
+var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- 小道具 --------------------------------------------------------
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function smoothstep(a,b,x){ var t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); }
+function rgba(c,a){ return 'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')'; }
+function mix(a,b,t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+
+// 1フレームの間に動く2点の最接近距離。弾もプレイヤーも速いので、位置だけで
+// 判定すると高速ですり抜ける(＝当たったのに素通り／かすめが検出できない)。
+function sweepDist(ax,ay,ax2,ay2, bx,by,bx2,by2){
+  var rx=ax-bx, ry=ay-by;
+  var dx=(ax2-ax)-(bx2-bx), dy=(ay2-ay)-(by2-by);
+  var dd=dx*dx+dy*dy;
+  var t = dd>1e-9 ? clamp(-(rx*dx+ry*dy)/dd, 0, 1) : 0;
+  return Math.hypot(rx+dx*t, ry+dy*t);
+}
+// 点と線分の距離。回転レーザーの判定に使う
+function segDist(px,py, x1,y1, x2,y2){
+  var dx=x2-x1, dy=y2-y1, dd=dx*dx+dy*dy;
+  var t = dd>1e-9 ? clamp(((px-x1)*dx+(py-y1)*dy)/dd, 0, 1) : 0;
+  return Math.hypot(px-(x1+dx*t), py-(y1+dy*t));
+}
+
+var COL = {
+  hot:[255,70,150], cold:[110,138,178],   // 弾(動いている時／止まっている時)
+  seek:[255,138,72], rotor:[176,116,255],
+  orb:[255,214,110], player:[64,236,255]
+};
+
+// ---- 画面 ----------------------------------------------------------
+var cv  = document.getElementById('stage');
+var ctx = cv.getContext('2d', { alpha:false });
+var W=0, H=0, CX=0, CY=0, DPR=1;
+// 闘技場は角丸長方形。円だと縦長の画面では中央の4割しか使えず窮屈で、
+// さらに円の反射は先を読みにくく「止まって道を組み立てる」遊びと噛み合わなかった。
+var AR = { l:0, t:0, r:0, b:0, w:0, h:0, cr:26 };
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  W = cv.clientWidth  || window.innerWidth;
+  H = cv.clientHeight || window.innerHeight;
+  cv.width  = Math.round(W*DPR);
+  cv.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  var padX=14, padTop=64;                          // 上はHUDのぶんだけ空ける
+  // 指で遊ぶ端末では、画面の下に親指の居場所を空ける。
+  // 闘技場を画面いっぱいへ広げた結果、盤面の外に指を置く場所が無くなり、
+  // 自分の指で弾が隠れて遊びにくくなっていた。
+  var padBot = touchMode ? clamp(H*0.18, 92, 156) : 16;
+  var availW=Math.max(140, W-padX*2), availH=Math.max(180, H-padTop-padBot);
+  // 端から端まで使うと1往復が長すぎて単調になるので、縦横比で頭打ちにする
+  var w=Math.min(availW, availH*1.55);
+  var h=Math.min(availH, w*1.75);
+  var nw={ l:(W-w)/2, t:padTop+(availH-h)/2, r:0, b:0, w:w, h:h, cr:Math.min(28, Math.min(w,h)*0.09) };
+  nw.r=nw.l+w; nw.b=nw.t+h;
+  // 途中で画面が回ると闘技場の形が変わる。中身も同じ比率で移し替えないと、
+  // 弾が壁の外へ取り残されて戻ってこない。
+  if(AR.w>0){
+    var sx=nw.w/AR.w, sy=nw.h/AR.h;
+    var move=function(o){
+      o.x=nw.l+(o.x-AR.l)*sx;  o.y=nw.t+(o.y-AR.t)*sy;
+      o.px=nw.l+(o.px-AR.l)*sx; o.py=nw.t+(o.py-AR.t)*sy;
+    };
+    bullets.forEach(move); seekers.forEach(move); move(player);
+    rotors.forEach(function(r){
+      r.x=nw.l+(r.x-AR.l)*sx; r.y=nw.t+(r.y-AR.t)*sy; r.len*=Math.min(sx,sy);
+    });
+    if(orb){ orb.x=nw.l+(orb.x-AR.l)*sx; orb.y=nw.t+(orb.y-AR.t)*sy; }
+  }
+  AR=nw; CX=(AR.l+AR.r)/2; CY=(AR.t+AR.b)/2;
+}
+
+// 角丸長方形の内側へ閉じ込める。壁に触れた時だけ、その面の法線を返す。
+function confine(o, rad){
+  var il=AR.l+AR.cr, it=AR.t+AR.cr, ir=AR.r-AR.cr, ib=AR.b-AR.cr;
+  var nx=clamp(o.x,il,ir), ny=clamp(o.y,it,ib);
+  var dx=o.x-nx, dy=o.y-ny, d=Math.hypot(dx,dy), lim=AR.cr-rad;
+  if(d<=lim || d<1e-6) return null;
+  var ux=dx/d, uy=dy/d;
+  o.x=nx+ux*lim; o.y=ny+uy*lim;
+  return { x:ux, y:uy };
+}
+
+// ---- 音 ------------------------------------------------------------
+// 世界時間の速さが、そのまま音の明るさになる。止めれば静寂へ落ちるので、
+// ルールを文字で説明しなくても「自分が世界を止めた」ことが体で分かる。
+var Sound = (function(){
+  var ac=null, master=null, droneGain=null, droneFilt=null, ready=false;
+  var on = true;
+  try{ on = localStorage.getItem(MUTE_KEY) !== '1'; }catch(e){}
+
+  function init(){
+    if(ac) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    ac = new AC();
+    master = ac.createGain(); master.gain.value = on ? 0.85 : 0; master.connect(ac.destination);
+    droneFilt = ac.createBiquadFilter(); droneFilt.type='lowpass'; droneFilt.frequency.value=180;
+    droneGain = ac.createGain(); droneGain.gain.value=0;
+    droneFilt.connect(droneGain); droneGain.connect(master);
+    [55, 82.4, 110.5].forEach(function(f,i){
+      var o=ac.createOscillator(); o.type = i===2 ? 'triangle' : 'sawtooth'; o.frequency.value=f;
+      var g=ac.createGain(); g.gain.value = i===2 ? 0.26 : 0.15;
+      o.connect(g); g.connect(droneFilt); o.start();
+    });
+    ready = true;
+  }
+  function tone(freq,dur,type,vol,to,delay){
+    if(!ready || !on) return;
+    var t0=ac.currentTime+(delay||0);
+    var o=ac.createOscillator(), g=ac.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0);
+    if(to) o.frequency.exponentialRampToValueAtTime(to, t0+dur);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(vol,t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0+dur+0.02);
+  }
+  function noise(dur,vol,freq){
+    if(!ready || !on) return;
+    var n=Math.floor(ac.sampleRate*dur);
+    var buf=ac.createBuffer(1,n,ac.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    var s=ac.createBufferSource(); s.buffer=buf;
+    var f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq||1200;
+    var g=ac.createGain(); g.gain.value=vol;
+    s.connect(f); f.connect(g); g.connect(master); s.start();
+  }
+  return {
+    resume:function(){ init(); if(ac && ac.state==='suspended') ac.resume(); },
+    isOn:function(){ return on; },
+    toggle:function(){
+      on=!on; init();
+      if(master) master.gain.setTargetAtTime(on?0.85:0, ac.currentTime, 0.02);
+      try{ localStorage.setItem(MUTE_KEY, on?'0':'1'); }catch(e){}
+      return on;
+    },
+    // 世界時間に合わせてドローンを開閉する
+    world:function(tau, playing){
+      if(!ready) return;
+      var t=ac.currentTime;
+      droneGain.gain.setTargetAtTime(playing ? 0.018+tau*0.085 : 0, t, 0.09);
+      droneFilt.frequency.setTargetAtTime(180+tau*1500, t, 0.09);
+    },
+    collect:function(step){
+      var base = 523.25 * Math.pow(2, Math.min(step,14)/12);
+      tone(base,      0.16,'triangle',0.16,null,0);
+      tone(base*1.25, 0.16,'triangle',0.13,null,0.055);
+      tone(base*1.5,  0.30,'triangle',0.13,null,0.11);
+    },
+    graze:function(){ tone(2450,0.045,'square',0.035); },
+    spawn:function(){ tone(120,0.22,'sine',0.10,70); },
+    die:function(){ tone(320,0.7,'sawtooth',0.16,55); noise(0.55,0.16,900); },
+    ui:function(){ tone(760,0.06,'square',0.05); }
+  };
+})();
+
+// ---- 入力 ----------------------------------------------------------
+// 「離した瞬間に世界が止まる」が気持ちよさの中心なので、どの入力方式でも
+// 離す＝停止で揃える。マウスは押している間だけカーソルへ向かう方式。
+var input = { x:0, y:0 };
+var keys = {};
+var ptr = { active:false, id:-1, kind:'mouse', ox:0, oy:0, x:0, y:0 };
+var KEYMAP = {
+  ArrowUp:'u', KeyW:'u', ArrowDown:'d', KeyS:'d',
+  ArrowLeft:'l', KeyA:'l', ArrowRight:'r', KeyD:'r'
+};
+
+addEventListener('keydown', function(e){
+  var k = KEYMAP[e.code];
+  if(k){ keys[k]=1; e.preventDefault(); }
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight') keys.slow=1;
+  if(e.code==='Space'||e.code==='Enter'){
+    e.preventDefault();
+    if(STATE==='title') start();
+    else if(STATE==='over' && overReady) start();
+  }
+});
+addEventListener('keyup', function(e){
+  var k = KEYMAP[e.code];
+  if(k) delete keys[k];
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight') delete keys.slow;
+});
+// タブを離れると keyup が来ない。押しっぱなし扱いのまま戻ると、
+// 手を触れていないのに動いて死ぬ＝理不尽になるので必ず入力を捨てる。
+function dropInput(){ keys={}; ptr.active=false; }
+addEventListener('blur', dropInput);
+document.addEventListener('visibilitychange', function(){ if(document.hidden) dropInput(); });
+
+cv.addEventListener('pointerdown', function(e){
+  if(STATE!=='play') return;
+  Sound.resume();
+  ptr.active=true; ptr.id=e.pointerId; ptr.kind = e.pointerType==='mouse' ? 'mouse' : 'touch';
+  if(ptr.kind==='touch'){
+    padUsed=true;
+    if(!touchMode){ touchMode=true; resize(); }
+  }
+  ptr.ox=e.clientX; ptr.oy=e.clientY; ptr.x=e.clientX; ptr.y=e.clientY;
+  if(cv.setPointerCapture){ try{ cv.setPointerCapture(e.pointerId); }catch(err){} }
+  e.preventDefault();
+});
+cv.addEventListener('pointermove', function(e){
+  if(!ptr.active || e.pointerId!==ptr.id) return;
+  ptr.x=e.clientX; ptr.y=e.clientY;
+});
+function endPtr(e){ if(e.pointerId===ptr.id) ptr.active=false; }
+cv.addEventListener('pointerup', endPtr);
+cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+function readInput(){
+  var x=0, y=0, len;
+  if(keys.l) x-=1; if(keys.r) x+=1;
+  if(keys.u) y-=1; if(keys.d) y+=1;
+  if(x||y){
+    len=Math.hypot(x,y); x/=len; y/=len;
+    if(keys.slow){ x*=0.34; y*=0.34; }   // 精密移動。ゆっくり動く分だけ世界も遅い
+  }else if(ptr.active){
+    var dx, dy, full;
+    if(ptr.kind==='mouse'){
+      // マウスはカーソルの位置が目的地。近づくほど自然に減速して止まる
+      dx = ptr.x-player.x; dy = ptr.y-player.y; full = 74;
+    }else{
+      // 指は押した所を原点にした仮想スティック。画面のどこでも握れる
+      dx = ptr.x-ptr.ox; dy = ptr.y-ptr.oy; full = 46;
+      len = Math.hypot(dx,dy);
+      // 長く払った時に原点を引きずる。指が画面端へ届かなくなる事故を防ぐ
+      if(len > full*1.5){ var k=(len-full*1.5)/len; ptr.ox+=dx*k; ptr.oy+=dy*k; dx-=dx*k; dy-=dy*k; }
+    }
+    len=Math.hypot(dx,dy);
+    if(len>1.5){ var m=Math.min(1,len/full); x=dx/len*m; y=dy/len*m; }
+  }
+  input.x=x; input.y=y;
+}
+
+// ---- 状態 ----------------------------------------------------------
+var STATE='title';
+var overReady=false, overToken=0, isNewRecord=false;
+var player = { x:0, y:0, px:0, py:0, vx:0, vy:0, r:8.5 };
+var bullets=[], seekers=[], rotors=[], parts=[], pops=[], rings=[];
+var orb=null;
+var score=0, level=0, grazeTrip=0, grazeTotal=0, best=0;
+var tau=0, worldT=0, shake=0, flash=0, hint=null, firstRun=false;
+var invincible=false;
+var padUsed=false;   // この走行でまだ一度も指を置いていない間だけ、操作帯に説明を出す
+
+try{ best = parseInt(localStorage.getItem(BEST_KEY)||'0',10)||0; }catch(e){}
+try{ firstRun = localStorage.getItem(SEEN_KEY)!=='1'; }catch(e){ firstRun=true; }
+
+function el(id){ return document.getElementById(id); }
+var hudEl={ box:el('hud'), score:el('hudScore'), level:el('hudLevel'), graze:el('hudGraze'), best:el('hudBest') };
+
+function setHud(){
+  hudEl.score.textContent = score;
+  hudEl.level.textContent = level;
+  hudEl.best.textContent  = best;
+  var m = 1 + Math.min(grazeTrip,GRAZE_MAX)*0.05;
+  hudEl.graze.textContent = '×' + m.toFixed(2);
+  hudEl.graze.parentElement.classList.toggle('off', grazeTrip===0);
+}
+
+// ---- 生成 ----------------------------------------------------------
+function edgePoint(inset){
+  // 周に沿って一様に1点選ぶ。角の丸みの内側へ寄せてから返す
+  var per=2*(AR.w+AR.h), t=Math.random()*per, cr=AR.cr;
+  var x, y;
+  if(t<AR.w){ x=AR.l+t; y=AR.t+inset; }
+  else if((t-=AR.w)<AR.h){ x=AR.r-inset; y=AR.t+t; }
+  else if((t-=AR.h)<AR.w){ x=AR.r-t; y=AR.b-inset; }
+  else { t-=AR.w; x=AR.l+inset; y=AR.b-t; }
+  return { x:clamp(x,AR.l+cr,AR.r-cr), y:clamp(y,AR.t+cr,AR.b-cr) };
+}
+function addBullet(){
+  if(bullets.length>=BULLET_MAX) return;
+  var spd = Math.min(90 + level*4.2, 178) * rand(0.82,1.24);
+  var span=Math.min(AR.w,AR.h), p, tries=0;
+  do{
+    p=edgePoint(9); tries++;
+  }while(tries<24 && Math.hypot(p.x-player.x, p.y-player.y) < span*0.55);
+  // 壁沿いを舐めるだけの弾は退屈なので、内側の一点へ向けて撃ち出す
+  var tx=CX+rand(-AR.w*0.3, AR.w*0.3), ty=CY+rand(-AR.h*0.3, AR.h*0.3);
+  var d=Math.hypot(tx-p.x, ty-p.y) || 1;
+  bullets.push({ x:p.x, y:p.y, px:p.x, py:p.y, vx:(tx-p.x)/d*spd, vy:(ty-p.y)/d*spd, r:6.4, warm:0, grz:false, hit:0 });
+}
+function addSeeker(){
+  // 追跡者はプレイヤーから最も遠い角から入れる。湧いた瞬間に詰むのを避ける
+  var x = player.x<CX ? AR.r-34 : AR.l+34;
+  var y = player.y<CY ? AR.b-34 : AR.t+34;
+  seekers.push({ x:x, y:y, px:x, py:y, vx:0, vy:0, r:10, spd:96+level*1.5, warm:0 });
+}
+function addRotor(){
+  var x=rand(AR.l+AR.w*0.22, AR.r-AR.w*0.22);
+  var y=rand(AR.t+AR.h*0.22, AR.b-AR.h*0.22);
+  var span=Math.min(AR.w,AR.h);
+  rotors.push({
+    x:x, y:y,
+    a:rand(0,Math.PI*2), w:(Math.random()<0.5?-1:1)*rand(0.42,0.62),
+    len:span*rand(0.42,0.60), warm:0
+  });
+}
+function spawnThreats(){
+  // 拾うたびに世界が濃くなる。増える量が一定だと後半が間延びするので、
+  // 序盤は1つ、乗ってきたら2つずつ増やす。
+  var n = level<=4 ? 1 : 2;
+  for(var i=0;i<n;i++) addBullet();
+  if(level===6 || level===13 || level===21) addSeeker();
+  if(level===9 || level===17) addRotor();
+  Sound.spawn();
+}
+function spawnOrb(){
+  var bx=CX, by=CY, bestScore=-1, m=34;
+  var span=Math.min(AR.w,AR.h);
+  for(var i=0;i<44;i++){
+    var x=rand(AR.l+m, AR.r-m), y=rand(AR.t+m, AR.b-m);
+    var toP=Math.hypot(x-player.x, y-player.y);
+    // すぐ隣に湧くと「移動＝危険」という取引が成立しない。必ず旅をさせる
+    if(toP < span*0.62) continue;
+    var ok=true, near=1e9, j;
+    for(j=0;j<seekers.length;j++){
+      var dd=Math.hypot(x-seekers[j].x, y-seekers[j].y);
+      if(dd<110){ ok=false; break; }
+      if(dd<near) near=dd;
+    }
+    if(!ok) continue;
+    for(j=0;j<rotors.length;j++){
+      if(Math.abs(Math.hypot(x-rotors[j].x, y-rotors[j].y) - rotors[j].len*0.7) < 26){ ok=false; break; }
+    }
+    if(!ok) continue;
+    var sc = toP + Math.min(near,300);
+    if(sc>bestScore){ bestScore=sc; bx=x; by=y; }
+    if(i>18 && bestScore>0) break;
+  }
+  orb = { x:bx, y:by, t:0, pop:0 };
+}
+function orbValue(){
+  var base = 90 + level*18;
+  return base * Math.max(0.30, 1 - orb.t/ORB_DECAY);
+}
+
+// ---- 演出 ----------------------------------------------------------
+function burst(x,y,n,col,spd){
+  if(REDUCE) n=Math.min(n,6);
+  for(var i=0;i<n;i++){
+    var a=rand(0,Math.PI*2), s=rand(spd*0.25,spd);
+    parts.push({ x:x, y:y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:rand(0.35,0.9), t:0, col:col, r:rand(1.2,2.8) });
+  }
+}
+function popText(x,y,text,col){ pops.push({ x:x, y:y, text:text, col:col, t:0, life:1.0 }); }
+function ripple(x,y,col,max){ rings.push({ x:x, y:y, col:col, t:0, life:0.55, max:max }); }
+
+// ---- 進行 ----------------------------------------------------------
+function reset(){
+  bullets=[]; seekers=[]; rotors=[]; parts=[]; pops=[]; rings=[];
+  score=0; level=0; grazeTrip=0; grazeTotal=0; worldT=0; shake=0; flash=0;
+  player.x=CX; player.y=CY; player.px=CX; player.py=CY; player.vx=0; player.vy=0;
+  for(var i=0;i<3;i++) addBullet();
+  spawnOrb();
+  setHud();
+}
+function start(){
+  Sound.resume(); Sound.ui();
+  reset();
+  STATE='play'; overReady=false; overToken++;
+  el('titleScreen').classList.add('hidden');
+  el('overScreen').classList.add('hidden');
+  hudEl.box.classList.remove('hidden');
+  document.body.classList.add('is-playing');
+  // 初回だけ、ルールを言葉で一度だけ示す。2回目以降は画面で分かるので出さない
+  hint = firstRun ? { text:'手を離してみる — 世界も止まる', t:0, life:6.5 } : null;
+  padUsed = false;
+}
+function toTitle(){
+  Sound.ui();
+  STATE='title';
+  el('overScreen').classList.add('hidden');
+  el('titleScreen').classList.remove('hidden');
+  hudEl.box.classList.add('hidden');
+  document.body.classList.remove('is-playing');
+}
+function die(){
+  if(STATE!=='play' || invincible) return;
+  STATE='over'; overReady=false;
+  Sound.die();
+  burst(player.x, player.y, 46, COL.player, 320);
+  burst(player.x, player.y, 22, COL.hot, 190);
+  ripple(player.x, player.y, COL.player, 190);
+  shake = REDUCE ? 0 : 16; flash = 1;
+  isNewRecord = score>best;
+  if(isNewRecord){ best=score; try{ localStorage.setItem(BEST_KEY,String(best)); }catch(e){} }
+  try{ localStorage.setItem(SEEN_KEY,'1'); }catch(e){}
+  firstRun=false;
+  var token = ++overToken;
+  // 消えた瞬間の盤面を見せてから結果へ移る。すぐ覆うと何に当たったのか分からない
+  setTimeout(function(){
+    if(token!==overToken) return;
+    el('resScore').textContent = score;
+    el('resLevel').textContent = level;
+    el('resGraze').textContent = grazeTotal;
+    el('resBest').textContent  = best;
+    el('newRec').classList.toggle('hidden', !(isNewRecord && score>0));
+    el('overScreen').classList.remove('hidden');
+    document.body.classList.remove('is-playing');
+    overReady=true;
+  }, 900);
+}
+function collect(){
+  level++;
+  var g = Math.min(grazeTrip, GRAZE_MAX);
+  var gained = Math.round(orbValue() * (1 + g*0.05));
+  score += gained;
+  grazeTrip = 0;
+  Sound.collect(level);
+  burst(orb.x, orb.y, 26, COL.orb, 260);
+  ripple(orb.x, orb.y, COL.orb, 120);
+  popText(orb.x, orb.y-26, '+'+gained, COL.orb);
+  shake = REDUCE ? 0 : 5;
+  spawnThreats();
+  spawnOrb();
+  setHud();
+  if(firstRun && level===1) hint = { text:'弾をかすめると、次の光が高く輝く', t:0, life:6.0 };
+}
+
+// ---- 更新 ----------------------------------------------------------
+function movePlayer(dt){
+  var k = 1-Math.exp(-dt/P_ACCEL_T);
+  player.vx += (input.x*P_SPEED - player.vx)*k;
+  player.vy += (input.y*P_SPEED - player.vy)*k;
+  player.px=player.x; player.py=player.y;
+  player.x += player.vx*dt;
+  player.y += player.vy*dt;
+  var n=confine(player, player.r);
+  if(n){
+    // 壁へ押し付けたままだと、進んでいないのに世界だけ進んでしまう。
+    // 壁方向の速度を落として、実際の移動量と世界時間を一致させる。
+    var vn=player.vx*n.x+player.vy*n.y;
+    if(vn>0){ player.vx-=n.x*vn; player.vy-=n.y*vn; }
+  }
+}
+function updateWorld(dw){
+  var i, b, s, r;
+  if(dw<=0){
+    // 静止中も残像の基準点を現在地に合わせる。尾を引いたまま固まると
+    // 「動いている途中で固まった」ように見えてしまう。
+    for(i=0;i<bullets.length;i++){ bullets[i].px=bullets[i].x; bullets[i].py=bullets[i].y; }
+    for(i=0;i<seekers.length;i++){ seekers[i].px=seekers[i].x; seekers[i].py=seekers[i].y; }
+    return;
+  }
+  worldT += dw;
+  if(orb) orb.t += dw;
+  for(i=0;i<bullets.length;i++){
+    b=bullets[i];
+    b.px=b.x; b.py=b.y;
+    b.x+=b.vx*dw; b.y+=b.vy*dw;
+    if(b.warm<1) b.warm=Math.min(1,b.warm+dw/0.75);
+    if(b.hit>0)  b.hit =Math.max(0,b.hit-dw*3.2);
+    var n=confine(b, b.r);
+    if(n){
+      var dot=b.vx*n.x+b.vy*n.y;
+      if(dot>0){ b.vx-=2*dot*n.x; b.vy-=2*dot*n.y; }
+      b.hit=1;
+    }
+  }
+  for(i=0;i<seekers.length;i++){
+    s=seekers[i];
+    s.px=s.x; s.py=s.y;
+    if(s.warm<1) s.warm=Math.min(1,s.warm+dw/1.0);
+    var ex=player.x-s.x, ey=player.y-s.y, ed=Math.hypot(ex,ey)||1;
+    // 完全な追尾だと振り切る楽しさが無い。加速で曲がる分だけ外周へ膨らませる
+    var kk=Math.min(1, dw*1.6);
+    s.vx += (ex/ed*s.spd - s.vx)*kk;
+    s.vy += (ey/ed*s.spd - s.vy)*kk;
+    s.x+=s.vx*dw; s.y+=s.vy*dw;
+    confine(s, s.r);
+  }
+  for(i=0;i<rotors.length;i++){
+    r=rotors[i];
+    r.a += r.w*dw;
+    if(r.warm<1) r.warm=Math.min(1,r.warm+dw/1.2);
+  }
+}
+function checkHits(){
+  var pr=player.r, i, b, s, r;
+  for(i=0;i<bullets.length;i++){
+    b=bullets[i];
+    if(b.warm<1) continue;
+    var d = sweepDist(player.px,player.py,player.x,player.y, b.px,b.py,b.x,b.y);
+    if(d < pr+b.r){ die(); return; }
+    if(d < pr+b.r+GRAZE_GAP){
+      if(!b.grz){
+        b.grz=true; grazeTrip++; grazeTotal++;
+        score += 5+level;
+        Sound.graze();
+        ripple((player.x+b.x)/2,(player.y+b.y)/2, COL.hot, 34);
+        setHud();
+      }
+    }else if(d > pr+b.r+GRAZE_GAP*1.7){ b.grz=false; }
+  }
+  for(i=0;i<seekers.length;i++){
+    s=seekers[i];
+    if(s.warm<1) continue;
+    if(sweepDist(player.px,player.py,player.x,player.y, s.px,s.py,s.x,s.y) < pr+s.r){ die(); return; }
+  }
+  for(i=0;i<rotors.length;i++){
+    r=rotors[i];
+    if(r.warm<1) continue;
+    var rx=r.x+Math.cos(r.a)*r.len, ry=r.y+Math.sin(r.a)*r.len;
+    if(segDist(player.x,player.y, r.x,r.y, rx,ry) < pr+5 ||
+       segDist(player.px,player.py, r.x,r.y, rx,ry) < pr+5){ die(); return; }
+  }
+  if(orb && Math.hypot(player.x-orb.x, player.y-orb.y) < pr+18) collect();
+}
+function updateFx(dt){
+  // 演出だけは実時間で動かす。止めた瞬間に爆発まで固まると
+  // 「操作を受け付けていない」ように見えてしまう。
+  var i;
+  for(i=parts.length-1;i>=0;i--){
+    var p=parts[i]; p.t+=dt;
+    if(p.t>=p.life){ parts.splice(i,1); continue; }
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94; p.vy*=0.94;
+  }
+  for(i=pops.length-1;i>=0;i--){ pops[i].t+=dt; pops[i].y-=26*dt; if(pops[i].t>=pops[i].life) pops.splice(i,1); }
+  for(i=rings.length-1;i>=0;i--){ rings[i].t+=dt; if(rings[i].t>=rings[i].life) rings.splice(i,1); }
+  if(shake>0) shake=Math.max(0, shake-dt*38);
+  if(flash>0) flash=Math.max(0, flash-dt*2.2);
+  if(hint){ hint.t+=dt; if(hint.t>=hint.life) hint=null; }
+  if(orb) orb.pop=Math.min(1, orb.pop+dt*3);
+}
+function update(dt){
+  readInput();
+  if(STATE==='play'){ movePlayer(dt); }
+  else{
+    player.px=player.x; player.py=player.y;
+    player.vx*=0.9; player.vy*=0.9;
+  }
+  var spd=Math.hypot(player.vx,player.vy);
+  tau = STATE==='play' ? smoothstep(TAU_LO*P_SPEED, TAU_HI*P_SPEED, spd) : 0;
+  if(STATE==='play'){ updateWorld(dt*tau); checkHits(); }
+  updateFx(dt);
+  Sound.world(tau, STATE==='play');
+}
+
+// ---- 描画 ----------------------------------------------------------
+function rrPath(l,t,r,b,cr){
+  ctx.beginPath();
+  ctx.moveTo(l+cr,t);
+  ctx.lineTo(r-cr,t); ctx.arcTo(r,t,r,t+cr,cr);
+  ctx.lineTo(r,b-cr); ctx.arcTo(r,b,r-cr,b,cr);
+  ctx.lineTo(l+cr,b); ctx.arcTo(l,b,l,b-cr,cr);
+  ctx.lineTo(l,t+cr); ctx.arcTo(l,t,l+cr,t,cr);
+  ctx.closePath();
+}
+function drawArena(){
+  // 静止中は冷たく澄み、動くと熱を帯びる。色だけでも時間の状態が分かるようにする
+  var warm = tau;
+  var g = ctx.createRadialGradient(CX,CY,0, CX,CY,Math.max(AR.w,AR.h)*0.8);
+  g.addColorStop(0, 'rgb('+((9+warm*15)|0)+','+((13+warm*4)|0)+','+((24+warm*9)|0)+')');
+  g.addColorStop(1, '#05070d');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+  rrPath(AR.l,AR.t,AR.r,AR.b,AR.cr); ctx.clip();
+  ctx.fillStyle='rgba(9,15,27,.5)'; ctx.fillRect(AR.l,AR.t,AR.w,AR.h);
+  ctx.strokeStyle='rgba(32,230,255,'+(0.05+(1-warm)*0.05).toFixed(3)+')'; ctx.lineWidth=1;
+  var step=Math.max(46, Math.min(AR.w,AR.h)/5.2), x, y;
+  for(x=AR.l+step; x<AR.r; x+=step){ ctx.beginPath(); ctx.moveTo(x,AR.t); ctx.lineTo(x,AR.b); ctx.stroke(); }
+  for(y=AR.t+step; y<AR.b; y+=step){ ctx.beginPath(); ctx.moveTo(AR.l,y); ctx.lineTo(AR.r,y); ctx.stroke(); }
+  ctx.restore();
+
+  ctx.strokeStyle='rgba(255,43,166,'+(0.05+warm*0.18).toFixed(3)+')'; ctx.lineWidth=3.2;
+  rrPath(AR.l-3,AR.t-3,AR.r+3,AR.b+3,AR.cr+3); ctx.stroke();
+  ctx.lineWidth=1.6;
+  ctx.strokeStyle='rgba(32,230,255,'+(0.22+warm*0.30).toFixed(3)+')';
+  ctx.shadowColor='rgba(32,230,255,.5)'; ctx.shadowBlur=16+warm*20;
+  rrPath(AR.l,AR.t,AR.r,AR.b,AR.cr); ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+// 静止中だけ、弾がこれからどこを通るかを見せる。
+// 「止まって考える」ことに具体的な見返りを与える、このゲームの中心の演出。
+function drawPredictions(){
+  if(tau>0.42 || STATE!=='play') return;
+  var a0=(1-tau/0.42);
+  ctx.save();
+  ctx.lineWidth=1.3; ctx.lineCap='butt';
+  for(var i=0;i<bullets.length;i++){
+    var b=bullets[i];
+    if(b.warm<1) continue;
+    // 遠くの弾ほど経路の組み立てに効くので、盤面の全弾を対象にする。
+    // 近くだけに絞ると「どこへ抜けるか」を決められず、止まる価値が薄れた。
+    var x=b.x, y=b.y, vx=b.vx, vy=b.vy, left=PRED_TIME;
+    var wl=AR.l+b.r, wr=AR.r-b.r, wt=AR.t+b.r, wb=AR.b-b.r;
+    ctx.setLineDash([5,7]);
+    ctx.strokeStyle=rgba(COL.hot, (0.30*a0).toFixed(3));
+    ctx.beginPath(); ctx.moveTo(x,y);
+    for(var seg=0; seg<2 && left>0.001; seg++){
+      // 壁までの時間。角の丸みは無視して直線の壁だけで解く(ずれは角の数pxだけ)
+      var tx = vx>0 ? (wr-x)/vx : (vx<0 ? (wl-x)/vx : Infinity);
+      var ty = vy>0 ? (wb-y)/vy : (vy<0 ? (wt-y)/vy : Infinity);
+      var tw = Math.min(tx,ty);
+      if(!(tw>0)) tw=left;
+      var t=Math.min(tw,left);
+      x+=vx*t; y+=vy*t; left-=t;
+      ctx.lineTo(x,y);
+      if(left>0.001){ if(tx<=ty) vx=-vx; else vy=-vy; }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=rgba(COL.hot,(0.5*a0).toFixed(3));
+    ctx.beginPath(); ctx.arc(x,y,2.2,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBullets(){
+  var col=mix(COL.cold, COL.hot, 0.34+tau*0.66);
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.lineCap='round';
+  for(var i=0;i<bullets.length;i++){
+    var b=bullets[i];
+    if(b.warm<1){
+      // 出現直後は当たらない。湧いた瞬間に触れて即死する事故を無くす
+      var w=b.warm;
+      ctx.strokeStyle=rgba(col,(0.55*(1-w)).toFixed(3)); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(b.x,b.y, b.r+22*(1-w), 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle=rgba(col,(0.35*w).toFixed(3));
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r*w,0,Math.PI*2); ctx.fill();
+      continue;
+    }
+    // 残像の長さがそのまま世界の速さ。止めれば点に縮む。
+    // 1フレーム分の移動量では数pxにしかならず動きが読めないので、
+    // 世界時間0.1秒ぶんの尾を tau で伸縮させて描く。
+    ctx.strokeStyle=rgba(col,0.22); ctx.lineWidth=b.r*1.9;
+    ctx.beginPath();
+    ctx.moveTo(b.x-b.vx*0.1*tau, b.y-b.vy*0.1*tau); ctx.lineTo(b.x,b.y); ctx.stroke();
+    ctx.fillStyle=rgba(col,0.20);
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*2.1+b.hit*4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=rgba(mix(col,[255,255,255],0.55+b.hit*0.4),0.95);
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*0.72,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawSeekers(){
+  for(var i=0;i<seekers.length;i++){
+    var s=seekers[i];
+    var col=mix(COL.cold, COL.seek, 0.46+tau*0.54);
+    ctx.save(); ctx.translate(s.x,s.y);
+    if(s.warm<1){
+      ctx.strokeStyle=rgba(col,(0.6*(1-s.warm)).toFixed(3)); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(0,0, s.r+30*(1-s.warm),0,Math.PI*2); ctx.stroke();
+    }
+    ctx.rotate(Math.atan2(player.y-s.y, player.x-s.x));
+    ctx.globalAlpha=0.25+0.75*s.warm;
+    ctx.fillStyle=rgba(col,0.16);
+    ctx.beginPath(); ctx.arc(0,0,s.r*2.2,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=rgba(col,0.95); ctx.lineWidth=2;
+    ctx.shadowColor=rgba(col,0.8); ctx.shadowBlur=14;
+    ctx.beginPath();
+    ctx.moveTo(s.r*1.5,0); ctx.lineTo(-s.r,s.r*0.92); ctx.lineTo(-s.r*0.45,0); ctx.lineTo(-s.r,-s.r*0.92);
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+  }
+}
+function drawRotors(){
+  if(!rotors.length) return;
+  // 光刃は闘技場の外へはみ出すことがある。枠で切って、壁の内側だけを見せる
+  ctx.save();
+  rrPath(AR.l,AR.t,AR.r,AR.b,AR.cr); ctx.clip();
+  for(var i=0;i<rotors.length;i++){
+    var r=rotors[i];
+    var col=mix(COL.cold, COL.rotor, 0.46+tau*0.54);
+    var ex=r.x+Math.cos(r.a)*r.len, ey=r.y+Math.sin(r.a)*r.len;
+    ctx.save();
+    ctx.globalAlpha = 0.3+0.7*r.warm;
+    // 直前の掃過を薄く残す。どちら回りかが一目で分かる
+    ctx.strokeStyle=rgba(col,0.10); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(r.x,r.y,r.len, r.a-(r.w<0?-1:1)*0.55, r.a, r.w<0); ctx.stroke();
+    ctx.lineCap='round';
+    ctx.strokeStyle=rgba(col,0.24); ctx.lineWidth=9;
+    ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.strokeStyle=rgba(mix(col,[255,255,255],0.55),0.95); ctx.lineWidth=2.4;
+    ctx.shadowColor=rgba(col,0.9); ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle=rgba(col,0.9);
+    ctx.beginPath(); ctx.arc(r.x,r.y,4.5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function drawOrb(){
+  if(!orb) return;
+  var v=(orbValue()/(90+level*18));
+  var pulse=0.5+0.5*Math.sin(performance.now()/380);
+  var p=orb.pop;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.fillStyle=rgba(COL.orb,(0.16*p).toFixed(3));
+  ctx.beginPath(); ctx.arc(orb.x,orb.y, (26+pulse*7)*p, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle=rgba(mix(COL.orb,[255,255,255],0.4),(0.95*p).toFixed(3));
+  ctx.beginPath(); ctx.arc(orb.x,orb.y, 7.5*p, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // 残っている輝き(＝点数)を輪で見せる。減るのは世界時間の分だけ
+  ctx.strokeStyle=rgba(COL.orb,0.16); ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(orb.x,orb.y,17*p,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle=rgba(COL.orb,0.75);
+  ctx.beginPath();
+  ctx.arc(orb.x,orb.y, 17*p, -Math.PI/2, -Math.PI/2 + Math.PI*2*clamp(v,0,1));
+  ctx.stroke();
+}
+function drawPlayer(){
+  if(STATE==='over') return;
+  var col=COL.player;
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  // 世界時間そのものを自機の周りに出す。「今どれだけ進めているか」が一目で分かる
+  ctx.strokeStyle=rgba(col,0.16); ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(0,0,19,0,Math.PI*2); ctx.stroke();
+  if(tau>0.001){
+    ctx.strokeStyle=rgba(mix(col,[255,255,255],0.3),0.85); ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.arc(0,0,19,-Math.PI/2, -Math.PI/2+Math.PI*2*tau); ctx.stroke();
+  }else{
+    // 完全静止の合図。ここでいくら考えても損をしないことを見せる
+    var bl=0.55+0.45*Math.sin(performance.now()/520);
+    ctx.strokeStyle=rgba(col,(0.30+0.35*bl).toFixed(3)); ctx.lineWidth=1.6;
+    for(var i=0;i<4;i++){
+      var a=Math.PI/4 + i*Math.PI/2;
+      ctx.beginPath(); ctx.arc(0,0,23, a-0.26, a+0.26); ctx.stroke();
+    }
+  }
+  ctx.globalCompositeOperation='lighter';
+  ctx.fillStyle=rgba(col,0.20);
+  ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill();
+  ctx.rotate(Math.atan2(player.vy,player.vx));
+  ctx.fillStyle=rgba(mix(col,[255,255,255],0.55),0.98);
+  ctx.beginPath();
+  ctx.moveTo(player.r*1.25,0); ctx.lineTo(0,player.r*0.85);
+  ctx.lineTo(-player.r*0.9,0); ctx.lineTo(0,-player.r*0.85);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function drawStick(){
+  if(!ptr.active || ptr.kind!=='touch' || STATE!=='play') return;
+  ctx.save();
+  ctx.strokeStyle='rgba(32,230,255,.22)'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.arc(ptr.ox,ptr.oy,46,0,Math.PI*2); ctx.stroke();
+  var dx=ptr.x-ptr.ox, dy=ptr.y-ptr.oy, len=Math.hypot(dx,dy)||1, m=Math.min(len,46);
+  ctx.fillStyle='rgba(32,230,255,.30)';
+  ctx.beginPath(); ctx.arc(ptr.ox+dx/len*m, ptr.oy+dy/len*m, 13,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+// 親指の待機場所。ここを握れば盤面に指がかからない、と一目で分かるようにする
+function drawTouchPad(){
+  if(!touchMode || STATE!=='play') return;
+  var t=AR.b+12, b=H-10;
+  if(b-t < 46) return;
+  var cy=(t+b)/2;
+  ctx.save();
+  ctx.globalAlpha = ptr.active ? 0.3 : 1;
+  ctx.setLineDash([4,7]);
+  ctx.strokeStyle='rgba(32,230,255,.14)'; ctx.lineWidth=1;
+  rrPath(AR.l, t, AR.r, b, 14); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(32,230,255,.20)'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.arc(CX,cy,23,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='rgba(32,230,255,.30)'; ctx.lineWidth=1.2;
+  for(var i=0;i<4;i++){
+    var a=i*Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(CX+Math.cos(a)*8, cy+Math.sin(a)*8);
+    ctx.lineTo(CX+Math.cos(a)*15, cy+Math.sin(a)*15);
+    ctx.stroke();
+  }
+  if(!padUsed){
+    ctx.textAlign='center';
+    ctx.font='600 11px Segoe UI,system-ui,sans-serif';
+    ctx.fillStyle='rgba(125,139,171,.95)';
+    ctx.fillText('ここを親指でドラッグ', CX, Math.min(b-8, cy+44));
+  }
+  ctx.restore();
+}
+function drawFx(){
+  var i;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  for(i=0;i<parts.length;i++){
+    var p=parts[i], a=1-p.t/p.life;
+    ctx.fillStyle=rgba(p.col,(a*0.85).toFixed(3));
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*a+0.6,0,Math.PI*2); ctx.fill();
+  }
+  for(i=0;i<rings.length;i++){
+    var r=rings[i], k=r.t/r.life;
+    ctx.strokeStyle=rgba(r.col,((1-k)*0.55).toFixed(3)); ctx.lineWidth=2*(1-k)+0.5;
+    ctx.beginPath(); ctx.arc(r.x,r.y, r.max*k+6, 0, Math.PI*2); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.textAlign='center';
+  ctx.font='700 17px Segoe UI,system-ui,sans-serif';
+  for(i=0;i<pops.length;i++){
+    var q=pops[i];
+    ctx.fillStyle=rgba(q.col,(1-q.t/q.life).toFixed(3));
+    ctx.fillText(q.text, q.x, q.y);
+  }
+}
+function drawOverlay(){
+  // 周辺を落として闘技場へ集中させる。静止中はさらに青く沈める
+  var rad=Math.max(AR.w,AR.h);
+  var g=ctx.createRadialGradient(CX,CY,rad*0.30, CX,CY,rad*0.88);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,.58)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  if(tau<0.5 && STATE==='play'){
+    ctx.fillStyle='rgba(28,58,102,'+(0.10*(1-tau/0.5)).toFixed(3)+')';
+    ctx.fillRect(0,0,W,H);
+  }
+  if(flash>0){ ctx.fillStyle='rgba(255,80,150,'+(flash*0.35).toFixed(3)+')'; ctx.fillRect(0,0,W,H); }
+  if(hint && STATE==='play'){
+    var a=Math.min(1, Math.min(hint.t*2.2, (hint.life-hint.t)*1.6));
+    ctx.textAlign='center';
+    ctx.font='600 12px Segoe UI,system-ui,sans-serif';
+    ctx.fillStyle='rgba(223,233,255,'+(a*0.85).toFixed(3)+')';
+    ctx.fillText(hint.text, CX, Math.min(H-12, AR.b+28));
+  }
+}
+function drawDebug(){
+  ctx.textAlign='left';
+  ctx.font='11px monospace';
+  ctx.fillStyle='rgba(32,230,255,.75)';
+  ctx.fillText('tau '+tau.toFixed(2)+'  world '+worldT.toFixed(1)+'s  bullet '+bullets.length+
+    '  seek '+seekers.length+'  rotor '+rotors.length+'  inv '+(invincible?'ON':'off')+
+    '   [I]無敵 [N]次のレベル', 12, H-14);
+}
+function render(){
+  ctx.save();
+  if(shake>0.2) ctx.translate(rand(-shake,shake)*0.6, rand(-shake,shake)*0.6);
+  drawArena();
+  drawPredictions();
+  drawRotors();
+  drawBullets();
+  drawSeekers();
+  drawOrb();
+  drawPlayer();
+  drawFx();
+  drawStick();
+  ctx.restore();
+  drawOverlay();
+  drawTouchPad();
+  if(DEBUG) drawDebug();
+}
+
+// ---- ループ --------------------------------------------------------
+var last=0;
+function frame(ts){
+  requestAnimationFrame(frame);
+  var dt=(ts-last)/1000; last=ts;
+  if(!(dt>0)) dt=0;
+  // タブ復帰直後の巨大な dt をそのまま流すと、止めていたはずの世界が
+  // 一気に進んで即死する。頭打ちにして必ず1フレーム分へ収める。
+  if(dt>0.033) dt=0.033;
+  update(dt);
+  render();
+}
+
+// ---- 起動 ----------------------------------------------------------
+function boot(){
+  resize();
+  player.x=CX; player.y=CY; player.px=CX; player.py=CY;
+  setHud();
+  el('startBtn').addEventListener('click', start);
+  el('retryBtn').addEventListener('click', function(){ if(overReady) start(); });
+  el('titleBtn').addEventListener('click', toTitle);
+  var mb=el('muteBtn');
+  function paintMute(on){ mb.classList.toggle('off', !on); mb.textContent = on ? '♪' : '✕'; }
+  paintMute(Sound.isOn());
+  mb.addEventListener('click', function(){ paintMute(Sound.toggle()); });
+  addEventListener('resize', resize);
+  addEventListener('orientationchange', function(){ setTimeout(resize,120); });
+  if(DEBUG){
+    // 調整用。通常URLでは出さないし、window へも公開しない
+    addEventListener('keydown', function(e){
+      if(e.code==='KeyI') invincible=!invincible;
+      if(e.code==='KeyN' && STATE==='play'){ level++; spawnThreats(); setHud(); }
+    });
+    window.__still = {
+      state:function(){ return STATE; },
+      level:function(){ return level; },
+      score:function(){ return score; },
+      tau:function(){ return tau; },
+      counts:function(){ return { bullets:bullets.length, seekers:seekers.length, rotors:rotors.length }; },
+      setInvincible:function(v){ invincible=!!v; },
+      collect:function(){ if(STATE==='play') collect(); },
+      kill:function(){ invincible=false; die(); }
+    };
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>

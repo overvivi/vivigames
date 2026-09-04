@@ -20,6 +20,7 @@ const FILES = [
   'games/temple-run-clone.html',
   'games/boss-battle-demo.html',
   'games/hexamine.html',
+  'games/still.html',
   // 制作中で最も編集が多い。base64を1行へ詰めている以上、ここが一番壊れやすい
   'games/hell-runner-2.html',
   'games/todays-champion-motion-preview.html',

@@ -15,6 +15,7 @@
     "test:hex-ui": "playwright test tests/hexamine-ui.spec.js",
     "test:hr2": "playwright test tests/hell-runner-2-ui.spec.js",
     "test:champion": "playwright test tests/todays-champion.spec.js",
+    "test:still": "playwright test tests/still.spec.js",
     "test:ranking": "playwright test tests/ranking-submit.spec.js",
     "test:unit": "node --test \"tests/unit/*.test.mjs\"",
     "serve": "node tests/static-server.cjs",
