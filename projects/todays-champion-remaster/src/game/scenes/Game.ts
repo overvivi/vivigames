@@ -59,6 +59,11 @@ type SummonStageLayout = {
 // 縦持ち実機を基準にする。PCでは余白を許容し、無理に横長へ引き伸ばさない。
 const VIEW_WIDTH = 941;
 const VIEW_HEIGHT = 1672;
+// HUDは透明余白を除いた2171×572pxの原画を使う。中身の座標も同じ原画座標から
+// 換算しないと、素材の差し替えや端末倍率のたびに文字と穴の位置が食い違う。
+const MIND_DUEL_HUD = { x: 20, y: 55, width: 900, sourceWidth: 2171, sourceHeight: 572 };
+const mindDuelHudX = (sourceX: number) => MIND_DUEL_HUD.x + sourceX * MIND_DUEL_HUD.width / MIND_DUEL_HUD.sourceWidth;
+const mindDuelHudY = (sourceY: number) => MIND_DUEL_HUD.y + sourceY * MIND_DUEL_HUD.width / MIND_DUEL_HUD.sourceWidth;
 const DEFAULT_STAGE_LAYOUT = { playerX: 244, npcX: 697, fighterY: 1107, fighterScale: 1 };
 // 見出しはキャラ制作前に全員共通で決める。個別のゲートで位置を変えると、
 // 立ち絵を同じ距離感・同じ安全領域へ揃えられなくなるため、ここでは共通値だけを持つ。
@@ -792,21 +797,26 @@ export class Game extends Scene {
         const background = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'battle-arena-background').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
         layer.add(background);
 
-        // HUDの穴にだけコードのHPを通す。枠そのものを画像に固定して、端末ごとの質感差を避ける。
-        const leftHpBack = this.add.rectangle(228, 224, 282, 26, 0x070b10, 0.94).setOrigin(0.5);
-        const rightHpBack = this.add.rectangle(713, 224, 282, 26, 0x070b10, 0.94).setOrigin(0.5);
-        this.mindDuelPlayerHpFill = this.add.rectangle(88, 224, 282, 18, this.playerFighter.color, 0.94).setOrigin(0, 0.5);
-        this.mindDuelNpcHpFill = this.add.rectangle(854, 224, 282, 18, this.npcFighter.color, 0.94).setOrigin(1, 0.5);
-        const hud = this.add.image(VIEW_WIDTH / 2, 205, 'battle-hud-frame').setDisplaySize(900, 300);
-        const playerName = this.add.text(226, 156, this.playerFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: `#${this.playerFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
-        const npcName = this.add.text(715, 156, `CPU · ${this.npcFighter.name}`, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: `#${this.npcFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 2 }).setOrigin(0.5);
-        this.mindDuelRoundText = this.add.text(VIEW_WIDTH / 2, 202, '01', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5 }).setOrigin(0.5);
-        this.mindDuelPlayerHpText = this.add.text(228, 254, '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
-        this.mindDuelNpcHpText = this.add.text(713, 254, '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
+        // HUDの穴にだけコードのHPを通す。枠と内部を同じ原画座標系で揃える。
+        const hpWidth = 294;
+        const hpY = mindDuelHudY(259);
+        const leftHpCenter = mindDuelHudX(476);
+        const rightHpCenter = mindDuelHudX(1695);
+        const leftHpBack = this.add.rectangle(leftHpCenter, hpY, hpWidth, 24, 0x070b10, 0.94).setOrigin(0.5);
+        const rightHpBack = this.add.rectangle(rightHpCenter, hpY, hpWidth, 24, 0x070b10, 0.94).setOrigin(0.5);
+        this.mindDuelPlayerHpFill = this.add.rectangle(leftHpCenter - hpWidth / 2 + 7, hpY, hpWidth - 14, 16, this.playerFighter.color, 0.94).setOrigin(0, 0.5);
+        this.mindDuelNpcHpFill = this.add.rectangle(rightHpCenter + hpWidth / 2 - 7, hpY, hpWidth - 14, 16, this.npcFighter.color, 0.94).setOrigin(1, 0.5);
+        const hudHeight = MIND_DUEL_HUD.sourceHeight * MIND_DUEL_HUD.width / MIND_DUEL_HUD.sourceWidth;
+        const hud = this.add.image(MIND_DUEL_HUD.x + MIND_DUEL_HUD.width / 2, MIND_DUEL_HUD.y + hudHeight / 2, 'battle-hud-frame').setDisplaySize(MIND_DUEL_HUD.width, hudHeight);
+        const playerName = this.add.text(mindDuelHudX(476), mindDuelHudY(124), this.playerFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: `#${this.playerFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
+        const npcName = this.add.text(mindDuelHudX(1695), mindDuelHudY(124), `CPU · ${this.npcFighter.name}`, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: `#${this.npcFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 2 }).setOrigin(0.5);
+        this.mindDuelRoundText = this.add.text(mindDuelHudX(1086), mindDuelHudY(267), '01', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5 }).setOrigin(0.5);
+        this.mindDuelPlayerHpText = this.add.text(mindDuelHudX(476), mindDuelHudY(416), '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
+        this.mindDuelNpcHpText = this.add.text(mindDuelHudX(1695), mindDuelHudY(416), '1000', { fontFamily: 'Arial, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#d8eff8', letterSpacing: 2 }).setOrigin(0.5);
         layer.add([leftHpBack, rightHpBack, this.mindDuelPlayerHpFill, this.mindDuelNpcHpFill, hud, playerName, npcName, this.mindDuelRoundText, this.mindDuelPlayerHpText, this.mindDuelNpcHpText]);
 
-        this.createMindDuelGems(layer, [196, 237], true);
-        this.createMindDuelGems(layer, [703, 748], false);
+        this.createMindDuelGems(layer, [457, 548], true);
+        this.createMindDuelGems(layer, [1624, 1716], false);
         const playerArt = this.add.image(270, 1190, `summon-character-${this.playerFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760);
         const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
         playerArt.setAlpha(0.98);
@@ -831,11 +841,13 @@ export class Game extends Scene {
     }
 
     private createMindDuelGems(layer: GameObjects.Container, positions: [number, number], playerSide: boolean) {
-        positions.forEach((x) => {
+        positions.forEach((sourceX) => {
             // HUD原画の丸ソケット中心へ合わせる。生成素材の縁ノイズも円形マスクで確実に遮断する。
-            const gem = this.add.image(x, 263, 'battle-ultimate-socket-crystal').setDisplaySize(38, 38).setAlpha(0.16);
+            const x = mindDuelHudX(sourceX);
+            const y = mindDuelHudY(416);
+            const gem = this.add.image(x, y, 'battle-ultimate-socket-crystal').setDisplaySize(38, 38).setAlpha(0.16);
             const circleMask = this.make.graphics({ x: 0, y: 0 });
-            circleMask.fillStyle(0xffffff, 1).fillCircle(x, 263, 19);
+            circleMask.fillStyle(0xffffff, 1).fillCircle(x, y, 19);
             gem.setMask(circleMask.createGeometryMask());
             layer.add(gem);
             (playerSide ? this.mindDuelPlayerGems : this.mindDuelNpcGems).push(gem);
@@ -843,14 +855,16 @@ export class Game extends Scene {
     }
 
     private createMindDuelButton(layer: GameObjects.Container, x: number, key: string, move: Exclude<MindDuelMove, 'ultimate'>) {
-        const button = this.add.image(x, 1435, key).setDisplaySize(230, 230).setInteractive({ useHandCursor: true });
-        layer.add(button);
-        if (move !== 'attack') button.on('pointerdown', () => this.chooseMindDuelMove(move));
+        const button = this.add.image(x, 1435, key).setDisplaySize(230, 230);
+        // 素材の透明余白やトリム情報に入力範囲を任せず、見た目と同じ230pxの領域を明示する。
+        const hitArea = this.add.zone(x, 1435, 230, 230).setInteractive({ useHandCursor: true });
+        layer.add([button, hitArea]);
+        if (move !== 'attack') hitArea.on('pointerdown', () => this.chooseMindDuelMove(move));
         // setDisplaySize後にscaleを1へ戻すと、縮めた見た目ではなく原寸へ戻ってしまう。
-        button.on('pointerdown', () => !this.mindDuelLocked && button.setAlpha(0.84));
-        button.on('pointerup', () => button.setAlpha(1));
-        button.on('pointerout', () => button.setAlpha(1));
-        return button;
+        hitArea.on('pointerdown', () => !this.mindDuelLocked && button.setAlpha(0.84));
+        hitArea.on('pointerup', () => button.setAlpha(1));
+        hitArea.on('pointerout', () => button.setAlpha(1));
+        return hitArea;
     }
 
     private startMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {

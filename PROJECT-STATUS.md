@@ -1854,3 +1854,10 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 写真素材を`setDisplaySize`した後で`scale: 1`へ戻していたため、PCホバー時に原寸へ跳ね上がる不具合があった。タイトルの3モードボタンと決闘3択ボタンから拡大Tweenを削除し、押下時だけアルファを落とす一定サイズの反応に統一した
 - 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、`tools/build-championship-re-battle-ui.mjs`、結晶原画／変換済み素材、公開バンドル
 - 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
+### 2026-09-04 — Codex（Remaster：HUD座標系・決闘入力修正、未公開）
+
+- 決闘HUDのWebPは透明余白を除去した`2171×572`原画であるのに、HP・名前・ラウンド・結晶を個別の固定座標で置いていたため、枠の穴と中身が一致しなかった。HUD本体の実寸比を維持し、すべてを同じ原画座標から換算する`MIND_DUEL_HUD`へ統一した
+- HPバー、名前、ラウンド、HP数値、両陣営の結晶ソケットをすべて原画の対応する位置へ配置し直した。HUDを`900×300`へ縦に歪める表示も廃止した
+- 写真素材のトリム情報へ入力領域を任せず、ATTACK／GUARD／BREAKそれぞれへ見た目と同じ`230×230`の透明`Zone`を明示して配置。入力処理はこの領域へ接続して、ボタンが押せない不具合を防いだ
+- 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、公開バンドル。検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
