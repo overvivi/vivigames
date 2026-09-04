@@ -935,8 +935,10 @@ export class Game extends Scene {
         this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ${this.moveLabel(npcMove)}`);
         this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setColor('#fff2bd').setVisible(true);
         this.updateMindDuelUi();
-        this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1);
-        this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1);
+        const playerGuardBroken = playerMove === 'guard' && npcMove === 'break';
+        const npcGuardBroken = npcMove === 'guard' && playerMove === 'break';
+        this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1, playerGuardBroken);
+        this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1, npcGuardBroken);
         if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter);
         if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter);
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
@@ -980,23 +982,29 @@ export class Game extends Scene {
         }
     }
 
-    private playMindDuelMoveAnimation(art: GameObjects.Image | undefined, fighter: FighterDefinition, move: MindDuelMove, direction: -1 | 1) {
+    private playMindDuelMoveAnimation(art: GameObjects.Image | undefined, fighter: FighterDefinition, move: MindDuelMove, direction: -1 | 1, guardBroken = false) {
         if (art === undefined) return;
         const baseX = direction === -1 ? 270 : 674;
         const baseY = 1190;
         this.tweens.killTweensOf(art);
         const pose: BattleCharacterPose = move === 'guard' ? 'guard' : move === 'break' ? 'break' : move === 'ultimate' ? 'ultimate' : 'attack';
         art.setTexture(this.mindDuelCharacterTexture(fighter, pose)).setDisplaySize(500, 760).setFlipX(direction === 1);
-        const travel = move === 'ultimate' ? 86 : move === 'break' ? 68 : move === 'guard' ? 22 : 52;
-        const duration = move === 'ultimate' ? 290 : move === 'break' ? 270 : 250;
-        const hold = move === 'ultimate' ? 450 : move === 'break' ? 350 : 300;
+        const travel = move === 'ultimate' ? 86 : move === 'break' ? 68 : 52;
+        const duration = guardBroken ? 210 : move === 'ultimate' ? 290 : move === 'break' ? 270 : 250;
+        const hold = guardBroken ? 380 : move === 'ultimate' ? 450 : move === 'break' ? 350 : 300;
+        // ガードは相手へ踏み込まない。手の開示から一拍後、攻撃が当たるタイミングだけ
+        // 外側へわずかに押し戻して、受けた重さを見せる。
+        const targetX = move === 'guard' ? baseX + direction * (guardBroken ? 72 : 24) : baseX - direction * travel;
+        const targetY = move === 'guard' ? baseY + (guardBroken ? 18 : 6) : baseY - (move === 'ultimate' ? 38 : 18);
+        const guardHitDelay = move === 'guard' ? 260 : 0;
         this.tweens.add({
             targets: art,
-            x: baseX - direction * travel,
-            y: baseY - (move === 'ultimate' ? 38 : 18),
+            x: targetX,
+            y: targetY,
             duration,
             yoyo: true,
             hold,
+            delay: guardHitDelay,
             ease: 'Quad.easeOut',
             onComplete: () => {
                 art.setTexture(this.mindDuelCharacterTexture(fighter, 'idle')).setDisplaySize(500, 760).setFlipX(direction === 1).setPosition(baseX, baseY).setAlpha(0.98);
