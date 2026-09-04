@@ -3,6 +3,7 @@ import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 type DuelState = 'title' | 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result' | 'mind-duel';
 type CountdownValue = '3' | '2' | '1' | 'FIGHT';
 type MindDuelMove = 'attack' | 'guard' | 'break' | 'ultimate';
+type BattleCharacterPose = 'idle' | 'attack' | 'guard' | 'break' | 'ultimate';
 
 type AttackEffectDefinition = {
     scale: number;
@@ -244,6 +245,7 @@ export class Game extends Scene {
     private mindDuelLastPlayerMove?: MindDuelMove;
     private mindDuelAttackStart?: { x: number; y: number; at: number };
     private gameplayAssetsLoaded = false;
+    private battlePreviewEnabled = false;
 
     constructor() {
         super('Game');
@@ -308,6 +310,8 @@ export class Game extends Scene {
     create() {
         const params = new URLSearchParams(window.location.search);
         this.debugEnabled = params.has('debug');
+        // 公開導線を増やさず、2人ぶんの新規素材と必殺範囲を実機で確かめるための確認URLだけを持つ。
+        this.battlePreviewEnabled = params.get('battlePreview') === 'raven-mika';
         this.summonStagePreviewEnabled = this.debugEnabled && params.has('layout');
         this.desktopDebugEnabled = this.debugEnabled && this.hasDesktopDebugSpace();
         this.events.once('shutdown', () => {
@@ -738,12 +742,17 @@ export class Game extends Scene {
 
     private startSelectedDuel() {
         if (this.state !== 'select') return;
-        this.playerFighter = this.selectedFighter;
-        const rivals = FIGHTERS.filter((fighter) => fighter.id !== this.playerFighter.id);
-        this.npcFighter = PhaserMath.RND.pick(rivals);
-        // 選択画面で必要な2人だけを読む。戦闘開始後に攻撃ポーズが遅れて現れるのを防ぎつつ、
-        // 7人全員分を先読みしてSafariの初回表示を重くしない。
-        this.loadFighterMotions([this.playerFighter, this.npcFighter], () => this.beginMindDuel());
+        if (this.battlePreviewEnabled) {
+            this.playerFighter = FIGHTERS.find((fighter) => fighter.id === 'raven')!;
+            this.npcFighter = FIGHTERS.find((fighter) => fighter.id === 'mika')!;
+        } else {
+            this.playerFighter = this.selectedFighter;
+            const rivals = FIGHTERS.filter((fighter) => fighter.id !== this.playerFighter.id);
+            this.npcFighter = PhaserMath.RND.pick(rivals);
+        }
+        // 今回の決闘用に描いた素材だけを2人分遅延読込する。旧ゲームのモーションを
+        // 新しい3択決闘へ混ぜず、Safariの初回表示も重くしない。
+        this.loadMindDuelBattleAssets([this.playerFighter, this.npcFighter], () => this.beginMindDuel());
     }
 
     private beginMindDuel() {
@@ -805,8 +814,8 @@ export class Game extends Scene {
         // 透過領域を原画ピクセルで実測した丸ソケットの中心。目測値を使うと左右で数十pxずれる。
         this.createMindDuelGems(layer, [473, 589], true);
         this.createMindDuelGems(layer, [1581, 1696], false);
-        const playerArt = this.add.image(270, 1190, `summon-character-${this.playerFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760);
-        const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
+        const playerArt = this.add.image(270, 1190, this.mindDuelCharacterTexture(this.playerFighter, 'idle')).setOrigin(0.5, 1).setDisplaySize(500, 760);
+        const npcArt = this.add.image(674, 1190, this.mindDuelCharacterTexture(this.npcFighter, 'idle')).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
         playerArt.setAlpha(0.98);
         npcArt.setAlpha(0.98);
         this.mindDuelPlayerArt = playerArt;
@@ -830,6 +839,7 @@ export class Game extends Scene {
         layer.add([this.mindDuelReadyRing, this.mindDuelSwipeTrail]);
         attack.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startMindDuelAttackGesture(pointer));
         this.updateMindDuelUi();
+        if (this.battlePreviewEnabled) this.playRavenMikaBattlePreview();
     }
 
     private createMindDuelGems(layer: GameObjects.Container, positions: [number, number], playerSide: boolean) {
@@ -927,6 +937,8 @@ export class Game extends Scene {
         this.updateMindDuelUi();
         this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1);
         this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1);
+        if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter);
+        if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter);
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
         const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
         if (playerReadyNow || npcReadyNow) this.announceMindDuelUltimateReady(playerReadyNow);
@@ -939,7 +951,9 @@ export class Game extends Scene {
         }
         this.mindDuelRound += 1;
         this.mindDuelRoundText?.setText(String(this.mindDuelRound).padStart(2, '0'));
-        this.time.delayedCall(900, () => {
+        // 3択の意味は「出た瞬間」より、相手の手と自分のポーズを一拍読めることで伝わる。
+        // ガードも含め全手の戻りを待ってから次入力を開放する。
+        this.time.delayedCall(1320, () => {
             if (this.state !== 'mind-duel') return;
             this.mindDuelLocked = false;
             this.mindDuelReveal?.setVisible(false);
@@ -971,37 +985,110 @@ export class Game extends Scene {
         const baseX = direction === -1 ? 270 : 674;
         const baseY = 1190;
         this.tweens.killTweensOf(art);
-        if (move === 'guard') {
-            this.tweens.add({
-                targets: art,
-                x: baseX - direction * 22,
-                alpha: 0.76,
-                duration: 115,
-                yoyo: true,
-                ease: 'Quad.easeOut',
-                onComplete: () => {
-                    art.setPosition(baseX, baseY).setAlpha(0.98);
-                    this.resumeMindDuelIdle(art, direction);
-                }
-            });
-            return;
-        }
-        const attackKey = this.motionKey(fighter, 'attack');
-        if (this.textures.exists(attackKey)) {
-            art.setTexture(attackKey).setDisplaySize(500, 760).setFlipX(direction === 1);
-        }
-        const travel = move === 'ultimate' ? 86 : 52;
+        const pose: BattleCharacterPose = move === 'guard' ? 'guard' : move === 'break' ? 'break' : move === 'ultimate' ? 'ultimate' : 'attack';
+        art.setTexture(this.mindDuelCharacterTexture(fighter, pose)).setDisplaySize(500, 760).setFlipX(direction === 1);
+        const travel = move === 'ultimate' ? 86 : move === 'break' ? 68 : move === 'guard' ? 22 : 52;
+        const duration = move === 'ultimate' ? 290 : move === 'break' ? 270 : 250;
+        const hold = move === 'ultimate' ? 450 : move === 'break' ? 350 : 300;
         this.tweens.add({
             targets: art,
             x: baseX - direction * travel,
             y: baseY - (move === 'ultimate' ? 38 : 18),
-            duration: 150,
+            duration,
             yoyo: true,
+            hold,
             ease: 'Quad.easeOut',
             onComplete: () => {
-                art.setTexture(`summon-character-${fighter.id}`).setDisplaySize(500, 760).setFlipX(direction === 1).setPosition(baseX, baseY).setAlpha(0.98);
+                art.setTexture(this.mindDuelCharacterTexture(fighter, 'idle')).setDisplaySize(500, 760).setFlipX(direction === 1).setPosition(baseX, baseY).setAlpha(0.98);
                 this.resumeMindDuelIdle(art, direction);
             }
+        });
+    }
+
+    private hasMindDuelCharacter(fighter: FighterDefinition) {
+        return fighter.id === 'raven' || fighter.id === 'mika';
+    }
+
+    private mindDuelCharacterKey(fighter: FighterDefinition, pose: BattleCharacterPose) {
+        return `battle-character-${fighter.id}-${pose}`;
+    }
+
+    private mindDuelCharacterTexture(fighter: FighterDefinition, pose: BattleCharacterPose) {
+        const key = this.mindDuelCharacterKey(fighter, pose);
+        return this.hasMindDuelCharacter(fighter) && this.textures.exists(key) ? key : `summon-character-${fighter.id}`;
+    }
+
+    private mindDuelUltimateEffectKey(fighter: FighterDefinition) {
+        return fighter.id === 'raven'
+            ? 'battle-effect-raven-ultimate-arrow-rain'
+            : 'battle-effect-mika-ultimate-shockwave';
+    }
+
+    private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
+        const unique = fighters.filter((fighter, index) => fighters.findIndex((other) => other.id === fighter.id) === index && this.hasMindDuelCharacter(fighter));
+        const toLoad: Array<{ key: string; path: string }> = [];
+        unique.forEach((fighter) => {
+            (['idle', 'attack', 'guard', 'break', 'ultimate'] as BattleCharacterPose[]).forEach((pose) => {
+                const key = this.mindDuelCharacterKey(fighter, pose);
+                if (!this.textures.exists(key)) toLoad.push({ key, path: `assets/championship-re/battle/characters/${fighter.id}-battle-${pose}-v1.webp` });
+            });
+            const effectKey = this.mindDuelUltimateEffectKey(fighter);
+            if (!this.textures.exists(effectKey)) toLoad.push({ key: effectKey, path: `assets/championship-re/battle/effects/${fighter.id}-ultimate-${fighter.id === 'raven' ? 'arrow-rain-v1' : 'shockwave-v2'}.webp` });
+        });
+        if (!toLoad.length) {
+            onComplete();
+            return;
+        }
+        toLoad.forEach(({ key, path }) => this.load.image(key, path));
+        this.load.once('complete', onComplete);
+        this.load.start();
+    }
+
+    private playMindDuelUltimateEffect(fighter: FighterDefinition) {
+        const key = this.mindDuelUltimateEffectKey(fighter);
+        if (!this.textures.exists(key) || this.mindDuelLayer === undefined) return;
+        // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
+        // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
+        const enemySide = fighter.id === this.npcFighter.id;
+        const effect = this.add.image(VIEW_WIDTH / 2, 940, key).setOrigin(0.5).setDisplaySize(1000, 1500).setFlipX(enemySide).setBlendMode('ADD').setAlpha(0);
+        // キャラの上に出しつつ、HUDと操作ボタンの下へ置く。黒背景を加算合成するので、
+        // 発光の縁をalpha抜きした時に起きるガビつきを避けられる。
+        this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
+        this.tweens.add({
+            targets: effect,
+            alpha: { from: 0, to: 0.92 },
+            duration: 220,
+            ease: 'Quad.easeOut',
+            yoyo: true,
+            hold: 760,
+            onComplete: () => effect.destroy()
+        });
+    }
+
+    private playRavenMikaBattlePreview() {
+        // 実戦中と同じ差し替え・VFX経路を使う。確認URLでだけBREAKから順番に
+        // 見せるため、通常のCPU戦のゲージや勝敗には影響しない。
+        this.time.delayedCall(360, () => {
+            if (this.state !== 'mind-duel') return;
+            this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, 'break', -1);
+            this.mindDuelReveal?.setText('RAVEN  •  BREAK').setVisible(true).setAlpha(1);
+        });
+        this.time.delayedCall(1480, () => {
+            if (this.state !== 'mind-duel') return;
+            this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, 'break', 1);
+            this.mindDuelReveal?.setText('MIKA  •  BREAK').setVisible(true).setAlpha(1);
+        });
+        this.time.delayedCall(2720, () => {
+            if (this.state !== 'mind-duel') return;
+            this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, 'ultimate', -1);
+            this.playMindDuelUltimateEffect(this.playerFighter);
+            this.mindDuelReveal?.setText('RAVEN  •  SKYFALL').setVisible(true).setAlpha(1);
+        });
+        this.time.delayedCall(4580, () => {
+            if (this.state !== 'mind-duel') return;
+            this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, 'ultimate', 1);
+            this.playMindDuelUltimateEffect(this.npcFighter);
+            this.mindDuelReveal?.setText('MIKA  •  ROLLER BREAK').setVisible(true).setAlpha(1);
         });
     }
 
