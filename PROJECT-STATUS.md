@@ -1893,3 +1893,10 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 結晶ソケットは原画から目測した中心を使っていたため左右で最大41pxの原画座標誤差が残っていた。透過領域をピクセル実測し、左`473/589`・右`1581/1696`（Y=416）の正確な中心へ更新した
 - ソケット上の`1000`は結晶ゲージと競合していたため削除。HPの増減は既存の横バーだけで読ませる
 - 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
+### 2026-09-04 — Codex（Remaster：決闘の攻撃ポーズ・必殺解放演出、未公開）
+
+- CPU戦へ入る直前に、選んだ自キャラとCPUの2人ぶんだけ既存の攻撃ポーズを遅延読込するようにした。通常攻撃・BREAK・ULTIMATEでは立ち絵を攻撃ポーズへ切り替えて中央へ踏み込み、直後に元の待機絵とゆらぎへ戻す。GUARDは新素材を増やさず短い後退で判別できるようにした
+- 2個目の結晶が点いた瞬間は、該当側の結晶を白金フラッシュ、闘技場を短く発光、手の開示後に`ULTIMATE READY`／`CPU ULTIMATE READY`を中央へ出す。READYリングは従来どおり固定サイズの明滅で、拡大しない
+- 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、公開用バンドル。ユーザー作業中の召喚ゲート素材・元PNGはステージング対象に含めない
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち

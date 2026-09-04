@@ -231,6 +231,8 @@ export class Game extends Scene {
     private mindDuelRoundText?: GameObjects.Text;
     private mindDuelPlayerGems: GameObjects.Image[] = [];
     private mindDuelNpcGems: GameObjects.Image[] = [];
+    private mindDuelPlayerArt?: GameObjects.Image;
+    private mindDuelNpcArt?: GameObjects.Image;
     private mindDuelReadyRing?: GameObjects.Image;
     private mindDuelSwipeTrail?: GameObjects.Image;
     private mindDuelPlayerHp = 1000;
@@ -739,7 +741,9 @@ export class Game extends Scene {
         this.playerFighter = this.selectedFighter;
         const rivals = FIGHTERS.filter((fighter) => fighter.id !== this.playerFighter.id);
         this.npcFighter = PhaserMath.RND.pick(rivals);
-        this.beginMindDuel();
+        // 選択画面で必要な2人だけを読む。戦闘開始後に攻撃ポーズが遅れて現れるのを防ぎつつ、
+        // 7人全員分を先読みしてSafariの初回表示を重くしない。
+        this.loadFighterMotions([this.playerFighter, this.npcFighter], () => this.beginMindDuel());
     }
 
     private beginMindDuel() {
@@ -771,6 +775,8 @@ export class Game extends Scene {
         this.mindDuelLastPlayerMove = undefined;
         this.mindDuelPlayerGems = [];
         this.mindDuelNpcGems = [];
+        this.mindDuelPlayerArt = undefined;
+        this.mindDuelNpcArt = undefined;
 
         const layer = this.add.container().setDepth(120);
         this.mindDuelLayer = layer;
@@ -803,6 +809,8 @@ export class Game extends Scene {
         const npcArt = this.add.image(674, 1190, `summon-character-${this.npcFighter.id}`).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
         playerArt.setAlpha(0.98);
         npcArt.setAlpha(0.98);
+        this.mindDuelPlayerArt = playerArt;
+        this.mindDuelNpcArt = npcArt;
         layer.add([playerArt, npcArt]);
         this.tweens.add({ targets: playerArt, y: 1182, duration: 1250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.tweens.add({ targets: npcArt, y: 1182, duration: 1280, delay: 140, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -870,7 +878,7 @@ export class Game extends Scene {
         const playerMove = move;
         const npcMove = this.chooseMindDuelCpuMove();
         this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ?`);
-        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ?`).setVisible(true).setAlpha(1);
+        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ?`).setColor('#fff2bd').setVisible(true).setAlpha(1);
         this.time.delayedCall(480, () => this.resolveMindDuelRound(playerMove, npcMove));
     }
 
@@ -882,6 +890,8 @@ export class Game extends Scene {
     }
 
     private resolveMindDuelRound(playerMove: MindDuelMove, npcMove: MindDuelMove) {
+        const playerGaugeBefore = this.mindDuelPlayerGauge;
+        const npcGaugeBefore = this.mindDuelNpcGauge;
         let playerDamage = 0;
         let npcDamage = 0;
         let playerGauge = 0;
@@ -913,8 +923,13 @@ export class Game extends Scene {
         this.mindDuelNpcGauge = Math.min(2, this.mindDuelNpcGauge + npcGauge);
         this.mindDuelLastPlayerMove = playerMove;
         this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ${this.moveLabel(npcMove)}`);
-        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setVisible(true);
+        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setColor('#fff2bd').setVisible(true);
         this.updateMindDuelUi();
+        this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1);
+        this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1);
+        const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
+        const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
+        if (playerReadyNow || npcReadyNow) this.announceMindDuelUltimateReady(playerReadyNow);
         const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
         if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
         this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
@@ -949,6 +964,72 @@ export class Game extends Scene {
         } else if (this.mindDuelReadyRing !== undefined) {
             this.tweens.killTweensOf(this.mindDuelReadyRing);
         }
+    }
+
+    private playMindDuelMoveAnimation(art: GameObjects.Image | undefined, fighter: FighterDefinition, move: MindDuelMove, direction: -1 | 1) {
+        if (art === undefined) return;
+        const baseX = direction === -1 ? 270 : 674;
+        const baseY = 1190;
+        this.tweens.killTweensOf(art);
+        if (move === 'guard') {
+            this.tweens.add({
+                targets: art,
+                x: baseX - direction * 22,
+                alpha: 0.76,
+                duration: 115,
+                yoyo: true,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    art.setPosition(baseX, baseY).setAlpha(0.98);
+                    this.resumeMindDuelIdle(art, direction);
+                }
+            });
+            return;
+        }
+        const attackKey = this.motionKey(fighter, 'attack');
+        if (this.textures.exists(attackKey)) {
+            art.setTexture(attackKey).setDisplaySize(500, 760).setFlipX(direction === 1);
+        }
+        const travel = move === 'ultimate' ? 86 : 52;
+        this.tweens.add({
+            targets: art,
+            x: baseX - direction * travel,
+            y: baseY - (move === 'ultimate' ? 38 : 18),
+            duration: 150,
+            yoyo: true,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+                art.setTexture(`summon-character-${fighter.id}`).setDisplaySize(500, 760).setFlipX(direction === 1).setPosition(baseX, baseY).setAlpha(0.98);
+                this.resumeMindDuelIdle(art, direction);
+            }
+        });
+    }
+
+    private resumeMindDuelIdle(art: GameObjects.Image, direction: -1 | 1) {
+        this.tweens.add({
+            targets: art,
+            y: 1182,
+            duration: direction === -1 ? 1250 : 1280,
+            delay: direction === -1 ? 0 : 140,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    private announceMindDuelUltimateReady(playerReadyNow: boolean) {
+        const color = playerReadyNow ? 0xffe491 : 0xffb4d8;
+        this.flashArena(color, 0.28, 210);
+        const gems = playerReadyNow ? this.mindDuelPlayerGems : this.mindDuelNpcGems;
+        gems.forEach((gem) => {
+            this.tweens.killTweensOf(gem);
+            this.tweens.add({ targets: gem, alpha: 0.26, duration: 90, yoyo: true, repeat: 3, ease: 'Sine.easeInOut', onComplete: () => gem.setAlpha(1) });
+        });
+        // 手の結果を先に読ませ、直後に「2個目が点いた」ことだけを短く強調する。
+        this.time.delayedCall(520, () => {
+            if (this.state !== 'mind-duel') return;
+            this.mindDuelReveal?.setText(playerReadyNow ? 'ULTIMATE READY' : 'CPU ULTIMATE READY').setColor(playerReadyNow ? '#fff0a1' : '#c9dcff').setVisible(true).setAlpha(1);
+        });
     }
 
     private moveLabel(move: MindDuelMove) {
