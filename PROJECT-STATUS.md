@@ -1861,6 +1861,13 @@ PR: https://github.com/overvivi/vivigames/pull/1
 - 召喚式の選択画面上部に残っていたタイトルロゴ素材を削除。タイトルロゴはモード選択タイトルだけで表示し、選択画面では7ゲートとキャラ確認を優先する
 - 変更: `projects/todays-champion-remaster/src/game/scenes/Game.ts`、公開バンドル。検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
 
+### 2026-09-04 — Codex（Remaster：PC必殺入力・手の開示、未公開）
+
+- PCでは上スワイプが実用的でないため、結晶2個後のATTACKを330ms長押しして離すだけで必殺になる代替入力を追加。スマホは従来どおり長押し＋上スワイプを維持する
+- 選択した手とCPUの手を、下部の小さい案内文だけでなくキャラの間に大きく`ATTACK VS GUARD`形式で開示するようにした。次ラウンドへ戻る時は非表示にする
+- READYリングは`setDisplaySize`後に`scale`をTweenして原寸へ跳ねていた。サイズTweenを完全に外し、固定サイズのままアルファだけを脈動させる
+- 検証: `npx tsc --noEmit`、公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未公開、ユーザーの明示`push`待ち
+
 ### 2026-09-04 — Codex（Remaster：決闘入力停止クラッシュ修正、未公開）
 
 - Chromeで選択→決闘を実際に再現。決闘画面への遷移後、選択画面の10秒タイマーが破棄済みのTextへ`setText`し、Phaser更新処理が例外停止していた。結果として画面は表示されたまま全決闘ボタンが反応しなくなっていた

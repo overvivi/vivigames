@@ -223,6 +223,7 @@ export class Game extends Scene {
     private flash!: GameObjects.Rectangle;
     private mindDuelLayer?: GameObjects.Container;
     private mindDuelStatus?: GameObjects.Text;
+    private mindDuelReveal?: GameObjects.Text;
     private mindDuelPlayerHpFill?: GameObjects.Rectangle;
     private mindDuelNpcHpFill?: GameObjects.Rectangle;
     private mindDuelPlayerHpText?: GameObjects.Text;
@@ -808,7 +809,9 @@ export class Game extends Scene {
 
         const choosePlate = this.add.image(VIEW_WIDTH / 2, 1180, 'battle-choose-move').setDisplaySize(560, 110);
         this.mindDuelStatus = this.add.text(VIEW_WIDTH / 2, 1191, 'CHOOSE YOUR MOVE', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#fff2bd', stroke: '#080b12', strokeThickness: 5, letterSpacing: 3 }).setOrigin(0.5);
-        layer.add([choosePlate, this.mindDuelStatus]);
+        // 読み合いの結果は小さな案内板だけで済ませず、キャラの間へ大きく一度だけ開示する。
+        this.mindDuelReveal = this.add.text(VIEW_WIDTH / 2, 1078, '', { fontFamily: 'Arial, sans-serif', fontSize: '32px', fontStyle: 'bold', color: '#fff2bd', stroke: '#060910', strokeThickness: 9, letterSpacing: 3 }).setOrigin(0.5).setVisible(false);
+        layer.add([choosePlate, this.mindDuelStatus, this.mindDuelReveal]);
         this.createMindDuelButton(layer, 173, 'battle-action-break', 'break');
         this.createMindDuelButton(layer, VIEW_WIDTH / 2, 'battle-action-guard', 'guard');
         const attack = this.createMindDuelButton(layer, 768, 'battle-action-attack', 'attack');
@@ -856,7 +859,9 @@ export class Game extends Scene {
         this.mindDuelAttackStart = undefined;
         const heldLongEnough = this.time.now - start.at >= 330;
         const swipedUp = start.y - pointer.y >= 80 && Math.abs(pointer.x - start.x) < 120;
-        this.chooseMindDuelMove(this.mindDuelPlayerGauge >= 2 && heldLongEnough && swipedUp ? 'ultimate' : 'attack');
+        // マウスに上スワイプを要求するとPCでは必殺が出せない。PCは長押し→離すだけで同じ入力にする。
+        const pcLongPress = pointer.event instanceof MouseEvent && heldLongEnough;
+        this.chooseMindDuelMove(this.mindDuelPlayerGauge >= 2 && (pcLongPress || (heldLongEnough && swipedUp)) ? 'ultimate' : 'attack');
     }
 
     private chooseMindDuelMove(move: MindDuelMove) {
@@ -865,6 +870,7 @@ export class Game extends Scene {
         const playerMove = move;
         const npcMove = this.chooseMindDuelCpuMove();
         this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ?`);
+        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ?`).setVisible(true).setAlpha(1);
         this.time.delayedCall(480, () => this.resolveMindDuelRound(playerMove, npcMove));
     }
 
@@ -907,6 +913,7 @@ export class Game extends Scene {
         this.mindDuelNpcGauge = Math.min(2, this.mindDuelNpcGauge + npcGauge);
         this.mindDuelLastPlayerMove = playerMove;
         this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ${this.moveLabel(npcMove)}`);
+        this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setVisible(true);
         this.updateMindDuelUi();
         const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
         if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
@@ -920,7 +927,8 @@ export class Game extends Scene {
         this.time.delayedCall(900, () => {
             if (this.state !== 'mind-duel') return;
             this.mindDuelLocked = false;
-            this.mindDuelStatus?.setText('CHOOSE YOUR MOVE');
+            this.mindDuelReveal?.setVisible(false);
+            this.mindDuelStatus?.setText(this.mindDuelPlayerGauge >= 2 ? 'ULTIMATE READY  •  HOLD ATTACK / SWIPE UP' : 'CHOOSE YOUR MOVE');
         });
     }
 
@@ -936,7 +944,10 @@ export class Game extends Scene {
         this.mindDuelSwipeTrail?.setVisible(ultimateReady).setAlpha(ultimateReady ? 0.8 : 0);
         if (ultimateReady && this.mindDuelReadyRing !== undefined) {
             this.tweens.killTweensOf(this.mindDuelReadyRing);
-            this.tweens.add({ targets: this.mindDuelReadyRing, scale: 1.08, alpha: 0.5, duration: 780, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            // setDisplaySize済みの写真素材へscaleを掛けると原寸へ跳ねる。サイズは固定で発光だけ脈打たせる。
+            this.tweens.add({ targets: this.mindDuelReadyRing, alpha: 0.46, duration: 780, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        } else if (this.mindDuelReadyRing !== undefined) {
+            this.tweens.killTweensOf(this.mindDuelReadyRing);
         }
     }
 
