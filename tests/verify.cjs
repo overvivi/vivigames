@@ -21,6 +21,10 @@ const FILES = [
   'games/boss-battle-demo.html',
   'games/hexamine.html',
   'games/still.html',
+  // React製のミニゲームを単一HTMLへ畳んだもの。元は elegant-solitaire/ と immune-defense/
+  //（作り直しは npm run games:build）
+  'games/elegant-solitaire.html',
+  'games/immune-defense.html',
   // 制作中で最も編集が多い。base64を1行へ詰めている以上、ここが一番壊れやすい
   'games/hell-runner-2.html',
   'games/todays-champion-motion-preview.html',
@@ -68,8 +72,12 @@ for(const file of FILES){
 
   // ---- 2. 構造 ----
   // フォーマッタや不用意な全体書き換えでbase64行が壊れると、まずここに出る。
-  const open = (html.match(/<script(?:\s|>)/gi) || []).length;
-  const close = (html.match(/<\/script>/gi) || []).length;
+  // スクリプトの中身に "<script>" という文字列が入っていることがある
+  // （Reactのバンドルが innerHTML 用に持っている）。数える前に中身を空にする。
+  // 閉じ忘れたスクリプトはこの置換に引っかからないので、検出力は落ちない。
+  const tagsOnly = html.replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '<script></script>');
+  const open = (tagsOnly.match(/<script(?:\s|>)/gi) || []).length;
+  const close = (tagsOnly.match(/<\/script>/gi) || []).length;
   if(open !== close) problems.push(`${file}: <script>の開閉が不一致 (開 ${open} / 閉 ${close})`);
   if(!html.trimEnd().endsWith('</html>')) problems.push(`${file}: </html> で終わっていない`);
 

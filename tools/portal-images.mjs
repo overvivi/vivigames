@@ -28,7 +28,9 @@ const TARGETS = [
   { src:'cart-label-boss-2048-draft.png',  out:'cart-label-boss-2048.webp',   width:640,  note:'ラベル' },
   { src:'cart-label-hexamine-draft.png',   out:'cart-label-hexamine.webp',    width:640,  note:'ラベル' },
   { src:'cart-label-todays-champion.png',  out:'cart-label-todays-champion.webp', width:640, note:'本日の最強決定戦ラベル' },
-  { src:'cart-label-still.png',            out:'cart-label-still.webp',       width:640,  note:'STILLラベル' }
+  { src:'cart-label-still.png',            out:'cart-label-still.webp',       width:640,  note:'STILLラベル' },
+  { src:'cart-label-solitaire.png',        out:'cart-label-solitaire.webp',   width:640,  note:'SOLITAIREラベル' },
+  { src:'cart-label-immune-defense.png',  out:'cart-label-immune-defense.webp', width:640, note:'IMMUNE DEFENSEラベル' }
 ];
 
 const kb = n => (n / 1024).toFixed(0) + 'KB';

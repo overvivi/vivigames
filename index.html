@@ -222,7 +222,7 @@
 <body>
 <header class="hero" id="entrance">
   <div class="topbar"><div class="shell topbar-inner"><a class="mini-brand pixel" href="#entrance">VIVI GAME BASE</a><nav class="nav pixel" aria-label="メインメニュー"><a href="#cartridges">CARTRIDGES</a><a href="#information">INFORMATION</a><a href="#credits" data-dialog="credits-dialog">CREDITS</a></nav></div></div>
-  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>6</strong></span><span>LAST UPDATE <strong>2026.09.05</strong></span></div></div>
+  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>8</strong></span><span>LAST UPDATE <strong>2026.09.05</strong></span></div></div>
 </header>
 <main>
   <section class="shell" id="cartridges" aria-labelledby="cartridges-title">
@@ -265,6 +265,12 @@
 <footer><div class="shell footer-inner"><span>© 2026 VIVI</span><span><a href="https://github.com/overvivi/vivigames" target="_blank" rel="noopener">GITHUB</a> · <a href="#credits">CREDITS</a> · SITE VERSION 0.1</span></div></footer>
 <dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>HEXAMINE 稼働開始</h3><p>3本目のゲーム「HEXAMINE」を追加しました。あわせてゲーム置き場を、1台のゲーム機にカセットを挿して遊ぶデザインへ作り替えています。PCとスマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.08.20</strong><ul><li>HEXAMINE 稼働開始（デイリーランキングあり）</li><li>ゲーム置き場をゲーム機＋カセット方式へ刷新</li><li>読み込みを軽くしました（HELL RUNNER 6.2MB→1.8MB、討伐2048 7.2MB→3.2MB）</li></ul></div></div></dialog>
 <dialog id="patch-dialog" aria-labelledby="patch-title"><div class="dialog-head"><h2 class="pixel" id="patch-title">PATCH NOTES</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body">
+  <h3>SOLITAIRE</h3>
+  <div class="patch-entry"><strong>v0.1</strong><ul><li>クロンダイク（ソリティア）を追加。<b>配られるのは必ず最後まで解ける盤面だけ</b>で、初手から詰んでいることがありません</li><li>札をタップして選び、置きたい場所をタップ。同じ札をもう一度タップすると自動で移動します</li><li>裏向きの札が無くなるとAUTOが出て、残りをまとめて片付けられます</li><li>手数・時間・スコアの表示、無制限のやり直し（UNDO）</li></ul></div>
+
+  <h3>IMMUNE DEFENSE</h3>
+  <div class="patch-entry"><strong>v0.1</strong><ul><li>病原体の侵入を細胞で食い止めるタワーディフェンスを追加。Wave 30 を守り切るとクリアです</li><li>好中球・マクロファージ・NK細胞など7種の細胞。範囲攻撃、足止め、継続ダメージ、連鎖、味方の強化と役割が分かれています</li><li>置いた細胞をタップすると射程が出て、6割の値段で売却できます</li><li>ウェーブの合間に、攻撃力・射程・ATP回収の研究で全体を強化できます</li></ul></div>
+
   <h3>STILL</h3>
   <div class="patch-entry"><strong>v0.1</strong><ul><li>動いた分だけ世界の時間が進む回避アクションを追加。手を離すと弾も敵も完全に静止します</li><li>静止中は弾の進む先を予測線で表示。止まって道を組み立ててから動けます</li><li>光の粒を拾って加点。弾をかすめるほど、次に拾う光の点数が上がります</li><li>携帯では画面下に操作帯を用意し、親指で盤面が隠れないようにしています</li></ul></div>
 
@@ -331,6 +337,12 @@
       tags:['開発中','スマホ対応'] },
     { id:'still', name:'STILL', desc:'止まれば、世界も止まる', href:'games/still.html',
       color:'#ff2ba6', art:'images/portal/cart-label-still.webp',
+      tags:['スマホ対応','音あり'] },
+    { id:'solitaire', name:'SOLITAIRE', desc:'必ず解ける配牌だけを配るクロンダイク', href:'games/elegant-solitaire.html',
+      color:'#d4af37', art:'images/portal/cart-label-solitaire.webp',
+      tags:['スマホ対応','音あり'] },
+    { id:'immune', name:'IMMUNE DEFENSE', desc:'細胞を並べて病原体の侵入を止める', href:'games/immune-defense.html',
+      color:'#34d399', art:'images/portal/cart-label-immune-defense.webp',
       tags:['スマホ対応','音あり'] },
     { id:'next', name:'COMING SOON', desc:'次のゲームは準備中', href:null, blank:true }
   ];

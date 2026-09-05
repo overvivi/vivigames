@@ -8,10 +8,11 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // 開発中を含む遊べる6本 + COMING SOON。COMING SOON は常に最後
-  await expect(page.locator('.cart')).toHaveCount(7);
+  // 開発中を含む遊べる8本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(9);
   await expect(page.locator('.cart .cname')).toHaveText([
-    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', 'STILL', 'COMING SOON'
+    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', 'STILL',
+    'SOLITAIRE', 'IMMUNE DEFENSE', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる

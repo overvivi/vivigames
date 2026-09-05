@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "serve"],
       "autoPort": true
+    },
+    {
+      "name": "immune-defense",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "immune-defense", "--", "--port=5181"],
+      "port": 5181
+    },
+    {
+      "name": "elegant-solitaire",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "elegant-solitaire", "--", "--port=5182"],
+      "port": 5182
     }
   ]
 }
