@@ -1016,7 +1016,7 @@ export class Game extends Scene {
     }
 
     private hasMindDuelCharacter(fighter: FighterDefinition) {
-        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick' || fighter.id === 'noise';
+        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi';
     }
 
     private mindDuelCharacterKey(fighter: FighterDefinition, pose: BattleCharacterPose) {
@@ -1033,6 +1033,8 @@ export class Game extends Scene {
         if (fighter.id === 'mika') return 'battle-effect-mika-ultimate-shockwave';
         if (fighter.id === 'brick') return 'battle-effect-brick-ultimate-ground-slam';
         if (fighter.id === 'noise') return 'battle-effect-noise-ultimate-beat-drop';
+        if (fighter.id === 'kiri') return 'battle-effect-kiri-ultimate-reaper-slash';
+        if (fighter.id === 'vivi') return 'battle-effect-vivi-ultimate-feather-barrage';
         return undefined;
     }
 
@@ -1041,15 +1043,21 @@ export class Game extends Scene {
         if (fighter.id === 'mika') return 'assets/championship-re/battle/effects/mika-ultimate-shockwave-v2.webp';
         if (fighter.id === 'brick') return 'assets/championship-re/battle/effects/brick-ultimate-ground-slam-v1.webp';
         if (fighter.id === 'noise') return 'assets/championship-re/battle/effects/noise-ultimate-beat-drop-v1.webp';
+        if (fighter.id === 'kiri') return 'assets/championship-re/battle/effects/kiri-ultimate-reaper-slash-v1.webp';
+        if (fighter.id === 'vivi') return 'assets/championship-re/battle/effects/vivi-ultimate-feather-barrage-v1.webp';
         return undefined;
     }
 
     private mindDuelAttackEffectKey(fighter: FighterDefinition) {
-        return fighter.id === 'noise' ? 'battle-effect-noise-attack-sonic-jab' : undefined;
+        if (fighter.id === 'noise') return 'battle-effect-noise-attack-sonic-jab';
+        if (fighter.id === 'kiri') return 'battle-effect-kiri-attack-crescent';
+        return undefined;
     }
 
     private mindDuelAttackEffectPath(fighter: FighterDefinition) {
-        return fighter.id === 'noise' ? 'assets/championship-re/battle/effects/noise-attack-sonic-jab-v1.webp' : undefined;
+        if (fighter.id === 'noise') return 'assets/championship-re/battle/effects/noise-attack-sonic-jab-v1.webp';
+        if (fighter.id === 'kiri') return 'assets/championship-re/battle/effects/kiri-attack-crescent-v1.webp';
+        return undefined;
     }
 
     private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
@@ -1086,11 +1094,14 @@ export class Game extends Scene {
         // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
         // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
         const enemySide = fighter.id === this.npcFighter.id;
-        const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise';
+        const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi';
+        // KIRI/VIVIのVFX原画は、左側プレイヤーへ置く時に一度反転する向きで作っている。
+        // 他4人の既存原画は右向きなので、素材の意図に応じて反転基準を分ける。
+        const sourceNeedsPlayerFlip = fighter.id === 'kiri' || fighter.id === 'vivi';
         const effect = this.add.image(VIEW_WIDTH / 2, wideUltimate ? 1010 : 940, key)
             .setOrigin(0.5)
             .setDisplaySize(wideUltimate ? 1440 : 1000, wideUltimate ? 960 : 1500)
-            .setFlipX(enemySide)
+            .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide)
             .setBlendMode('ADD')
             .setAlpha(0);
         // キャラの上に出しつつ、HUDと操作ボタンの下へ置く。黒背景を加算合成するので、
@@ -1113,10 +1124,11 @@ export class Game extends Scene {
         // 元絵は左側の掌から右へ飛ぶ。黒余白を含む横長素材なので、表示枠の左端を
         // 掌より少し手前へ置くことで、明るい波の始点だけを正確に掌先へ合わせる。
         const enemySide = direction === 1;
+        const sourceNeedsPlayerFlip = fighter.id === 'kiri';
         const effect = this.add.image(enemySide ? 108 : 420, 1080, key)
             .setOrigin(0, 0.5)
             .setDisplaySize(440, 245)
-            .setFlipX(enemySide)
+            .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide)
             .setBlendMode('ADD')
             .setAlpha(0);
         this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
