@@ -14,6 +14,16 @@ const GAME = '/games/hell-runner-2.html?debug=1';
 // insert の結果をテストから切り替えられるスタブ。
 // window.__insertOutcome を 'ok' / 'error' / 'throw' で差し替えて使う。
 async function stubRanking(page){
+  // CDNの実物 supabase-js は window.supabase を自分で定義するため、
+  // addInitScript で置いたスタブを丸ごと上書きしてしまう。
+  // それに気づかないまま本番のランキングテーブルへ実際にINSERTが飛んでいたので、
+  // 他のテストと同じくCDNのスクリプト自体を空応答へ差し替えて読み込ませない。
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    status:200, contentType:'application/javascript', body:''
+  }));
+  // 取りこぼしの保険。スタブを抜けた通信があればテストが落ちるようにして、
+  // 本番のランキングへ静かに書き込まれる事故を繰り返さない。
+  await page.route('**/*.supabase.co/**', route=>route.abort());
   await page.addInitScript(()=>{
     window.__insertOutcome = 'ok';
     window.__insertCalls = [];

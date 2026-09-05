@@ -2,6 +2,12 @@ const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page })=>{
   // 外部CDNの成否でゲーム本体の検証が止まらないよう、ランキング通信だけテスト用に置き換える。
+  // addInitScriptだけだと、後から読まれる実物のsupabase-jsがwindow.supabaseごと
+  // スタブを上書きしてしまい、本番のランキングへ通信が漏れる。CDNの読み込み自体を止める。
+  await page.route('**/supabase-js@2', route=>route.fulfill({
+    status:200, contentType:'application/javascript', body:''
+  }));
+  await page.route('**/*.supabase.co/**', route=>route.abort());
   await page.addInitScript(()=>{
     window.supabase = { createClient:()=>({
       from:()=>({

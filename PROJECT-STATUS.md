@@ -10,6 +10,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 - `本日の最強決定戦 Remaster`へNOISEの待機・攻撃・ガード・BREAK・必殺ポーズ、掌先から出る通常音波、全画面BEAT DROP必殺演出を追加し、`a71d0e4`で公開済み（2026-09-05 / Codex）。次はKIRIの戦闘素材
 
+- ランキング系テストの取りこぼしを修正（2026-09-05 / Claude Code）。`tests/ranking-submit.spec.js`の4件失敗の原因は、`addInitScript`で置いた`window.supabase`スタブを、後から読まれるCDNの実物`supabase-js`が上書きしていたこと。スタブが効かず**本番の`runner_scores_hell_runner_2_draft`へ実際にINSERTしていた**。他テストと同じ`page.route('**/supabase-js@2', ...)`方式へ変更し、保険として`*.supabase.co`をabortする。同じ書き方だった`tests/boss-battle.spec.js`（読み取りのみで書き込み事故はなし）も揃えた。**ゲーム本体は変更していない**（凍結を維持）。`tests/ranking-submit.spec.js` 5件・`tests/boss-battle.spec.js` 10件・`npm run verify`すべて成功。**未push**
+- 残作業: 過去のテスト実行で`runner_scores_hell_runner_2_draft`へ入った名前`テスト`の行を、ユーザーがSupabase SQL Editorで削除する
+
 ## 新規開発の現在地（2026-08-28）
 
 - 既存ゲームは不具合報告が来るまで凍結を継続。`games/temple-run-clone.html`（HELL RUNNER無印）は完成品のため、致命的不具合以外は触らない
