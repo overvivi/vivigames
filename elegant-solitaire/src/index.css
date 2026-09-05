@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --card-overlap-up: calc(-150% + 24px);
+  --card-overlap-down: calc(-150% + 10px);
+}
+@media (min-width: 768px) {
+  :root {
+    --card-overlap-up: calc(-150% + 36px);
+    --card-overlap-down: calc(-150% + 14px);
+  }
+}
+
+body {
+  font-family: 'Cinzel', 'Noto Serif JP', serif;
+  background-color: #020617;
+  background-image: radial-gradient(circle at top, #18181b 0%, #020617 100%);
+  color: #f8fafc;
+  overflow: hidden;
+}
+
+.bg-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2.5l10 3.5-10 3.5zM0 38h20v2.5l10-3.5-10-3.5v2.5H0v2z' fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
