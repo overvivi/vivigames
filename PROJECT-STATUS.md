@@ -8,7 +8,17 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 ## 現在の状態
 
-- `本日の最強決定戦 Remaster`へNOISEの待機・攻撃・ガード・BREAK・必殺ポーズ、掌先から出る通常音波、全画面BEAT DROP必殺演出を追加し、`a71d0e4`で公開済み（2026-09-05 / Codex）。次はKIRIの戦闘素材
+- `本日の最強決定戦 Remaster`へ7人全員の通常攻撃／BREAK固有VFXとTΩ9の戦闘ポーズ5種・必殺炎演出を追加。CPU BATTLEのキャラ選択は、旧7枠ではなく上段ミニゲート＋中央召喚門の完成版へ接続済み。`?debug=1`のPC用`BATTLE TUNER`で、選んだキャラの各ポーズとATTACK／BREAK／ULTIMATE VFXを即時表示し、X／Y／サイズ／角度を調整できる。X/Y範囲はキャラ±500・VFX±700へ拡大し、現在の対戦者以外でも左側プレビューへ即時反映、表示中VFXも数値変更に追従するよう修正した。ユーザーが確認したRAVEN／NOISE／MIKA／KIRI／VIVI／TΩ9の送付済み調整値は初期値へ採用済み。縦横比を固定した表示へ修正し、旧ゲート調整パネルが`START DUEL`まで無効にしていた入力停止も撤去済み。戦闘素材を初回読込する間は`SUMMONING...`を出して二重入力を防ぐ（2026-09-06 / Codex）。ローカル公開用ビルドまで完了、未push。次は実機で各エフェクトの位置・大きさを確認して微調整する
+- 2026-09-06: 最新の送付値（7人全ポーズ／VFX）へ初期値を更新。KIRIのATTACK／BREAK VFXは向きを反転し、通常・必殺VFXを「左の味方の前、右の敵の後ろ」になる中間レイヤーへ置く方式を追加。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。
+- 2026-09-06: バトル上部HUDのプレイヤー名／CPU名／ROUND数字を、動的なオンライン名にも使えるセリフ体＋彫刻風の縁取りへ更新。`?debug=1` の `BATTLE TUNER` には、ATTACK／GUARD／BREAK各ボタン、CHOOSE YOUR MOVE、手の開示表示それぞれのX／Y／SIZEを即時調整・コピーできる項目を追加。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。次はユーザーがPCでUI位置を詰め、コピー値を送る。
+- 2026-09-06: タイトルのCPU／FRIEND／ONLINEボタンを、縦長へ引き伸ばされない3:1の新規透明素材へ更新。タイトル画面の`?debug=1`（PC）には`TITLE TUNER`を追加し、ロゴと3ボタンを個別にX／Y／WIDTHで即時調整・コピーできるようにした。検証: `npx tsc --noEmit`、タイトル素材変換、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未push。
+- 2026-09-06: タイトルの確定レイアウトをロゴ`(470.5,294,w700)`、CPU`(470.5,1050,w650)`、FRIEND`(470.5,1275,w650)`、ONLINE`(470.5,1493,w650)`へ反映。バトル中はボタン台座へ文字が焼き込まれているため、重複していた下側の選択結果Textを撤去し、中央上の大きい手の開示だけを残した。HUD名は枠の中心を原画に合わせて補正し、12文字上限＋省略・縮小で長いフレンド／オンライン名も枠外へ出ない。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未push。
+- 2026-09-06: 手の開示（`BREAK VS GUARD`等）は`CHOOSE YOUR MOVE`台座の直上へ初期位置を下げた。`BATTLE TUNER`の`MOVE REVEAL`で引き続きX／Y／SIZEを即時調整できる。検証: `npx tsc --noEmit`、Remaster公開用ビルド成功。未push。
+- 2026-09-06: 決着後をリマッチからタイトル復帰へ変更。終幕専用の青紫ゴシック闘技場背景、左右属性の額縁パネル、`RETURN TO TITLE`画像ボタンを新規素材化し、VICTORY／DEFEAT・勝者名のみ動的表示するリザルト画面へ刷新。検証: `npx tsc --noEmit`、結果素材変換、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未push。
+- 2026-09-06: リザルト文字が出現Tweenで下へずれていたため、VICTORY／DEFEAT・勝者名・副文を額縁の内側へ固定。TΩ9名だけは数字9が下がって見えるセリフ体を避け、Ωと数字の字面が揃う太字サンセリフへ切替。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run verify`、`git diff --check`成功。未push。
+- 2026-09-06: Web Audioの軽量な戦闘SEを追加。選択、ガード成功、通常ヒット、BREAK、必殺準備、必殺入力／発動、勝利／敗北を別音へ分け、外部音源の読込待ちをなくして携帯初戦でも演出と同期する。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。未push。
+- 2026-09-06: フレンド対戦（部屋コード）のSupabase基盤SQL `supabase-mind-duel-rooms.sql` を追加。部屋生成・参加・キャラ同期・相手の手を同時確定まで隠す状態取得を、座席トークン検証済みRPCとして定義した。ユーザーが初期SQLをSupabase SQL Editorで実行済み。
+- 2026-09-06: Remasterの`FRIEND BATTLE`へ、名前入力・6桁ルーム作成・参加・参加待機・選択同期・同時手出しの接続を追加。Supabaseの公開テーブルは直接更新せず、座席トークンを渡すRPCだけで進める。SQLへ開始／手の確定／次ラウンド用RPCを追記済みだが、ユーザーが**追記分もSQL Editorで実行する必要がある**。検証: `npx tsc --noEmit`、`git diff --check`成功。次は公開用ビルド後、2端末で同じ部屋へ入り実機確認する。未push。
 
 - ランキング系テストの取りこぼしを修正（2026-09-05 / Claude Code）。`tests/ranking-submit.spec.js`の4件失敗の原因は、`addInitScript`で置いた`window.supabase`スタブを、後から読まれるCDNの実物`supabase-js`が上書きしていたこと。スタブが効かず**本番の`runner_scores_hell_runner_2_draft`へ実際にINSERTしていた**。他テストと同じ`page.route('**/supabase-js@2', ...)`方式へ変更し、保険として`*.supabase.co`をabortする。同じ書き方だった`tests/boss-battle.spec.js`（読み取りのみで書き込み事故はなし）も揃えた。**ゲーム本体は変更していない**（凍結を維持）。`tests/ranking-submit.spec.js` 5件・`tests/boss-battle.spec.js` 10件・`npm run verify`すべて成功。**未push**
 - 残作業: 過去のテスト実行で`runner_scores_hell_runner_2_draft`へ入った名前`テスト`の行を、ユーザーがSupabase SQL Editorで削除する

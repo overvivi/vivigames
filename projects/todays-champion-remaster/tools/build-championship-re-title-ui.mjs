@@ -11,9 +11,9 @@ const sourceDir = path.join(root, 'source/assets/championship-re/title');
 const publicDir = path.join(root, 'public/assets/championship-re/title');
 const assets = [
     { input: path.join(referenceDir, 'title-orb-seven-fighters-master-v1.png'), id: 'title-orb-seven-fighters', trim: false },
-    { input: path.join(referenceUiDir, 'title-cpu-battle-master-v1.png'), id: 'title-cpu-battle', trim: true },
-    { input: path.join(referenceUiDir, 'title-friend-battle-master-v1.png'), id: 'title-friend-battle', trim: true },
-    { input: path.join(referenceUiDir, 'title-online-battle-master-v1.png'), id: 'title-online-battle', trim: true }
+    { input: path.join(referenceUiDir, 'title-cpu-battle-master-v2.png'), id: 'title-cpu-battle', trim: true },
+    { input: path.join(referenceUiDir, 'title-friend-battle-master-v2.png'), id: 'title-friend-battle', trim: true },
+    { input: path.join(referenceUiDir, 'title-online-battle-master-v2.png'), id: 'title-online-battle', trim: true }
 ];
 
 async function build() {
@@ -23,8 +23,8 @@ async function build() {
         if (trim) image = image.trim({ background: { r: 0, g: 0, b: 0, alpha: 0 } });
         const art = await image.png().toBuffer();
         await Promise.all([
-            sharp(art).png().toFile(path.join(sourceDir, `${id}-v1.png`)),
-            sharp(art).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, `${id}-v1.webp`))
+            sharp(art).png().toFile(path.join(sourceDir, `${id}-v2.png`)),
+            sharp(art).webp({ quality: 94, alphaQuality: 100 }).toFile(path.join(publicDir, `${id}-v2.webp`))
         ]);
     }));
     console.log('モード選択タイトル用の背景・ボタン素材をWebPへ変換しました。');

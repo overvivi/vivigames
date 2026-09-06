@@ -1,6 +1,6 @@
 import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
 
-type DuelState = 'title' | 'select' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result' | 'mind-duel';
+type DuelState = 'title' | 'friend-lobby' | 'select' | 'loading-duel' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result' | 'mind-duel';
 type CountdownValue = '3' | '2' | '1' | 'FIGHT';
 type MindDuelMove = 'attack' | 'guard' | 'break' | 'ultimate';
 type BattleCharacterPose = 'idle' | 'attack' | 'guard' | 'break' | 'ultimate';
@@ -12,6 +12,35 @@ type AttackEffectDefinition = {
     layer: 'behind' | 'front';
     flip?: boolean;
 };
+
+type MindDuelEffectDefinition = {
+    key: string;
+    path: string;
+    width: number;
+    height: number;
+    playerX: number;
+    npcX: number;
+    y: number;
+    sourceNeedsPlayerFlip?: boolean;
+    layer?: 'behind' | 'front' | 'between';
+};
+
+type MindDuelEffectLayer = 'behind' | 'between' | 'front';
+type MindDuelTuning = { x: number; y: number; scale: number; angle: number; layer?: MindDuelEffectLayer };
+type MindDuelAction = Exclude<MindDuelMove, 'ultimate'>;
+type FriendSeat = 'host' | 'guest';
+type FriendRoomState = {
+    code: string;
+    host_name: string;
+    guest_name: string | null;
+    host_character_id: string | null;
+    guest_character_id: string | null;
+    status: 'waiting' | 'selecting' | 'duel' | 'finished';
+    round: number;
+    own_move: MindDuelMove | null;
+    opponent_move: MindDuelMove | null;
+};
+type FriendRoomSession = { code: string; token: string; seat?: FriendSeat; state?: FriendRoomState };
 
 type FighterDefinition = {
     id: string;
@@ -60,6 +89,10 @@ type SummonStageLayout = {
 // 縦持ち実機を基準にする。PCでは余白を許容し、無理に横長へ引き伸ばさない。
 const VIEW_WIDTH = 941;
 const VIEW_HEIGHT = 1672;
+// Supabaseのpublishable keyはブラウザへ公開して使う前提のキー。テーブルは公開せず、
+// 下のRPCが部屋ごとの座席トークンを必ず確認するため、キー単体で部屋を読んだり更新できない。
+const MIND_DUEL_SUPABASE_URL = 'https://hqbjlblvijynijvgknih.supabase.co';
+const MIND_DUEL_SUPABASE_KEY = 'sb_publishable_QSUrJMJKz0tZwBYBiskyWQ_usDk6Wj9';
 // HUDは透明余白を除いた2171×572pxの原画を使う。中身の座標も同じ原画座標から
 // 換算しないと、素材の差し替えや端末倍率のたびに文字と穴の位置が食い違う。
 const MIND_DUEL_HUD = { x: 20, y: 55, width: 900, sourceWidth: 2171, sourceHeight: 572 };
@@ -180,6 +213,25 @@ export class Game extends Scene {
     private selectTitle?: GameObjects.Text;
     private selectionLayer?: GameObjects.Container;
     private titleLayer?: GameObjects.Container;
+    private titleLogo?: GameObjects.Image;
+    private titleModeButtons = new Map<'cpu' | 'friend' | 'online', GameObjects.Image>();
+    private titleDebugPanel?: HTMLElement;
+    private titleDebugStyle?: HTMLStyleElement;
+    private friendLobby?: HTMLElement;
+    private friendLobbyStyle?: HTMLStyleElement;
+    private friendRoom?: FriendRoomSession;
+    private friendPollTimer?: number;
+    private friendDuelStarting = false;
+    private friendPlayerName = 'PLAYER';
+    private friendOpponentName = 'FRIEND';
+    private titleLayout = {
+        logo: { x: VIEW_WIDTH / 2, y: 294, width: 700 },
+        modes: {
+            cpu: { x: VIEW_WIDTH / 2, y: 1050, width: 650 },
+            friend: { x: VIEW_WIDTH / 2, y: 1275, width: 650 },
+            online: { x: VIEW_WIDTH / 2, y: 1493, width: 650 }
+        }
+    };
     private selectionFrames = new Map<string, GameObjects.Image>();
     private selectionCards = new Map<string, GameObjects.Container>();
     private selectionOpeningMasks = new Map<string, GameObjects.Graphics>();
@@ -236,6 +288,9 @@ export class Game extends Scene {
     private mindDuelNpcArt?: GameObjects.Image;
     private mindDuelReadyRing?: GameObjects.Image;
     private mindDuelSwipeTrail?: GameObjects.Image;
+    private mindDuelChoosePlate?: GameObjects.Image;
+    private mindDuelActionArts = new Map<MindDuelAction, GameObjects.Image>();
+    private mindDuelActionHitAreas = new Map<MindDuelAction, GameObjects.Zone>();
     private mindDuelPlayerHp = 1000;
     private mindDuelNpcHp = 1000;
     private mindDuelPlayerGauge = 0;
@@ -244,6 +299,44 @@ export class Game extends Scene {
     private mindDuelLocked = false;
     private mindDuelLastPlayerMove?: MindDuelMove;
     private mindDuelAttackStart?: { x: number; y: number; at: number };
+    private mindDuelAudio?: AudioContext;
+    private mindDuelDebugPanel?: HTMLElement;
+    private mindDuelDebugStyle?: HTMLStyleElement;
+    private mindDuelDebugFighterId = 'raven';
+    private mindDuelDebugPose: BattleCharacterPose = 'idle';
+    private mindDuelDebugMove: 'attack' | 'break' | 'ultimate' = 'attack';
+    private mindDuelDebugAction: MindDuelAction = 'attack';
+    private mindDuelDebugEffectPreview?: GameObjects.Image;
+    // 実機のBATTLE TUNERで確認済みの値だけを初期値へ採用する。未調整のポーズは
+    // 下のhelperが従来どおり等倍・原点から始めるため、途中の調整を壊さない。
+    private mindDuelCharacterTuning: Record<string, Partial<Record<BattleCharacterPose, MindDuelTuning>>> = {
+        raven: { idle: { x: -37, y: 0, scale: 0.86, angle: 0 }, attack: { x: -43, y: 0, scale: 0.87, angle: 0 }, guard: { x: -37, y: 0, scale: 1.1, angle: 0 }, break: { x: -37, y: 0, scale: 1, angle: 0 }, ultimate: { x: -37, y: 0, scale: 1, angle: -1 } },
+        noise: { idle: { x: -70, y: 0, scale: 0.8, angle: 0 }, attack: { x: -70, y: 0, scale: 0.95, angle: 0 }, guard: { x: -70, y: 0, scale: 0.74, angle: 0 }, break: { x: -31, y: 0, scale: 0.94, angle: 0 }, ultimate: { x: -43, y: 0, scale: 0.93, angle: 0 } },
+        mika: { idle: { x: -50, y: -3, scale: 0.78, angle: 1 }, attack: { x: -50, y: 0, scale: 0.81, angle: 0 }, guard: { x: -50, y: 0, scale: 0.83, angle: 0 }, break: { x: -50, y: -19, scale: 0.84, angle: 0 }, ultimate: { x: -25, y: -43, scale: 0.94, angle: 0 } },
+        kiri: { idle: { x: -49, y: 0, scale: 0.94, angle: 0 }, attack: { x: 0, y: 0, scale: 1.18, angle: 0 }, guard: { x: -56, y: 0, scale: 1, angle: 0 }, break: { x: -31, y: 0, scale: 0.99, angle: 0 }, ultimate: { x: -43, y: 0, scale: 1, angle: 0 } },
+        vivi: { idle: { x: 0, y: 0, scale: 1.03, angle: 0 }, attack: { x: 130, y: 0, scale: 1.94, angle: 0 }, guard: { x: -74, y: 0, scale: 0.89, angle: 0 }, break: { x: 99, y: 0, scale: 2.24, angle: 0 }, ultimate: { x: -37, y: 0, scale: 1.12, angle: 0 } },
+        tomega9: { idle: { x: -62, y: 0, scale: 0.7, angle: 0 }, attack: { x: -62, y: 0, scale: 0.7, angle: 0 }, guard: { x: -62, y: 0, scale: 0.7, angle: 0 }, break: { x: -19, y: 0, scale: 1, angle: 0 }, ultimate: { x: -62, y: 0, scale: 0.7, angle: 0 } },
+        brick: { idle: { x: -43, y: 0, scale: 0.94, angle: 0 }, attack: { x: -31, y: 0, scale: 1, angle: 0 }, guard: { x: -12, y: 0, scale: 1, angle: 0 }, break: { x: -12, y: 0, scale: 1, angle: 0 }, ultimate: { x: -19, y: 93, scale: 1, angle: 0 } }
+    };
+    private mindDuelEffectTuning: Record<string, Partial<Record<'attack' | 'break' | 'ultimate', MindDuelTuning>>> = {
+        raven: { attack: { x: -126, y: -48, scale: 1, angle: 0, layer: 'between' }, break: { x: 78, y: -277, scale: 3.5, angle: -7, layer: 'front' }, ultimate: { x: 44, y: -35, scale: 1.1, angle: 0 } },
+        noise: { attack: { x: 216, y: -354, scale: 1.99, angle: 0, layer: 'front' }, break: { x: 86, y: -268, scale: 3.5, angle: 0, layer: 'between' }, ultimate: { x: 207, y: -328, scale: 0.53, angle: 0, layer: 'front' } },
+        mika: { attack: { x: 43, y: -302, scale: 1.36, angle: 0, layer: 'front' }, break: { x: 86, y: -147, scale: 1, angle: 0, layer: 'front' }, ultimate: { x: 9, y: -112, scale: 0.97, angle: 0 } },
+        kiri: { attack: { x: 233, y: -78, scale: 3.5, angle: 0 }, break: { x: 233, y: -302, scale: 3.5, angle: -14, layer: 'front' }, ultimate: { x: -17, y: -181, scale: 0.67, angle: -14, layer: 'front' } },
+        vivi: { attack: { x: 138, y: -233, scale: 2.46, angle: 0, layer: 'front' }, break: { x: 121, y: -112, scale: 2.42, angle: 0, layer: 'front' }, ultimate: { x: 242, y: -320, scale: 0.51, angle: 0, layer: 'front' } },
+        tomega9: { attack: { x: 43, y: -225, scale: 1.3, angle: -10, layer: 'front' }, break: { x: 78, y: -181, scale: 1.34, angle: -32, layer: 'front' }, ultimate: { x: 398, y: -69, scale: 0.83, angle: 0, layer: 'front' } },
+        brick: { attack: { x: 112, y: -156, scale: 1.56, angle: 0 }, break: { x: 181, y: -164, scale: 2.24, angle: 0, layer: 'front' }, ultimate: { x: 449, y: -130, scale: 1.1, angle: -2 } }
+    };
+    private mindDuelUiLayout = {
+        prompt: { x: VIEW_WIDTH / 2, y: 1191, size: 17 },
+        // 手の開示はキャラの足元を隠さず、選択台座の直上で読ませる。
+        reveal: { x: VIEW_WIDTH / 2, y: 1110, size: 32 },
+        actions: {
+            break: { x: 173, y: 1435, size: 230 },
+            guard: { x: VIEW_WIDTH / 2, y: 1435, size: 230 },
+            attack: { x: 768, y: 1435, size: 230 }
+        }
+    };
     private gameplayAssetsLoaded = false;
     private battlePreviewEnabled = false;
 
@@ -258,9 +351,9 @@ export class Game extends Scene {
         const titleAsset = (key: string, path: string) => { if (!this.textures.exists(key)) this.load.image(key, path); };
         titleAsset('championship-re-title', 'assets/championship-re/ui/championship-re-title-final-v3.webp');
         titleAsset('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
-        titleAsset('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v1.webp');
-        titleAsset('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v1.webp');
-        titleAsset('title-online-battle', 'assets/championship-re/title/title-online-battle-v1.webp');
+        titleAsset('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v2.webp');
+        titleAsset('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v2.webp');
+        titleAsset('title-online-battle', 'assets/championship-re/title/title-online-battle-v2.webp');
     }
 
     private queueGameplayAssets() {
@@ -286,6 +379,9 @@ export class Game extends Scene {
         this.load.image('battle-ultimate-ready-ring', 'assets/championship-re/battle/battle-ultimate-ready-ring-v1.webp');
         this.load.image('battle-ultimate-swipe-trail', 'assets/championship-re/battle/battle-ultimate-swipe-trail-v1.webp');
         this.load.image('battle-choose-move', 'assets/championship-re/battle/battle-choose-move-v1.webp');
+        this.load.image('battle-result-background', 'assets/championship-re/result/battle-result-background-v1.webp');
+        this.load.image('battle-result-panel', 'assets/championship-re/result/battle-result-panel-v1.webp');
+        this.load.image('battle-return-title', 'assets/championship-re/result/battle-return-title-v1.webp');
         FIGHTERS.forEach((fighter) => {
             this.load.image(`gate-icon-${fighter.id}`, `assets/championship-re/icons/gate-icon-${fighter.id}-art-v1.webp`);
             this.load.image(`gate-interior-${fighter.id}`, `assets/championship-re/gates/interiors/gate-interior-${fighter.id}-v1.webp`);
@@ -366,6 +462,7 @@ export class Game extends Scene {
         this.state = 'select';
         this.titleLayer?.destroy();
         this.titleLayer = undefined;
+        this.destroyTitleDebugPanel();
         this.raven.setVisible(false);
         this.mika.setVisible(false);
         if (this.promptText !== undefined) this.promptText.setVisible(false);
@@ -423,6 +520,9 @@ export class Game extends Scene {
         const ctaLayout = this.summonStageLayout.cta;
         const startButton = this.add.image(ctaLayout.x + ctaLayout.width / 2, ctaLayout.y + ctaLayout.height / 2, 'championship-re-start-duel').setDisplaySize(ctaLayout.width, ctaLayout.height).setInteractive({ useHandCursor: true });
         startButton.on('pointerdown', () => this.startSelectedDuel());
+        // iPhone系ブラウザで画像素材のpointerdownだけが飲まれる場合があるため、同じ処理を
+        // pointerupにも置く。先に遷移していればstate判定で二重開始にはならない。
+        startButton.on('pointerup', () => this.startSelectedDuel());
         startButton.on('pointerover', () => startButton.setAlpha(0.92));
         startButton.on('pointerout', () => startButton.setAlpha(1));
         layer.add(startButton);
@@ -441,17 +541,19 @@ export class Game extends Scene {
         layer.add(this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'title-orb-seven-fighters').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT));
         const gameBase = this.add.text(60, 124, '← GAME BASE', { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#d9efff', letterSpacing: 2 }).setInteractive({ useHandCursor: true });
         gameBase.on('pointerdown', () => { window.location.href = '../..'; });
-        const logo = this.add.image(VIEW_WIDTH / 2, 222, 'championship-re-title');
-        const logoScale = Math.min(700 / logo.width, 170 / logo.height);
-        logo.setDisplaySize(logo.width * logoScale, logo.height * logoScale);
+        const logo = this.add.image(0, 0, 'championship-re-title');
+        this.titleLogo = logo;
         layer.add([gameBase, logo]);
-        this.createTitleModeButton(layer, 1210, 'title-cpu-battle', () => this.startCpuMode());
-        this.createTitleModeButton(layer, 1360, 'title-friend-battle', () => this.showTitleComingSoon('FRIEND BATTLE'));
-        this.createTitleModeButton(layer, 1510, 'title-online-battle', () => this.showTitleComingSoon('ONLINE BATTLE'));
+        this.createTitleModeButton(layer, 'cpu', 'title-cpu-battle', () => this.startCpuMode());
+        this.createTitleModeButton(layer, 'friend', 'title-friend-battle', () => this.showFriendLobby());
+        this.createTitleModeButton(layer, 'online', 'title-online-battle', () => this.showTitleComingSoon('ONLINE BATTLE'));
+        this.applyTitleLayout();
+        if (this.debugEnabled && this.desktopDebugEnabled) this.renderTitleDebugPanel();
     }
 
-    private createTitleModeButton(layer: GameObjects.Container, y: number, key: string, action: () => void) {
-        const button = this.add.image(VIEW_WIDTH / 2, y, key).setDisplaySize(650, 124).setInteractive({ useHandCursor: true });
+    private createTitleModeButton(layer: GameObjects.Container, mode: 'cpu' | 'friend' | 'online', key: string, action: () => void) {
+        const button = this.add.image(0, 0, key).setInteractive({ useHandCursor: true });
+        this.titleModeButtons.set(mode, button);
         // 表示サイズを指定した画像にscaleを直接掛けると、原寸基準へ跳ね上がる。
         // ボタンの写真素材はサイズを固定し、押下時だけ明度を落として反応を返す。
         button.on('pointerdown', () => {
@@ -463,8 +565,64 @@ export class Game extends Scene {
         layer.add(button);
     }
 
+    private applyTitleLayout() {
+        const logo = this.titleLayout.logo;
+        if (this.titleLogo) {
+            const source = this.textures.get('championship-re-title').getSourceImage() as { width: number; height: number };
+            this.titleLogo.setPosition(logo.x, logo.y).setDisplaySize(logo.width, logo.width * source.height / source.width);
+        }
+        (['cpu', 'friend', 'online'] as const).forEach((mode) => {
+            const button = this.titleModeButtons.get(mode);
+            if (!button) return;
+            const layout = this.titleLayout.modes[mode];
+            const source = this.textures.get(button.texture.key).getSourceImage() as { width: number; height: number };
+            // 生成素材本来の比率を必ず保ち、以前のような縦方向の引き伸ばしを起こさない。
+            button.setPosition(layout.x, layout.y).setDisplaySize(layout.width, layout.width * source.height / source.width);
+        });
+    }
+
+    private renderTitleDebugPanel() {
+        if (!this.debugEnabled || !this.desktopDebugEnabled || this.state !== 'title') return;
+        if (!this.titleDebugStyle) {
+            const style = document.createElement('style');
+            style.textContent = `.tc-title-tuner{position:fixed;right:18px;top:18px;z-index:1100;width:310px;max-height:calc(100vh - 36px);overflow:auto;box-sizing:border-box;padding:13px;color:#d9e9f4;background:rgba(6,13,24,.97);border:1px solid #6ec9df;font:700 11px Arial,sans-serif}.tc-title-tuner h2{margin:0 0 8px;color:#ffdc57;font-size:15px;letter-spacing:1.5px}.tc-title-tuner h3{margin:12px 0 6px;color:#aeeaf5;font-size:11px}.tc-title-tuner__row{display:grid;grid-template-columns:54px 1fr 44px;gap:6px;align-items:center;margin:6px 0}.tc-title-tuner input[type=range]{width:100%;margin:0;accent-color:#75f4ea}.tc-title-tuner input[type=number]{width:44px;padding:4px;color:#fff;background:#101d2d;border:1px solid #5c7894;font:700 10px Arial}.tc-title-tuner button{width:100%;box-sizing:border-box;margin:7px 0 0;padding:6px;color:#eef8ff;background:#101d2d;border:1px solid #5c7894;font:700 10px Arial;cursor:pointer}`;
+            document.head.appendChild(style);
+            this.titleDebugStyle = style;
+        }
+        this.titleDebugPanel ??= document.createElement('aside');
+        const panel = this.titleDebugPanel;
+        panel.className = 'tc-title-tuner'; panel.replaceChildren();
+        if (!panel.isConnected) document.body.appendChild(panel);
+        const title = document.createElement('h2'); title.textContent = 'TITLE TUNER'; panel.appendChild(title);
+        const addFields = (headingText: string, target: { x: number; y: number; width: number }) => {
+            const heading = document.createElement('h3'); heading.textContent = headingText; panel.appendChild(heading);
+            (['x', 'y', 'width'] as const).forEach((key) => {
+                const limits = key === 'x' ? [-200, 1200] : key === 'y' ? [0, 1700] : [360, 900];
+                const row = document.createElement('label'); row.className = 'tc-title-tuner__row';
+                const label = document.createElement('span'); label.textContent = key.toUpperCase();
+                const range = document.createElement('input'); range.type = 'range'; range.min = `${limits[0]}`; range.max = `${limits[1]}`; range.step = '1'; range.value = `${target[key]}`;
+                const number = document.createElement('input'); number.type = 'number'; number.min = `${limits[0]}`; number.max = `${limits[1]}`; number.step = '1'; number.value = `${target[key]}`;
+                const set = (raw: number) => { target[key] = Math.round(PhaserMath.Clamp(raw, limits[0], limits[1])); range.value = `${target[key]}`; number.value = `${target[key]}`; this.applyTitleLayout(); };
+                range.oninput = () => set(Number(range.value)); number.onchange = () => set(Number(number.value)); row.append(label, range, number); panel.appendChild(row);
+            });
+        };
+        addFields('TITLE LOGO', this.titleLayout.logo);
+        addFields('CPU BATTLE', this.titleLayout.modes.cpu);
+        addFields('FRIEND BATTLE', this.titleLayout.modes.friend);
+        addFields('ONLINE BATTLE', this.titleLayout.modes.online);
+        const copy = document.createElement('button'); copy.textContent = 'COPY TITLE TUNING'; copy.onclick = () => void navigator.clipboard?.writeText(JSON.stringify({ title: this.titleLayout }, null, 2)); panel.appendChild(copy);
+    }
+
+    private destroyTitleDebugPanel() {
+        this.titleDebugPanel?.remove(); this.titleDebugStyle?.remove();
+        this.titleDebugPanel = undefined; this.titleDebugStyle = undefined;
+    }
+
     private startCpuMode() {
+        if (this.state !== 'friend-lobby') { this.friendRoom = undefined; this.stopFriendRoomPolling(); }
         if (this.gameplayAssetsLoaded) {
+            // CPU戦のキャラ選択は、旧7枠ではなく完成した召喚門セレクトを本導線にする。
+            // ?layout は同じ画面へガイドを出す確認用で、通常／debugの操作性は変えない。
             this.summonStagePreviewEnabled = true;
             this.summonStageLayoutGuidesVisible = false;
             this.showFighterSelect();
@@ -484,6 +642,85 @@ export class Game extends Scene {
         });
         this.queueGameplayAssets();
         this.load.start();
+    }
+
+    private async callFriendRoomRpc<T>(functionName: string, payload: Record<string, unknown>): Promise<T> {
+        const response = await fetch(`${MIND_DUEL_SUPABASE_URL}/rest/v1/rpc/${functionName}`, {
+            method: 'POST',
+            headers: { apikey: MIND_DUEL_SUPABASE_KEY, Authorization: `Bearer ${MIND_DUEL_SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            const detail = await response.json().catch(() => undefined) as { message?: string } | undefined;
+            throw new Error(detail?.message ?? `接続エラー (${response.status})`);
+        }
+        return response.json() as Promise<T>;
+    }
+
+    private showFriendLobby() {
+        this.destroyFriendLobby();
+        this.state = 'friend-lobby';
+        const style = document.createElement('style');
+        style.textContent = `.tc-friend-lobby{position:fixed;z-index:9998;left:50%;top:50%;transform:translate(-50%,-50%);width:min(390px,calc(100vw - 34px));box-sizing:border-box;padding:28px 24px 22px;color:#fff4cb;background:linear-gradient(145deg,rgba(8,15,33,.97),rgba(25,8,35,.97));border:2px solid #e6bf62;border-radius:18px;box-shadow:0 0 0 5px rgba(72,28,120,.42),0 20px 70px #000;font-family:Georgia,'Times New Roman',serif;text-align:center}.tc-friend-lobby h2{margin:0 0 7px;font-size:25px;letter-spacing:2px}.tc-friend-lobby p{margin:0 0 18px;color:#cfdaef;font:12px Arial,sans-serif;letter-spacing:1px;line-height:1.55}.tc-friend-lobby input{width:100%;box-sizing:border-box;margin:6px 0;padding:13px;border:1px solid #7564a5;border-radius:8px;background:#060b18;color:#fff4cb;text-align:center;font:bold 16px Arial,sans-serif;letter-spacing:2px}.tc-friend-lobby button{width:100%;margin:6px 0;padding:13px;border:1px solid #f1cf72;border-radius:8px;background:linear-gradient(#55458e,#251640);color:#fff4cb;font:bold 14px Georgia,serif;letter-spacing:1.5px;cursor:pointer}.tc-friend-lobby button:disabled{opacity:.45;cursor:wait}.tc-friend-lobby .tc-friend-lobby__code{margin:10px 0 5px;font:bold 30px Arial,sans-serif;letter-spacing:7px;color:#fff0a8}.tc-friend-lobby .tc-friend-lobby__status{min-height:38px;margin:9px 0;color:#9eeaff;font:bold 12px Arial,sans-serif;line-height:1.55}.tc-friend-lobby hr{border:0;border-top:1px solid #68558e;margin:17px 0}.tc-friend-lobby .tc-friend-lobby__back{border-color:#766b8d;background:#161b2c;color:#d5d9e5}`;
+        document.head.appendChild(style);
+        const panel = document.createElement('section'); panel.className = 'tc-friend-lobby';
+        panel.innerHTML = '<h2>FRIEND BATTLE</h2><p>CREATE A ROOM OR ENTER A FRIEND\'S ROOM CODE</p>';
+        const name = document.createElement('input'); name.maxLength = 12; name.placeholder = 'YOUR NAME'; name.autocomplete = 'username';
+        const create = document.createElement('button'); create.textContent = 'CREATE ROOM';
+        const divider = document.createElement('hr');
+        const code = document.createElement('input'); code.maxLength = 6; code.placeholder = 'ROOM CODE'; code.autocomplete = 'off';
+        const join = document.createElement('button'); join.textContent = 'JOIN ROOM';
+        const roomCode = document.createElement('div'); roomCode.className = 'tc-friend-lobby__code';
+        const status = document.createElement('div'); status.className = 'tc-friend-lobby__status'; status.textContent = 'ENTER YOUR NAME TO CREATE OR JOIN';
+        const continueButton = document.createElement('button'); continueButton.textContent = 'CONTINUE TO FIGHTER SELECT'; continueButton.hidden = true;
+        const back = document.createElement('button'); back.className = 'tc-friend-lobby__back'; back.textContent = 'BACK TO TITLE';
+        const setBusy = (busy: boolean, message: string) => { create.disabled = busy; join.disabled = busy; status.textContent = message; };
+        create.onclick = async () => {
+            const playerName = name.value.trim(); if (!playerName) { status.textContent = 'ENTER YOUR NAME'; return; }
+            setBusy(true, 'CREATING ROOM...');
+            try {
+                const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_create_room', { p_name: playerName });
+                const room = result[0]; if (!room) throw new Error('部屋を作成できませんでした');
+                this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' };
+                roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
+            } catch (error) { status.textContent = error instanceof Error ? error.message : 'CREATE FAILED'; }
+            finally { create.disabled = false; join.disabled = false; }
+        };
+        join.onclick = async () => {
+            const playerName = name.value.trim(); const roomCodeValue = code.value.trim().toUpperCase();
+            if (!playerName || roomCodeValue.length !== 6) { status.textContent = 'ENTER NAME AND 6-CHARACTER CODE'; return; }
+            setBusy(true, 'JOINING ROOM...');
+            try {
+                const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_join_room', { p_code: roomCodeValue, p_name: playerName });
+                const room = result[0]; if (!room) throw new Error('部屋に参加できませんでした');
+                this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' };
+                roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
+            } catch (error) { status.textContent = error instanceof Error ? error.message : 'JOIN FAILED'; }
+            finally { create.disabled = false; join.disabled = false; }
+        };
+        continueButton.onclick = () => { this.destroyFriendLobby(); this.startCpuMode(); };
+        back.onclick = () => { this.destroyFriendLobby(); this.showTitleScreen(); };
+        panel.append(name, create, divider, code, join, roomCode, status, continueButton, back); document.body.appendChild(panel);
+        this.friendLobby = panel; this.friendLobbyStyle = style;
+    }
+
+    private destroyFriendLobby() { this.friendLobby?.remove(); this.friendLobbyStyle?.remove(); this.friendLobby = undefined; this.friendLobbyStyle = undefined; }
+
+    private startFriendRoomPolling(onGuestJoined?: () => void) {
+        this.stopFriendRoomPolling();
+        const poll = async () => { const state = await this.pollFriendRoom(); if (state?.guest_name) onGuestJoined?.(); };
+        void poll(); this.friendPollTimer = window.setInterval(() => void poll(), 900);
+    }
+
+    private stopFriendRoomPolling() { if (this.friendPollTimer !== undefined) window.clearInterval(this.friendPollTimer); this.friendPollTimer = undefined; }
+
+    private async pollFriendRoom(): Promise<FriendRoomState | undefined> {
+        if (!this.friendRoom) return undefined;
+        try {
+            const rows = await this.callFriendRoomRpc<FriendRoomState[]>('mind_duel_room_state', { p_code: this.friendRoom.code, p_token: this.friendRoom.token });
+            const state = rows[0]; if (state) this.friendRoom.state = state;
+            return state;
+        } catch { return undefined; }
     }
 
     private showTitleComingSoon(mode: string) {
@@ -586,8 +823,13 @@ export class Game extends Scene {
         const baselineLabel = this.add.text(108, layout.character.baseline - 23, `FOOT BASELINE  Y=${layout.character.baseline}`, { fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#baffed', letterSpacing: 1 });
         annotations.add([character, characterLabel, baseline, baselineLabel]);
         // 確認画面でも実CTAを先に描く。枠線だけでは公開素材の質感を評価できない。
-        const previewCta = this.add.image(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, 'championship-re-start-duel').setDisplaySize(layout.cta.width, layout.cta.height);
-        if (!this.debugEnabled) previewCta.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.startSelectedDuel());
+        const previewCta = this.add.image(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, 'championship-re-start-duel')
+            .setDisplaySize(layout.cta.width, layout.cta.height)
+            .setInteractive({ useHandCursor: true });
+        // 完成した召喚門は本番の選択画面として使う。debugでもここから戦闘へ入れないと、
+        // BATTLE TUNERの調整対象へ到達できない。
+        previewCta.on('pointerdown', () => this.startSelectedDuel());
+        previewCta.on('pointerup', () => this.startSelectedDuel());
         guide.add(previewCta);
         const cta = this.add.rectangle(layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height, 0xe8c878, 0.16).setOrigin(0).setStrokeStyle(3, 0xe8c878, 0.95);
         const ctaLabel = this.add.text(layout.cta.x + layout.cta.width / 2, layout.cta.y + layout.cta.height / 2, `START DUEL  ${layout.cta.width} × ${layout.cta.height}`, { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffedb2', letterSpacing: 3 }).setOrigin(0.5);
@@ -742,6 +984,12 @@ export class Game extends Scene {
 
     private startSelectedDuel() {
         if (this.state !== 'select') return;
+        if (this.friendRoom) { void this.startFriendSelectedDuel(); return; }
+        // 戦闘用の透過素材は初回だけ遅延読込する。無反応に見せず、二重タップで
+        // 同じ読込完了処理が重ならないよう、選択をこの時点でロックする。
+        this.state = 'loading-duel';
+        const summoning = this.add.text(VIEW_WIDTH / 2, 1310, 'SUMMONING...', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#fff0b2', stroke: '#05080e', strokeThickness: 7, letterSpacing: 4 }).setOrigin(0.5).setDepth(160);
+        this.selectionLayer?.add(summoning);
         if (this.battlePreviewEnabled) {
             this.playerFighter = FIGHTERS.find((fighter) => fighter.id === 'raven')!;
             this.npcFighter = FIGHTERS.find((fighter) => fighter.id === 'mika')!;
@@ -755,7 +1003,42 @@ export class Game extends Scene {
         this.loadMindDuelBattleAssets([this.playerFighter, this.npcFighter], () => this.beginMindDuel());
     }
 
+    private async startFriendSelectedDuel() {
+        const room = this.friendRoom;
+        if (!room || this.friendDuelStarting) return;
+        this.state = 'loading-duel';
+        const summoning = this.add.text(VIEW_WIDTH / 2, 1310, 'SYNCING FIGHTER...', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#fff0b2', stroke: '#05080e', strokeThickness: 7, letterSpacing: 3 }).setOrigin(0.5).setDepth(160);
+        this.selectionLayer?.add(summoning);
+        try {
+            await this.callFriendRoomRpc<void>('mind_duel_set_character', { p_code: room.code, p_token: room.token, p_character_id: this.selectedFighter.id });
+            const waitForOpponent = async () => {
+                if (!this.friendRoom || this.state !== 'loading-duel' || this.friendDuelStarting) return;
+                const state = await this.pollFriendRoom();
+                if (!state) { summoning.setText('CONNECTION LOST'); return; }
+                const bothSelected = state.host_character_id !== null && state.guest_character_id !== null;
+                if (!bothSelected) { summoning.setText('WAITING FOR FRIEND TO SELECT...'); this.time.delayedCall(800, () => void waitForOpponent()); return; }
+                if (room.seat === 'host' && state.status === 'selecting') await this.callFriendRoomRpc<void>('mind_duel_start_duel', { p_code: room.code, p_token: room.token });
+                const started = await this.pollFriendRoom();
+                if (!started || started.status !== 'duel') { summoning.setText('STARTING DUEL...'); this.time.delayedCall(500, () => void waitForOpponent()); return; }
+                const ownId = room.seat === 'host' ? started.host_character_id : started.guest_character_id;
+                const opponentId = room.seat === 'host' ? started.guest_character_id : started.host_character_id;
+                const own = FIGHTERS.find((fighter) => fighter.id === ownId); const opponent = FIGHTERS.find((fighter) => fighter.id === opponentId);
+                if (!own || !opponent) { summoning.setText('FIGHTER SYNC FAILED'); return; }
+                this.friendDuelStarting = true;
+                this.friendPlayerName = room.seat === 'host' ? started.host_name : started.guest_name ?? 'PLAYER';
+                this.friendOpponentName = room.seat === 'host' ? started.guest_name ?? 'FRIEND' : started.host_name;
+                this.playerFighter = own; this.npcFighter = opponent;
+                this.loadMindDuelBattleAssets([own, opponent], () => this.beginMindDuel());
+            };
+            void waitForOpponent();
+        } catch (error) {
+            summoning.setText(error instanceof Error ? error.message : 'ROOM SYNC FAILED');
+            this.state = 'select';
+        }
+    }
+
     private beginMindDuel() {
+        this.friendDuelStarting = false;
         this.state = 'mind-duel';
         this.selectTitle = undefined;
         this.selectionLayer?.destroy();
@@ -774,6 +1057,8 @@ export class Game extends Scene {
     private createMindDuelScreen() {
         this.resultLayer?.destroy();
         this.resultLayer = undefined;
+        this.mindDuelDebugEffectPreview?.destroy();
+        this.mindDuelDebugEffectPreview = undefined;
         this.mindDuelLayer?.destroy();
         this.mindDuelPlayerHp = 1000;
         this.mindDuelNpcHp = 1000;
@@ -803,9 +1088,13 @@ export class Game extends Scene {
         this.mindDuelNpcHpFill = this.add.rectangle(rightHpCenter + hpWidth / 2 - 7, hpY, hpWidth - 14, 16, this.npcFighter.color, 0.94).setOrigin(1, 0.5);
         const hudHeight = MIND_DUEL_HUD.sourceHeight * MIND_DUEL_HUD.width / MIND_DUEL_HUD.sourceWidth;
         const hud = this.add.image(MIND_DUEL_HUD.x + MIND_DUEL_HUD.width / 2, MIND_DUEL_HUD.y + hudHeight / 2, 'battle-hud-frame').setDisplaySize(MIND_DUEL_HUD.width, hudHeight);
-        const playerName = this.add.text(mindDuelHudX(476), mindDuelHudY(124), this.playerFighter.name, { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: `#${this.playerFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 3 }).setOrigin(0.5);
-        const npcName = this.add.text(mindDuelHudX(1695), mindDuelHudY(124), `CPU · ${this.npcFighter.name}`, { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: `#${this.npcFighter.color.toString(16).padStart(6, '0')}`, letterSpacing: 2 }).setOrigin(0.5);
-        this.mindDuelRoundText = this.add.text(mindDuelHudX(1086), mindDuelHudY(267), '01', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5 }).setOrigin(0.5);
+        // オンライン名も同じ仕上がりで出せるよう、文字画像ではなく端末標準のセリフ体で
+        // 金属UIの彫刻感を出す。Arialの丸さを避け、数字もHUD中央の宝石枠へ馴染ませる。
+        const playerLabel = this.friendRoom ? this.friendPlayerName : this.playerFighter.name;
+        const npcLabel = this.friendRoom ? this.friendOpponentName : `CPU · ${this.npcFighter.name}`;
+        const playerName = this.createMindDuelName(mindDuelHudX(455), mindDuelHudY(124), playerLabel, this.playerFighter.color, 23, 205);
+        const npcName = this.createMindDuelName(mindDuelHudX(1708), mindDuelHudY(124), npcLabel, this.npcFighter.color, 20, 205);
+        this.mindDuelRoundText = this.add.text(mindDuelHudX(1086), mindDuelHudY(267), '01', { fontFamily: 'Georgia, Times New Roman, serif', fontSize: '40px', fontStyle: 'bold', color: '#fff2bd', stroke: '#17110b', strokeThickness: 5, shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 4, fill: true }, letterSpacing: 1 }).setOrigin(0.5);
         // 数字をソケットへ重ねると結晶ゲージの意味が弱くなるため、HPはバーの残量だけで見せる。
         this.mindDuelPlayerHpText = this.add.text(0, 0, '').setVisible(false);
         this.mindDuelNpcHpText = this.add.text(0, 0, '').setVisible(false);
@@ -814,29 +1103,39 @@ export class Game extends Scene {
         // 透過領域を原画ピクセルで実測した丸ソケットの中心。目測値を使うと左右で数十pxずれる。
         this.createMindDuelGems(layer, [473, 589], true);
         this.createMindDuelGems(layer, [1581, 1696], false);
-        const playerArt = this.add.image(270, 1190, this.mindDuelCharacterTexture(this.playerFighter, 'idle')).setOrigin(0.5, 1).setDisplaySize(500, 760);
-        const npcArt = this.add.image(674, 1190, this.mindDuelCharacterTexture(this.npcFighter, 'idle')).setOrigin(0.5, 1).setDisplaySize(500, 760).setFlipX(true);
+        const playerArt = this.add.image(270, 1190, this.mindDuelCharacterTexture(this.playerFighter, 'idle')).setOrigin(0.5, 1);
+        const npcArt = this.add.image(674, 1190, this.mindDuelCharacterTexture(this.npcFighter, 'idle')).setOrigin(0.5, 1);
+        this.applyMindDuelCharacterArt(playerArt, this.playerFighter, 'idle', -1);
+        this.applyMindDuelCharacterArt(npcArt, this.npcFighter, 'idle', 1);
         playerArt.setAlpha(0.98);
         npcArt.setAlpha(0.98);
         this.mindDuelPlayerArt = playerArt;
         this.mindDuelNpcArt = npcArt;
-        layer.add([playerArt, npcArt]);
+        // 左の味方を最前面にして、攻撃VFXは両者の間へ置く。
+        // これで「敵 → エフェクト → 味方」の前後関係を常に保てる。
+        layer.add([npcArt, playerArt]);
         this.tweens.add({ targets: playerArt, y: 1182, duration: 1250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.tweens.add({ targets: npcArt, y: 1182, duration: 1280, delay: 140, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
         const choosePlate = this.add.image(VIEW_WIDTH / 2, 1180, 'battle-choose-move').setDisplaySize(560, 110);
-        this.mindDuelStatus = this.add.text(VIEW_WIDTH / 2, 1191, 'CHOOSE YOUR MOVE', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#fff2bd', stroke: '#080b12', strokeThickness: 5, letterSpacing: 3 }).setOrigin(0.5);
+        this.mindDuelChoosePlate = choosePlate;
+        // CHOOSE YOUR MOVEはボタン台座の素材へ焼き込み済み。ここに選択結果を重ねると
+        // 上の開示と二重になるので、互換用の空Textは非表示にしてレイヤー基準だけ残す。
+        this.mindDuelStatus = this.add.text(VIEW_WIDTH / 2, 1191, '', { fontFamily: 'Georgia, Times New Roman, serif', fontSize: '17px' }).setOrigin(0.5).setVisible(false);
         // 読み合いの結果は小さな案内板だけで済ませず、キャラの間へ大きく一度だけ開示する。
-        this.mindDuelReveal = this.add.text(VIEW_WIDTH / 2, 1078, '', { fontFamily: 'Arial, sans-serif', fontSize: '32px', fontStyle: 'bold', color: '#fff2bd', stroke: '#060910', strokeThickness: 9, letterSpacing: 3 }).setOrigin(0.5).setVisible(false);
+        this.mindDuelReveal = this.add.text(VIEW_WIDTH / 2, 1110, '', { fontFamily: 'Georgia, Times New Roman, serif', fontSize: '32px', fontStyle: 'bold', color: '#fff2bd', stroke: '#060910', strokeThickness: 9, letterSpacing: 2 }).setOrigin(0.5).setVisible(false);
         layer.add([choosePlate, this.mindDuelStatus, this.mindDuelReveal]);
-        this.createMindDuelButton(layer, 173, 'battle-action-break', 'break');
-        this.createMindDuelButton(layer, VIEW_WIDTH / 2, 'battle-action-guard', 'guard');
-        const attack = this.createMindDuelButton(layer, 768, 'battle-action-attack', 'attack');
-        this.mindDuelReadyRing = this.add.image(768, 1435, 'battle-ultimate-ready-ring').setDisplaySize(245, 245).setAlpha(0).setVisible(false);
-        this.mindDuelSwipeTrail = this.add.image(768, 1328, 'battle-ultimate-swipe-trail').setDisplaySize(155, 210).setAlpha(0).setVisible(false);
+        this.createMindDuelButton(layer, 'battle-action-break', 'break');
+        this.createMindDuelButton(layer, 'battle-action-guard', 'guard');
+        const attack = this.createMindDuelButton(layer, 'battle-action-attack', 'attack');
+        const attackLayout = this.mindDuelUiLayout.actions.attack;
+        this.mindDuelReadyRing = this.add.image(attackLayout.x, attackLayout.y, 'battle-ultimate-ready-ring').setDisplaySize(245, 245).setAlpha(0).setVisible(false);
+        this.mindDuelSwipeTrail = this.add.image(attackLayout.x, attackLayout.y - 107, 'battle-ultimate-swipe-trail').setDisplaySize(155, 210).setAlpha(0).setVisible(false);
         this.mindDuelReadyRing.setDepth(2);
         this.mindDuelSwipeTrail.setDepth(2);
         layer.add([this.mindDuelReadyRing, this.mindDuelSwipeTrail]);
+        this.applyMindDuelUiLayout();
+        if (this.debugEnabled && this.desktopDebugEnabled) this.renderMindDuelDebugPanel();
         attack.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startMindDuelAttackGesture(pointer));
         this.updateMindDuelUi();
         if (this.battlePreviewEnabled) this.playRavenMikaBattlePreview();
@@ -853,10 +1152,27 @@ export class Game extends Scene {
         });
     }
 
-    private createMindDuelButton(layer: GameObjects.Container, x: number, key: string, move: Exclude<MindDuelMove, 'ultimate'>) {
-        const button = this.add.image(x, 1435, key).setDisplaySize(230, 230);
+    private createMindDuelName(x: number, y: number, rawName: string, color: number, fontSize: number, maxWidth: number) {
+        // ルーム対戦で自由入力の名前を許す時も、HUD枠の外へは出さない。12文字を超えた分は
+        // 省略記号へ置き換え、残った長い文字列だけを最小0.68倍まで縮めて枠内へ収める。
+        const chars = Array.from(rawName.trim() || 'PLAYER');
+        const label = chars.length > 12 ? `${chars.slice(0, 11).join('')}…` : chars.join('');
+        const text = this.add.text(x, y, label, {
+            fontFamily: rawName.includes('TΩ9') ? 'Arial Black, Arial, sans-serif' : 'Georgia, Times New Roman, serif', fontSize: `${fontSize}px`, fontStyle: 'bold',
+            color: `#${color.toString(16).padStart(6, '0')}`, stroke: '#05080d', strokeThickness: 3,
+            shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 3, fill: true }, letterSpacing: 1.5
+        }).setOrigin(0.5);
+        text.setScale(Math.max(0.68, Math.min(1, maxWidth / text.width)));
+        return text;
+    }
+
+    private createMindDuelButton(layer: GameObjects.Container, key: string, move: MindDuelAction) {
+        const layout = this.mindDuelUiLayout.actions[move];
+        const button = this.add.image(layout.x, layout.y, key).setDisplaySize(layout.size, layout.size);
         // 素材の透明余白やトリム情報に入力範囲を任せず、見た目と同じ230pxの領域を明示する。
-        const hitArea = this.add.zone(x, 1435, 230, 230).setInteractive({ useHandCursor: true });
+        const hitArea = this.add.zone(layout.x, layout.y, layout.size, layout.size).setInteractive({ useHandCursor: true });
+        this.mindDuelActionArts.set(move, button);
+        this.mindDuelActionHitAreas.set(move, hitArea);
         layer.add([button, hitArea]);
         if (move !== 'attack') hitArea.on('pointerdown', () => this.chooseMindDuelMove(move));
         // setDisplaySize後にscaleを1へ戻すと、縮めた見た目ではなく原寸へ戻ってしまう。
@@ -864,6 +1180,23 @@ export class Game extends Scene {
         hitArea.on('pointerup', () => button.setAlpha(1));
         hitArea.on('pointerout', () => button.setAlpha(1));
         return hitArea;
+    }
+
+    private applyMindDuelUiLayout() {
+        const prompt = this.mindDuelUiLayout.prompt;
+        this.mindDuelChoosePlate?.setPosition(prompt.x, prompt.y - 11);
+        this.mindDuelStatus?.setPosition(prompt.x, prompt.y).setFontSize(prompt.size);
+        const reveal = this.mindDuelUiLayout.reveal;
+        this.mindDuelReveal?.setPosition(reveal.x, reveal.y).setFontSize(reveal.size);
+        (['break', 'guard', 'attack'] as MindDuelAction[]).forEach((move) => {
+            const layout = this.mindDuelUiLayout.actions[move];
+            this.mindDuelActionArts.get(move)?.setPosition(layout.x, layout.y).setDisplaySize(layout.size, layout.size);
+            // Zoneのサイズも絵と合わせ、見た目だけ移動して押せない事故を避ける。
+            this.mindDuelActionHitAreas.get(move)?.setPosition(layout.x, layout.y).setSize(layout.size, layout.size);
+        });
+        const attack = this.mindDuelUiLayout.actions.attack;
+        this.mindDuelReadyRing?.setPosition(attack.x, attack.y);
+        this.mindDuelSwipeTrail?.setPosition(attack.x, attack.y - 107);
     }
 
     private startMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {
@@ -884,12 +1217,36 @@ export class Game extends Scene {
 
     private chooseMindDuelMove(move: MindDuelMove) {
         if (this.state !== 'mind-duel' || this.mindDuelLocked || (move === 'ultimate' && this.mindDuelPlayerGauge < 2)) return;
+        if (this.friendRoom) { void this.chooseFriendMindDuelMove(move); return; }
+        this.playMindDuelSfx(move === 'ultimate' ? 'ultimate-cue' : 'choose');
         this.mindDuelLocked = true;
         const playerMove = move;
         const npcMove = this.chooseMindDuelCpuMove();
-        this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ?`);
         this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ?`).setColor('#fff2bd').setVisible(true).setAlpha(1);
         this.time.delayedCall(480, () => this.resolveMindDuelRound(playerMove, npcMove));
+    }
+
+    private async chooseFriendMindDuelMove(move: MindDuelMove) {
+        const room = this.friendRoom;
+        if (!room || this.mindDuelLocked) return;
+        this.playMindDuelSfx(move === 'ultimate' ? 'ultimate-cue' : 'choose');
+        this.mindDuelLocked = true;
+        this.mindDuelReveal?.setText(`${this.moveLabel(move)}   VS   ?`).setColor('#fff2bd').setVisible(true).setAlpha(1);
+        try {
+            await this.callFriendRoomRpc<void>('mind_duel_submit_move', { p_code: room.code, p_token: room.token, p_round: this.mindDuelRound, p_move: move });
+            const waitForBothMoves = async () => {
+                if (this.state !== 'mind-duel' || !this.friendRoom) return;
+                const state = await this.pollFriendRoom();
+                if (!state) { this.mindDuelReveal?.setText('CONNECTION LOST'); return; }
+                if (state.round !== this.mindDuelRound) return;
+                if (state.opponent_move && state.own_move) { this.resolveMindDuelRound(state.own_move, state.opponent_move); return; }
+                this.time.delayedCall(500, () => void waitForBothMoves());
+            };
+            void waitForBothMoves();
+        } catch (error) {
+            this.mindDuelLocked = false;
+            this.mindDuelReveal?.setText(error instanceof Error ? error.message : 'MOVE FAILED').setVisible(true);
+        }
     }
 
     private chooseMindDuelCpuMove(): MindDuelMove {
@@ -932,25 +1289,28 @@ export class Game extends Scene {
         this.mindDuelPlayerGauge = Math.min(2, this.mindDuelPlayerGauge + playerGauge);
         this.mindDuelNpcGauge = Math.min(2, this.mindDuelNpcGauge + npcGauge);
         this.mindDuelLastPlayerMove = playerMove;
-        this.mindDuelStatus?.setText(`${this.moveLabel(playerMove)}  VS  ${this.moveLabel(npcMove)}`);
         this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setColor('#fff2bd').setVisible(true);
         this.updateMindDuelUi();
         const playerGuardBroken = playerMove === 'guard' && npcMove === 'break';
         const npcGuardBroken = npcMove === 'guard' && playerMove === 'break';
         this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1, playerGuardBroken);
         this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1, npcGuardBroken);
-        if (playerMove === 'attack') this.playMindDuelAttackEffect(this.playerFighter, -1);
-        if (npcMove === 'attack') this.playMindDuelAttackEffect(this.npcFighter, 1);
+        if (playerMove === 'attack' || playerMove === 'break') this.playMindDuelMoveEffect(this.playerFighter, playerMove, -1);
+        if (npcMove === 'attack' || npcMove === 'break') this.playMindDuelMoveEffect(this.npcFighter, npcMove, 1);
         if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter);
         if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter);
+        if (playerMove === 'ultimate' || npcMove === 'ultimate') this.playMindDuelSfx('ultimate');
+        else if (playerGuardBroken || npcGuardBroken) this.playMindDuelSfx('break');
+        else if (playerGauge || npcGauge) this.playMindDuelSfx('guard');
+        else if (playerDamage || npcDamage) this.playMindDuelSfx('impact');
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
         const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
-        if (playerReadyNow || npcReadyNow) this.announceMindDuelUltimateReady(playerReadyNow);
+        if (playerReadyNow || npcReadyNow) { this.playMindDuelSfx('ready'); this.announceMindDuelUltimateReady(playerReadyNow); }
         const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
         if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
         this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
         if (this.mindDuelPlayerHp === 0 || this.mindDuelNpcHp === 0) {
-            this.time.delayedCall(720, () => this.showMindDuelResult());
+            this.time.delayedCall(720, () => { this.playMindDuelSfx(this.mindDuelNpcHp === 0 ? 'victory' : 'defeat'); this.showMindDuelResult(); });
             return;
         }
         this.mindDuelRound += 1;
@@ -959,10 +1319,25 @@ export class Game extends Scene {
         // ガードも含め全手の戻りを待ってから次入力を開放する。
         this.time.delayedCall(1320, () => {
             if (this.state !== 'mind-duel') return;
+            if (this.friendRoom) { void this.finishFriendMindDuelRound(); return; }
             this.mindDuelLocked = false;
             this.mindDuelReveal?.setVisible(false);
-            this.mindDuelStatus?.setText(this.mindDuelPlayerGauge >= 2 ? 'ULTIMATE READY  •  HOLD ATTACK / SWIPE UP' : 'CHOOSE YOUR MOVE');
         });
+    }
+
+    private async finishFriendMindDuelRound() {
+        const room = this.friendRoom;
+        if (!room) return;
+        try {
+            if (room.seat === 'host') await this.callFriendRoomRpc<void>('mind_duel_finish_round', { p_code: room.code, p_token: room.token, p_round: this.mindDuelRound - 1 });
+            const waitForNextRound = async () => {
+                if (this.state !== 'mind-duel' || !this.friendRoom) return;
+                const state = await this.pollFriendRoom();
+                if (state && state.round === this.mindDuelRound) { this.mindDuelLocked = false; this.mindDuelReveal?.setVisible(false); return; }
+                this.time.delayedCall(350, () => void waitForNextRound());
+            };
+            void waitForNextRound();
+        } catch (error) { this.mindDuelReveal?.setText(error instanceof Error ? error.message : 'ROUND SYNC FAILED').setVisible(true); }
     }
 
     private updateMindDuelUi() {
@@ -984,20 +1359,49 @@ export class Game extends Scene {
         }
     }
 
+    private playMindDuelSfx(kind: 'choose' | 'guard' | 'break' | 'impact' | 'ready' | 'ultimate-cue' | 'ultimate' | 'victory' | 'defeat') {
+        // 効果音ファイルを都度読むと携帯の初戦で演出より遅れるため、短い発振音を重ねて
+        // 操作・防御・破壊の判別に必要な音だけをその場で作る。最初のタップでContextを起動する。
+        const AudioContextClass = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        this.mindDuelAudio ??= new AudioContextClass();
+        const audio = this.mindDuelAudio;
+        void audio.resume();
+        const now = audio.currentTime;
+        const tone = (frequency: number, endFrequency: number, duration: number, volume: number, type: OscillatorType = 'sine', delay = 0) => {
+            const oscillator = audio.createOscillator(); const gain = audio.createGain();
+            oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, now + delay); oscillator.frequency.exponentialRampToValueAtTime(Math.max(18, endFrequency), now + delay + duration);
+            gain.gain.setValueAtTime(0.0001, now + delay); gain.gain.exponentialRampToValueAtTime(volume, now + delay + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + duration);
+            oscillator.connect(gain).connect(audio.destination); oscillator.start(now + delay); oscillator.stop(now + delay + duration + 0.02);
+        };
+        if (kind === 'choose') tone(700, 840, 0.07, 0.05, 'triangle');
+        if (kind === 'guard') { tone(190, 135, 0.16, 0.10, 'triangle'); tone(540, 430, 0.12, 0.035, 'sine', 0.025); }
+        if (kind === 'impact') { tone(150, 68, 0.19, 0.13, 'sawtooth'); tone(430, 180, 0.11, 0.04, 'square'); }
+        if (kind === 'break') { tone(300, 55, 0.28, 0.14, 'sawtooth'); tone(720, 120, 0.17, 0.055, 'square', 0.025); }
+        if (kind === 'ready') { tone(660, 660, 0.20, 0.07, 'sine'); tone(990, 990, 0.28, 0.06, 'sine', 0.10); }
+        if (kind === 'ultimate-cue') { tone(250, 510, 0.24, 0.09, 'triangle'); tone(720, 1080, 0.30, 0.05, 'sine', 0.10); }
+        if (kind === 'ultimate') { tone(105, 42, 0.42, 0.18, 'sawtooth'); tone(520, 82, 0.34, 0.07, 'square', 0.04); }
+        if (kind === 'victory') { tone(440, 440, 0.22, 0.08, 'sine'); tone(660, 660, 0.25, 0.07, 'sine', 0.13); tone(880, 880, 0.38, 0.07, 'sine', 0.27); }
+        if (kind === 'defeat') { tone(330, 250, 0.23, 0.08, 'triangle'); tone(250, 150, 0.36, 0.08, 'triangle', 0.18); }
+    }
+
     private playMindDuelMoveAnimation(art: GameObjects.Image | undefined, fighter: FighterDefinition, move: MindDuelMove, direction: -1 | 1, guardBroken = false) {
         if (art === undefined) return;
         const baseX = direction === -1 ? 270 : 674;
         const baseY = 1190;
         this.tweens.killTweensOf(art);
         const pose: BattleCharacterPose = move === 'guard' ? 'guard' : move === 'break' ? 'break' : move === 'ultimate' ? 'ultimate' : 'attack';
-        art.setTexture(this.mindDuelCharacterTexture(fighter, pose)).setDisplaySize(500, 760).setFlipX(direction === 1);
+        this.applyMindDuelCharacterArt(art, fighter, pose, direction);
+        const tuning = this.mindDuelCharacterTuningFor(fighter.id, pose);
+        const tunedBaseX = baseX + (direction === -1 ? tuning.x : -tuning.x);
+        const tunedBaseY = baseY + tuning.y;
         const travel = move === 'ultimate' ? 86 : move === 'break' ? 68 : 52;
         const duration = guardBroken ? 210 : move === 'ultimate' ? 290 : move === 'break' ? 270 : 250;
         const hold = guardBroken ? 380 : move === 'ultimate' ? 450 : move === 'break' ? 350 : 300;
         // ガードは相手へ踏み込まない。手の開示から一拍後、攻撃が当たるタイミングだけ
         // 外側へわずかに押し戻して、受けた重さを見せる。
-        const targetX = move === 'guard' ? baseX + direction * (guardBroken ? 72 : 24) : baseX - direction * travel;
-        const targetY = move === 'guard' ? baseY + (guardBroken ? 18 : 6) : baseY - (move === 'ultimate' ? 38 : 18);
+        const targetX = move === 'guard' ? tunedBaseX + direction * (guardBroken ? 72 : 24) : tunedBaseX - direction * travel;
+        const targetY = move === 'guard' ? tunedBaseY + (guardBroken ? 18 : 6) : tunedBaseY - (move === 'ultimate' ? 38 : 18);
         const guardHitDelay = move === 'guard' ? 260 : 0;
         this.tweens.add({
             targets: art,
@@ -1009,14 +1413,14 @@ export class Game extends Scene {
             delay: guardHitDelay,
             ease: 'Quad.easeOut',
             onComplete: () => {
-                art.setTexture(this.mindDuelCharacterTexture(fighter, 'idle')).setDisplaySize(500, 760).setFlipX(direction === 1).setPosition(baseX, baseY).setAlpha(0.98);
+                this.applyMindDuelCharacterArt(art, fighter, 'idle', direction);
                 this.resumeMindDuelIdle(art, direction);
             }
         });
     }
 
     private hasMindDuelCharacter(fighter: FighterDefinition) {
-        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi';
+        return fighter.id === 'raven' || fighter.id === 'mika' || fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi' || fighter.id === 'tomega9';
     }
 
     private mindDuelCharacterKey(fighter: FighterDefinition, pose: BattleCharacterPose) {
@@ -1035,6 +1439,7 @@ export class Game extends Scene {
         if (fighter.id === 'noise') return 'battle-effect-noise-ultimate-beat-drop';
         if (fighter.id === 'kiri') return 'battle-effect-kiri-ultimate-reaper-slash';
         if (fighter.id === 'vivi') return 'battle-effect-vivi-ultimate-feather-barrage';
+        if (fighter.id === 'tomega9') return 'battle-effect-tomega9-ultimate-firebreath';
         return undefined;
     }
 
@@ -1045,19 +1450,44 @@ export class Game extends Scene {
         if (fighter.id === 'noise') return 'assets/championship-re/battle/effects/noise-ultimate-beat-drop-v1.webp';
         if (fighter.id === 'kiri') return 'assets/championship-re/battle/effects/kiri-ultimate-reaper-slash-v1.webp';
         if (fighter.id === 'vivi') return 'assets/championship-re/battle/effects/vivi-ultimate-feather-barrage-v1.webp';
+        if (fighter.id === 'tomega9') return 'assets/championship-re/battle/effects/tomega9-ultimate-firebreath-v1.webp';
         return undefined;
     }
 
-    private mindDuelAttackEffectKey(fighter: FighterDefinition) {
-        if (fighter.id === 'noise') return 'battle-effect-noise-attack-sonic-jab';
-        if (fighter.id === 'kiri') return 'battle-effect-kiri-attack-crescent';
-        return undefined;
-    }
-
-    private mindDuelAttackEffectPath(fighter: FighterDefinition) {
-        if (fighter.id === 'noise') return 'assets/championship-re/battle/effects/noise-attack-sonic-jab-v1.webp';
-        if (fighter.id === 'kiri') return 'assets/championship-re/battle/effects/kiri-attack-crescent-v1.webp';
-        return undefined;
+    private mindDuelMoveEffect(fighter: FighterDefinition, move: 'attack' | 'break'): MindDuelEffectDefinition | undefined {
+        const effects: Partial<Record<string, Partial<Record<'attack' | 'break', MindDuelEffectDefinition>>>> = {
+            raven: {
+                attack: { key: 'battle-effect-raven-attack-dimensional-crescent', path: 'assets/championship-re/battle/effects/raven-attack-dimensional-crescent-v1.webp', width: 290, height: 610, playerX: 625, npcX: 319, y: 925 },
+                break: { key: 'battle-effect-raven-break-elbow-impact', path: 'assets/championship-re/battle/effects/raven-break-elbow-impact-v1.webp', width: 210, height: 190, playerX: 414, npcX: 530, y: 1015 }
+            },
+            mika: {
+                attack: { key: 'battle-effect-mika-attack-heart-punch', path: 'assets/championship-re/battle/effects/mika-attack-heart-punch-v1.webp', width: 350, height: 195, playerX: 405, npcX: 535, y: 1020 },
+                break: { key: 'battle-effect-mika-break-heart-push', path: 'assets/championship-re/battle/effects/mika-break-heart-push-v1.webp', width: 390, height: 235, playerX: 415, npcX: 525, y: 1000 }
+            },
+            brick: {
+                attack: { key: 'battle-effect-brick-attack-hammer-trail', path: 'assets/championship-re/battle/effects/brick-attack-hammer-trail-v1.webp', width: 310, height: 585, playerX: 344, npcX: 600, y: 930, layer: 'behind' },
+                break: { key: 'battle-effect-brick-break-lion-shield', path: 'assets/championship-re/battle/effects/brick-break-lion-shield-v1.webp', width: 350, height: 220, playerX: 405, npcX: 535, y: 1000 }
+            },
+            noise: {
+                attack: { key: 'battle-effect-noise-attack-sonic-jab', path: 'assets/championship-re/battle/effects/noise-attack-sonic-jab-v1.webp', width: 440, height: 245, playerX: 420, npcX: 108, y: 1080 },
+                break: { key: 'battle-effect-noise-break-sound-shatter', path: 'assets/championship-re/battle/effects/noise-break-sound-shatter-v1.webp', width: 380, height: 245, playerX: 410, npcX: 530, y: 1015 }
+            },
+            kiri: {
+                // 原画の基準とゲーム内のキリの右向きが逆だったため、ATTACK/BREAKとも
+                // 左側プレイヤーでは反転する基準へ揃える。
+                attack: { key: 'battle-effect-kiri-attack-crescent', path: 'assets/championship-re/battle/effects/kiri-attack-crescent-v1.webp', width: 440, height: 245, playerX: 420, npcX: 108, y: 1080 },
+                break: { key: 'battle-effect-kiri-break-staff-impact', path: 'assets/championship-re/battle/effects/kiri-break-staff-impact-v1.webp', width: 255, height: 180, playerX: 410, npcX: 535, y: 1020, sourceNeedsPlayerFlip: true }
+            },
+            vivi: {
+                attack: { key: 'battle-effect-vivi-attack-thunder-thrust', path: 'assets/championship-re/battle/effects/vivi-attack-thunder-thrust-v1.webp', width: 350, height: 185, playerX: 405, npcX: 535, y: 1000, layer: 'between' },
+                break: { key: 'battle-effect-vivi-attack-thunder-thrust', path: 'assets/championship-re/battle/effects/vivi-attack-thunder-thrust-v1.webp', width: 380, height: 200, playerX: 400, npcX: 540, y: 985, layer: 'between' }
+            },
+            tomega9: {
+                attack: { key: 'battle-effect-tomega9-attack-paw-stamp', path: 'assets/championship-re/battle/effects/tomega9-attack-paw-stamp-v1.webp', width: 310, height: 185, playerX: 405, npcX: 535, y: 1035 },
+                break: { key: 'battle-effect-tomega9-attack-paw-stamp', path: 'assets/championship-re/battle/effects/tomega9-attack-paw-stamp-v1.webp', width: 350, height: 205, playerX: 410, npcX: 530, y: 1015 }
+            }
+        };
+        return effects[fighter.id]?.[move];
     }
 
     private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
@@ -1073,11 +1503,10 @@ export class Game extends Scene {
             if (effectKey !== undefined && effectPath !== undefined && !this.textures.exists(effectKey)) {
                 toLoad.push({ key: effectKey, path: effectPath });
             }
-            const attackEffectKey = this.mindDuelAttackEffectKey(fighter);
-            const attackEffectPath = this.mindDuelAttackEffectPath(fighter);
-            if (attackEffectKey !== undefined && attackEffectPath !== undefined && !this.textures.exists(attackEffectKey)) {
-                toLoad.push({ key: attackEffectKey, path: attackEffectPath });
-            }
+            (['attack', 'break'] as const).forEach((move) => {
+                const effect = this.mindDuelMoveEffect(fighter, move);
+                if (effect !== undefined && !this.textures.exists(effect.key)) toLoad.push({ key: effect.key, path: effect.path });
+            });
         });
         if (!toLoad.length) {
             onComplete();
@@ -1094,19 +1523,20 @@ export class Game extends Scene {
         // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
         // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
         const enemySide = fighter.id === this.npcFighter.id;
-        const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi';
+        const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi' || fighter.id === 'tomega9';
         // KIRI/VIVIのVFX原画は、左側プレイヤーへ置く時に一度反転する向きで作っている。
         // 他4人の既存原画は右向きなので、素材の意図に応じて反転基準を分ける。
         const sourceNeedsPlayerFlip = fighter.id === 'kiri' || fighter.id === 'vivi';
-        const effect = this.add.image(VIEW_WIDTH / 2, wideUltimate ? 1010 : 940, key)
+        const tuning = this.mindDuelEffectTuningFor(fighter.id, 'ultimate');
+        const effect = this.add.image(VIEW_WIDTH / 2 + tuning.x, (wideUltimate ? 1010 : 940) + tuning.y, key)
             .setOrigin(0.5)
-            .setDisplaySize(wideUltimate ? 1440 : 1000, wideUltimate ? 960 : 1500)
-            .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide)
+            .setDisplaySize((wideUltimate ? 1440 : 1000) * tuning.scale, (wideUltimate ? 960 : 1500) * tuning.scale)
+            .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide).setAngle(enemySide ? -tuning.angle : tuning.angle)
             .setBlendMode('ADD')
             .setAlpha(0);
         // キャラの上に出しつつ、HUDと操作ボタンの下へ置く。黒背景を加算合成するので、
         // 発光の縁をalpha抜きした時に起きるガビつきを避けられる。
-        this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
+        this.mindDuelLayer.addAt(effect, this.mindDuelEffectLayerIndex(tuning.layer ?? 'between'));
         this.tweens.add({
             targets: effect,
             alpha: { from: 0, to: 0.92 },
@@ -1118,20 +1548,21 @@ export class Game extends Scene {
         });
     }
 
-    private playMindDuelAttackEffect(fighter: FighterDefinition, direction: -1 | 1) {
-        const key = this.mindDuelAttackEffectKey(fighter);
-        if (key === undefined || !this.textures.exists(key) || this.mindDuelLayer === undefined) return;
-        // 元絵は左側の掌から右へ飛ぶ。黒余白を含む横長素材なので、表示枠の左端を
-        // 掌より少し手前へ置くことで、明るい波の始点だけを正確に掌先へ合わせる。
+    private playMindDuelMoveEffect(fighter: FighterDefinition, move: 'attack' | 'break', direction: -1 | 1) {
+        const definition = this.mindDuelMoveEffect(fighter, move);
+        if (definition === undefined || !this.textures.exists(definition.key) || this.mindDuelLayer === undefined) return;
+        // 効果ごとに発生元が掌・盾・武器先と異なる。共通の中央座標へ寄せると武器から
+        // 外れて見えるため、プレイヤー／敵の両側で原画ごとの発生位置を固定する。
         const enemySide = direction === 1;
-        const sourceNeedsPlayerFlip = fighter.id === 'kiri';
-        const effect = this.add.image(enemySide ? 108 : 420, 1080, key)
-            .setOrigin(0, 0.5)
-            .setDisplaySize(440, 245)
-            .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide)
+        const tuning = this.mindDuelEffectTuningFor(fighter.id, move);
+        const effect = this.add.image((enemySide ? definition.npcX : definition.playerX) + (enemySide ? -tuning.x : tuning.x), definition.y + tuning.y, definition.key)
+            .setOrigin(0.5)
+            .setDisplaySize(definition.width * tuning.scale, definition.height * tuning.scale)
+            .setFlipX(definition.sourceNeedsPlayerFlip ? !enemySide : enemySide).setAngle(enemySide ? -tuning.angle : tuning.angle)
             .setBlendMode('ADD')
             .setAlpha(0);
-        this.mindDuelLayer.addAt(effect, this.mindDuelLayer.getIndex(this.mindDuelStatus!));
+        // 通常技の標準は「敵の前、味方の後ろ」。TUNERから技ごとに前面へも切り替えられる。
+        this.mindDuelLayer.addAt(effect, this.mindDuelEffectLayerIndex(tuning.layer ?? definition.layer ?? 'between'));
         this.tweens.add({
             targets: effect,
             alpha: { from: 0, to: 0.9 },
@@ -1171,15 +1602,47 @@ export class Game extends Scene {
     }
 
     private resumeMindDuelIdle(art: GameObjects.Image, direction: -1 | 1) {
+        const fighter = direction === -1 ? this.playerFighter : this.npcFighter;
+        const tuning = this.mindDuelCharacterTuningFor(fighter.id, 'idle');
+        const baseY = 1190 + tuning.y;
         this.tweens.add({
             targets: art,
-            y: 1182,
+            y: baseY - 8,
             duration: direction === -1 ? 1250 : 1280,
             delay: direction === -1 ? 0 : 140,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+    }
+
+    private mindDuelCharacterTuningFor(id: string, pose: BattleCharacterPose) {
+        return (this.mindDuelCharacterTuning[id] ??= {})[pose] ??= { x: 0, y: 0, scale: 1, angle: 0 };
+    }
+
+    private mindDuelEffectTuningFor(id: string, move: 'attack' | 'break' | 'ultimate') {
+        return (this.mindDuelEffectTuning[id] ??= {})[move] ??= { x: 0, y: 0, scale: 1, angle: 0 };
+    }
+
+    private mindDuelEffectLayerIndex(layer: MindDuelEffectLayer) {
+        const playerIndex = this.mindDuelLayer!.getIndex(this.mindDuelPlayerArt!);
+        const npcIndex = this.mindDuelLayer!.getIndex(this.mindDuelNpcArt!);
+        if (layer === 'behind') return Math.min(playerIndex, npcIndex);
+        if (layer === 'front') return this.mindDuelLayer!.getIndex(this.mindDuelStatus!);
+        return Math.max(playerIndex, npcIndex);
+    }
+
+    private applyMindDuelCharacterArt(art: GameObjects.Image, fighter: FighterDefinition, pose: BattleCharacterPose, direction: -1 | 1) {
+        const key = this.mindDuelCharacterTexture(fighter, pose);
+        art.setTexture(key).setOrigin(0.5, 1).setFlipX(direction === 1);
+        const source = this.textures.get(key).getSourceImage() as { width: number; height: number };
+        const tuning = this.mindDuelCharacterTuningFor(fighter.id, pose);
+        // 元絵の縦横比がポーズごとに違う。固定の縦長サイズへ押し込むとVIVIやTΩ9が
+        // 伸びるため、最大枠へ収める倍率だけを使う。
+        const fittedScale = Math.min(500 / source.width, 760 / source.height) * tuning.scale;
+        const baseX = direction === -1 ? 270 : 674;
+        art.setScale(fittedScale).setAngle(direction === 1 ? -tuning.angle : tuning.angle)
+            .setPosition(baseX + (direction === -1 ? tuning.x : -tuning.x), 1190 + tuning.y);
     }
 
     private announceMindDuelUltimateReady(playerReadyNow: boolean) {
@@ -1204,14 +1667,30 @@ export class Game extends Scene {
     private showMindDuelResult() {
         this.state = 'result';
         const playerWins = this.mindDuelNpcHp === 0;
-        const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x04070c, 0.66);
-        const panel = this.add.rectangle(VIEW_WIDTH / 2, 1190, 690, 220, 0x101925, 0.96).setStrokeStyle(2, playerWins ? 0x65ffe2 : 0xff6d88, 0.9).setInteractive({ useHandCursor: true });
-        const title = this.add.text(VIEW_WIDTH / 2, 1135, playerWins ? `${this.playerFighter.name} WINS` : `${this.npcFighter.name} WINS`, { fontFamily: 'Arial, sans-serif', fontSize: '32px', fontStyle: 'bold', color: playerWins ? '#8dfff0' : '#ff9aae', letterSpacing: 4 }).setOrigin(0.5);
-        const detail = this.add.text(VIEW_WIDTH / 2, 1200, 'TAP TO REMATCH', { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#fff2bd', letterSpacing: 3 }).setOrigin(0.5);
-        const result = this.add.container(0, 0, [shade, panel, title, detail]).setDepth(130);
+        const background = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'battle-result-background').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
+        const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x03050b, 0.30);
+        const panel = this.add.image(VIEW_WIDTH / 2, 850, 'battle-result-panel').setDisplaySize(850, 472);
+        const outcome = this.add.text(VIEW_WIDTH / 2, 790, playerWins ? 'VICTORY' : 'DEFEAT', { fontFamily: 'Georgia, Times New Roman, serif', fontSize: '62px', fontStyle: 'bold', color: playerWins ? '#8dfff0' : '#ff9aae', stroke: '#080a10', strokeThickness: 8, shadow: { offsetX: 0, offsetY: 4, color: '#000000', blur: 8, fill: true }, letterSpacing: 7 }).setOrigin(0.5);
+        const winnerName = playerWins ? this.playerFighter.name : this.npcFighter.name;
+        const winner = this.createMindDuelName(VIEW_WIDTH / 2, 880, winnerName, playerWins ? 0x8dfff0 : 0xff9aae, 38, 470);
+        const detail = this.add.text(VIEW_WIDTH / 2, 955, playerWins ? 'THE ARENA ANSWERS TO YOU' : 'THE RIFT CLAIMS THIS DUEL', { fontFamily: 'Georgia, Times New Roman, serif', fontSize: '15px', fontStyle: 'bold', color: '#fff2bd', stroke: '#090b10', strokeThickness: 4, letterSpacing: 3 }).setOrigin(0.5);
+        const returnButton = this.add.image(VIEW_WIDTH / 2, 1225, 'battle-return-title').setDisplaySize(650, 217).setInteractive({ useHandCursor: true });
+        const result = this.add.container(0, 0, [background, shade, panel, outcome, winner, detail, returnButton]).setDepth(130);
         this.resultLayer = result;
-        panel.on('pointerdown', () => this.createMindDuelScreen());
-        this.tweens.add({ targets: result, alpha: { from: 0, to: 1 }, duration: 220, ease: 'Quad.easeOut' });
+        returnButton.on('pointerdown', () => { returnButton.setAlpha(0.82); this.returnToMindDuelTitle(); });
+        returnButton.on('pointerup', () => returnButton.setAlpha(1));
+        returnButton.on('pointerout', () => returnButton.setAlpha(1));
+        this.tweens.add({ targets: [background, shade], alpha: { from: 0, to: 1 }, duration: 300, ease: 'Quad.easeOut' });
+        this.tweens.add({ targets: [panel, outcome, winner, detail], alpha: { from: 0, to: 1 }, duration: 360, ease: 'Quad.easeOut' });
+        this.tweens.add({ targets: returnButton, alpha: { from: 0, to: 1 }, delay: 160, duration: 300, ease: 'Quad.easeOut' });
+    }
+
+    private returnToMindDuelTitle() {
+        if (this.state !== 'result') return;
+        this.resultLayer?.destroy(); this.resultLayer = undefined;
+        this.mindDuelLayer?.destroy(); this.mindDuelLayer = undefined;
+        this.destroyDesktopDebugPanels();
+        this.showTitleScreen();
     }
 
     private motionKey(fighter: FighterDefinition, pose: Exclude<FighterPose, 'guard'>) {
@@ -1411,14 +1890,15 @@ export class Game extends Scene {
             const tuner = document.createElement('details');
             tuner.className = 'tc-remaster-summon-tuner';
             tuner.open = true;
-            tuner.addEventListener('toggle', () => { this.input.enabled = !tuner.open; });
+            // パネル内のイベントはDOM側で遮断する。Phaser全体を止めると、下のSTART DUELまで押せなくなる。
+            tuner.addEventListener('toggle', () => { this.input.enabled = true; });
             const stopInput = (event: Event) => event.stopPropagation();
             tuner.addEventListener('pointerdown', stopInput);
             tuner.addEventListener('pointerup', stopInput);
             tuner.addEventListener('click', stopInput);
             document.body.appendChild(tuner);
             this.summonStageTuner = tuner;
-            this.input.enabled = false;
+            this.input.enabled = true;
         }
         const tuner = this.summonStageTuner;
         tuner.replaceChildren();
@@ -1620,7 +2100,9 @@ export class Game extends Scene {
                 this.gateHeaderTunerOpen = tuner.open;
                 // DOMパネルを開いている間は、画面全体を監視するPhaser入力を止める。
                 // イベント伝播だけでは携帯Safariのタッチが背後のゲートへ届くことがあるため。
-                this.input.enabled = !tuner.open;
+                // パネル内のイベントはDOM側で止めている。ここでPhaser全体を止めると
+                // START DUELまで無効になり、調整画面から戦闘へ入れなくなる。
+                this.input.enabled = true;
             });
             // Phaser は画面全体のポインタを監視するため、調整UIへの操作をゲート選択へ渡さない。
             const stopGateInput = (event: Event) => event.stopPropagation();
@@ -1629,7 +2111,7 @@ export class Game extends Scene {
             tuner.addEventListener('click', stopGateInput);
             document.body.appendChild(tuner);
             this.gateHeaderTuner = tuner;
-            this.input.enabled = !tuner.open;
+            this.input.enabled = true;
         }
 
         const tuner = this.gateHeaderTuner;
@@ -1640,7 +2122,7 @@ export class Game extends Scene {
         if (useDesktopSide && !tuner.open) {
             tuner.open = true;
             this.gateHeaderTunerOpen = true;
-            this.input.enabled = false;
+            this.input.enabled = true;
         }
         tuner.replaceChildren();
         const summary = document.createElement('summary');
@@ -1890,12 +2372,161 @@ export class Game extends Scene {
     }
 
     private destroyDesktopDebugPanels() {
+        this.destroyTitleDebugPanel();
         this.desktopStagePanel?.remove();
         this.desktopMotionPanel?.remove();
         this.desktopDebugStyle?.remove();
         this.desktopStagePanel = undefined;
         this.desktopMotionPanel = undefined;
         this.desktopDebugStyle = undefined;
+        this.mindDuelDebugPanel?.remove();
+        this.mindDuelDebugStyle?.remove();
+        this.mindDuelDebugPanel = undefined;
+        this.mindDuelDebugStyle = undefined;
+    }
+
+    private renderMindDuelDebugPanel() {
+        if (!this.debugEnabled || !this.desktopDebugEnabled || this.state !== 'mind-duel') return;
+        if (!this.mindDuelDebugStyle) {
+            const style = document.createElement('style');
+            style.textContent = `.tc-mind-tuner{position:fixed;right:18px;top:18px;z-index:1100;width:310px;max-height:calc(100vh - 36px);overflow:auto;box-sizing:border-box;padding:13px;color:#d9e9f4;background:rgba(6,13,24,.97);border:1px solid #6ec9df;font:700 11px Arial,sans-serif}.tc-mind-tuner h2{margin:0 0 8px;color:#ffdc57;font-size:15px;letter-spacing:1.5px}.tc-mind-tuner h3{margin:12px 0 6px;color:#aeeaf5;font-size:11px}.tc-mind-tuner select,.tc-mind-tuner button{width:100%;box-sizing:border-box;margin:3px 0;padding:6px;color:#eef8ff;background:#101d2d;border:1px solid #5c7894;font:700 10px Arial}.tc-mind-tuner button{cursor:pointer}.tc-mind-tuner__row{display:grid;grid-template-columns:48px 1fr 44px;gap:6px;align-items:center;margin:6px 0}.tc-mind-tuner input[type=range]{width:100%;margin:0;accent-color:#75f4ea}.tc-mind-tuner input[type=number]{width:44px;padding:4px;color:#fff;background:#101d2d;border:1px solid #5c7894;font:700 10px Arial}`;
+            document.head.appendChild(style);
+            this.mindDuelDebugStyle = style;
+        }
+        this.mindDuelDebugPanel ??= document.createElement('aside');
+        const panel = this.mindDuelDebugPanel;
+        panel.className = 'tc-mind-tuner';
+        panel.replaceChildren();
+        if (!panel.isConnected) document.body.appendChild(panel);
+        const title = document.createElement('h2'); title.textContent = 'BATTLE TUNER'; panel.appendChild(title);
+        const fighterSelect = document.createElement('select');
+        FIGHTERS.forEach((fighter) => { const option = document.createElement('option'); option.value = fighter.id; option.textContent = fighter.name; option.selected = fighter.id === this.mindDuelDebugFighterId; fighterSelect.appendChild(option); });
+        fighterSelect.onchange = () => {
+            this.mindDuelDebugFighterId = fighterSelect.value;
+            this.mindDuelDebugEffectPreview?.destroy();
+            this.mindDuelDebugEffectPreview = undefined;
+            this.renderMindDuelDebugPanel();
+            this.previewMindDuelCharacter(this.mindDuelDebugFighterId, this.mindDuelDebugPose);
+        };
+        panel.appendChild(fighterSelect);
+        const poseSelect = document.createElement('select');
+        (['idle', 'attack', 'guard', 'break', 'ultimate'] as BattleCharacterPose[]).forEach((pose) => { const option = document.createElement('option'); option.value = pose; option.textContent = `CHARACTER · ${pose.toUpperCase()}`; option.selected = pose === this.mindDuelDebugPose; poseSelect.appendChild(option); });
+        poseSelect.onchange = () => {
+            this.mindDuelDebugPose = poseSelect.value as BattleCharacterPose;
+            this.renderMindDuelDebugPanel();
+            this.previewMindDuelCharacter(this.mindDuelDebugFighterId, this.mindDuelDebugPose);
+        };
+        panel.appendChild(poseSelect);
+        const character = this.mindDuelCharacterTuningFor(this.mindDuelDebugFighterId, this.mindDuelDebugPose);
+        const addField = (label: string, min: number, max: number, step: number, key: 'x' | 'y' | 'scale' | 'angle', target = character) => {
+            const row = document.createElement('label'); row.className = 'tc-mind-tuner__row'; const caption = document.createElement('span'); caption.textContent = label;
+            const range = document.createElement('input'); range.type = 'range'; range.min = `${min}`; range.max = `${max}`; range.step = `${step}`; range.value = `${target[key]}`;
+            const number = document.createElement('input'); number.type = 'number'; number.min = `${min}`; number.max = `${max}`; number.step = `${step}`; number.value = `${target[key]}`;
+            const set = (raw: number) => { const value = PhaserMath.Clamp(raw, min, max); target[key] = key === 'scale' ? Math.round(value * 100) / 100 : Math.round(value); range.value = `${target[key]}`; number.value = `${target[key]}`; this.refreshMindDuelTuning(); };
+            range.oninput = () => set(Number(range.value)); number.onchange = () => set(Number(number.value)); row.append(caption, range, number); panel.appendChild(row);
+        };
+        const heading = document.createElement('h3'); heading.textContent = 'CHARACTER'; panel.appendChild(heading);
+        addField('X', -500, 500, 1, 'x'); addField('Y', -500, 500, 1, 'y'); addField('SIZE', 0.3, 2.4, 0.01, 'scale'); addField('ANGLE', -45, 45, 1, 'angle');
+        const posePreview = document.createElement('button'); posePreview.textContent = `SHOW ${this.mindDuelDebugPose.toUpperCase()}`; posePreview.onclick = () => this.previewMindDuelCharacter(this.mindDuelDebugFighterId, this.mindDuelDebugPose); panel.appendChild(posePreview);
+        const effectSelect = document.createElement('select');
+        (['attack', 'break', 'ultimate'] as const).forEach((move) => { const option = document.createElement('option'); option.value = move; option.textContent = `EFFECT · ${move.toUpperCase()}`; option.selected = move === this.mindDuelDebugMove; effectSelect.appendChild(option); });
+        effectSelect.onchange = () => {
+            this.mindDuelDebugMove = effectSelect.value as 'attack' | 'break' | 'ultimate';
+            this.mindDuelDebugEffectPreview?.destroy();
+            this.mindDuelDebugEffectPreview = undefined;
+            this.renderMindDuelDebugPanel();
+        };
+        panel.appendChild(effectSelect);
+        const effect = this.mindDuelEffectTuningFor(this.mindDuelDebugFighterId, this.mindDuelDebugMove);
+        const effectHeading = document.createElement('h3'); effectHeading.textContent = 'EFFECT'; panel.appendChild(effectHeading);
+        addField('X', -700, 700, 1, 'x', effect); addField('Y', -700, 700, 1, 'y', effect); addField('SIZE', 0.2, 3.5, 0.01, 'scale', effect); addField('ANGLE', -90, 90, 1, 'angle', effect);
+        const layerButton = document.createElement('button');
+        const effectLayer = effect.layer ?? 'between';
+        layerButton.textContent = effectLayer === 'between' ? 'LAYER · ENEMY FRONT / PLAYER BACK' : effectLayer === 'front' ? 'LAYER · IN FRONT OF PLAYER' : 'LAYER · BEHIND BOTH';
+        layerButton.onclick = () => {
+            effect.layer = effectLayer === 'between' ? 'front' : effectLayer === 'front' ? 'behind' : 'between';
+            this.renderMindDuelDebugPanel();
+            if (this.mindDuelDebugEffectPreview) this.updateMindDuelDebugEffectPreview();
+        };
+        panel.appendChild(layerButton);
+        const effectPreview = document.createElement('button'); effectPreview.textContent = `SHOW ${this.mindDuelDebugMove.toUpperCase()} EFFECT`; effectPreview.onclick = () => this.previewMindDuelEffect(this.mindDuelDebugFighterId, this.mindDuelDebugMove); panel.appendChild(effectPreview);
+        const uiHeading = document.createElement('h3'); uiHeading.textContent = 'BATTLE UI'; panel.appendChild(uiHeading);
+        const addUiField = (label: string, min: number, max: number, step: number, key: 'x' | 'y' | 'size', target: { x: number; y: number; size: number }) => {
+            const row = document.createElement('label'); row.className = 'tc-mind-tuner__row'; const caption = document.createElement('span'); caption.textContent = label;
+            const range = document.createElement('input'); range.type = 'range'; range.min = `${min}`; range.max = `${max}`; range.step = `${step}`; range.value = `${target[key]}`;
+            const number = document.createElement('input'); number.type = 'number'; number.min = `${min}`; number.max = `${max}`; number.step = `${step}`; number.value = `${target[key]}`;
+            const set = (raw: number) => {
+                const value = PhaserMath.Clamp(raw, min, max);
+                target[key] = key === 'size' && step < 1 ? Math.round(value * 100) / 100 : Math.round(value);
+                range.value = `${target[key]}`; number.value = `${target[key]}`;
+                this.applyMindDuelUiLayout();
+            };
+            range.oninput = () => set(Number(range.value)); number.onchange = () => set(Number(number.value)); row.append(caption, range, number); panel.appendChild(row);
+        };
+        const actionSelect = document.createElement('select');
+        (['attack', 'guard', 'break'] as MindDuelAction[]).forEach((move) => { const option = document.createElement('option'); option.value = move; option.textContent = `BUTTON · ${move.toUpperCase()}`; option.selected = move === this.mindDuelDebugAction; actionSelect.appendChild(option); });
+        actionSelect.onchange = () => { this.mindDuelDebugAction = actionSelect.value as MindDuelAction; this.renderMindDuelDebugPanel(); };
+        panel.appendChild(actionSelect);
+        const actionLayout = this.mindDuelUiLayout.actions[this.mindDuelDebugAction];
+        addUiField('X', -200, 1200, 1, 'x', actionLayout); addUiField('Y', 850, 1650, 1, 'y', actionLayout); addUiField('SIZE', 120, 340, 1, 'size', actionLayout);
+        const revealHeading = document.createElement('h3'); revealHeading.textContent = 'MOVE REVEAL'; panel.appendChild(revealHeading);
+        addUiField('X', -200, 1200, 1, 'x', this.mindDuelUiLayout.reveal); addUiField('Y', 400, 1450, 1, 'y', this.mindDuelUiLayout.reveal); addUiField('SIZE', 14, 64, 1, 'size', this.mindDuelUiLayout.reveal);
+        const promptHeading = document.createElement('h3'); promptHeading.textContent = 'CHOOSE PLATE'; panel.appendChild(promptHeading);
+        addUiField('X', -200, 1200, 1, 'x', this.mindDuelUiLayout.prompt); addUiField('Y', 850, 1500, 1, 'y', this.mindDuelUiLayout.prompt); addUiField('SIZE', 11, 34, 1, 'size', this.mindDuelUiLayout.prompt);
+        const copy = document.createElement('button'); copy.textContent = 'COPY BATTLE TUNING'; copy.onclick = () => void navigator.clipboard?.writeText(JSON.stringify({ character: this.mindDuelCharacterTuning, effect: this.mindDuelEffectTuning, ui: this.mindDuelUiLayout }, null, 2)); panel.appendChild(copy);
+    }
+
+    private refreshMindDuelTuning() {
+        const fighter = FIGHTERS.find((entry) => entry.id === this.mindDuelDebugFighterId);
+        // 調整対象が現在の対戦者である時だけ更新すると、他5人は数値を動かしても
+        // 何も起きない。確認中は常に左側を選択中キャラの専用プレビューとして使う。
+        if (fighter && this.mindDuelPlayerArt && this.textures.exists(this.mindDuelCharacterTexture(fighter, this.mindDuelDebugPose))) {
+            this.tweens.killTweensOf(this.mindDuelPlayerArt);
+            this.applyMindDuelCharacterArt(this.mindDuelPlayerArt, fighter, this.mindDuelDebugPose, -1);
+        }
+        if (this.mindDuelDebugEffectPreview) this.updateMindDuelDebugEffectPreview();
+    }
+
+    private previewMindDuelCharacter(id: string, pose: BattleCharacterPose) {
+        const fighter = FIGHTERS.find((entry) => entry.id === id);
+        if (!fighter || !this.mindDuelPlayerArt) return;
+        this.loadMindDuelBattleAssets([fighter], () => {
+            this.tweens.killTweensOf(this.mindDuelPlayerArt!);
+            this.applyMindDuelCharacterArt(this.mindDuelPlayerArt!, fighter, pose, -1);
+        });
+    }
+
+    private previewMindDuelEffect(id: string, move: 'attack' | 'break' | 'ultimate') {
+        const fighter = FIGHTERS.find((entry) => entry.id === id);
+        if (!fighter) return;
+        this.mindDuelDebugFighterId = id;
+        this.mindDuelDebugMove = move;
+        this.loadMindDuelBattleAssets([fighter], () => this.updateMindDuelDebugEffectPreview());
+    }
+
+    private updateMindDuelDebugEffectPreview() {
+        const fighter = FIGHTERS.find((entry) => entry.id === this.mindDuelDebugFighterId);
+        if (!fighter || !this.mindDuelLayer) return;
+        const move = this.mindDuelDebugMove;
+        const key = move === 'ultimate' ? this.mindDuelUltimateEffectKey(fighter) : this.mindDuelMoveEffect(fighter, move)?.key;
+        if (!key || !this.textures.exists(key)) return;
+        this.mindDuelDebugEffectPreview?.destroy();
+        this.mindDuelDebugEffectPreview = undefined;
+        const tuning = this.mindDuelEffectTuningFor(fighter.id, move);
+        if (move === 'ultimate') {
+            const wide = fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi' || fighter.id === 'tomega9';
+            const playerFlip = fighter.id === 'kiri' || fighter.id === 'vivi';
+            this.mindDuelDebugEffectPreview = this.add.image(VIEW_WIDTH / 2 + tuning.x, (wide ? 1010 : 940) + tuning.y, key)
+                .setOrigin(0.5).setDisplaySize((wide ? 1440 : 1000) * tuning.scale, (wide ? 960 : 1500) * tuning.scale)
+                .setFlipX(playerFlip).setAngle(tuning.angle).setBlendMode('ADD').setAlpha(0.92);
+        } else {
+            const definition = this.mindDuelMoveEffect(fighter, move);
+            if (!definition) return;
+            this.mindDuelDebugEffectPreview = this.add.image(definition.playerX + tuning.x, definition.y + tuning.y, key)
+                .setOrigin(0.5).setDisplaySize(definition.width * tuning.scale, definition.height * tuning.scale)
+                .setFlipX(definition.sourceNeedsPlayerFlip === true).setAngle(tuning.angle).setBlendMode('ADD').setAlpha(0.92);
+        }
+        this.mindDuelLayer.addAt(this.mindDuelDebugEffectPreview, this.mindDuelEffectLayerIndex(tuning.layer ?? 'between'));
     }
 
     private ensureDesktopDebugPanels() {
