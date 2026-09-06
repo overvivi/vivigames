@@ -1324,8 +1324,8 @@ export class Game extends Scene {
         this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, npcMove, 1, npcGuardBroken);
         if (playerMove === 'attack' || playerMove === 'break') this.playMindDuelMoveEffect(this.playerFighter, playerMove, -1);
         if (npcMove === 'attack' || npcMove === 'break') this.playMindDuelMoveEffect(this.npcFighter, npcMove, 1);
-        if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter);
-        if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter);
+        if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter, -1);
+        if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter, 1);
         if (playerMove === 'ultimate' || npcMove === 'ultimate') this.playMindDuelSfx('ultimate');
         else if (playerGuardBroken || npcGuardBroken) this.playMindDuelSfx('break');
         else if (playerGauge || npcGauge) this.playMindDuelSfx('guard');
@@ -1544,12 +1544,14 @@ export class Game extends Scene {
         this.load.start();
     }
 
-    private playMindDuelUltimateEffect(fighter: FighterDefinition) {
+    private playMindDuelUltimateEffect(fighter: FighterDefinition, direction: -1 | 1) {
         const key = this.mindDuelUltimateEffectKey(fighter);
         if (key === undefined || !this.textures.exists(key) || this.mindDuelLayer === undefined) return;
         // 左側の素材は全て右へ攻撃する基準で描く。敵側だけ反転しないと、MIKAの
         // ローラー衝撃波が蹴りと逆方向へ走って見えてしまう。
-        const enemySide = fighter.id === this.npcFighter.id;
+        // 同キャラ対戦ではID比較だと左右とも敵扱いになる。自分の画面上でどちら側の
+        // 発動かを、戦闘処理から渡された方向で決める。
+        const enemySide = direction === 1;
         const wideUltimate = fighter.id === 'brick' || fighter.id === 'noise' || fighter.id === 'kiri' || fighter.id === 'vivi' || fighter.id === 'tomega9';
         // KIRI/VIVIのVFX原画は、左側プレイヤーへ置く時に一度反転する向きで作っている。
         // 他4人の既存原画は右向きなので、素材の意図に応じて反転基準を分ける。
@@ -1573,6 +1575,9 @@ export class Game extends Scene {
             hold: 760,
             onComplete: () => effect.destroy()
         });
+        // 口・武器の発生点はキャラの踏み込みと同じ時間だけ追従させる。全画面VFXでも
+        // 発生源が置き去りになると、火や衝撃波が身体から剥がれて見えるため。
+        this.tweens.add({ targets: effect, x: effect.x - direction * 86, y: effect.y - 38, duration: 290, yoyo: true, hold: 450, ease: 'Quad.easeOut' });
     }
 
     private playMindDuelMoveEffect(fighter: FighterDefinition, move: 'attack' | 'break', direction: -1 | 1) {
@@ -1599,6 +1604,8 @@ export class Game extends Scene {
             hold: 220,
             onComplete: () => effect.destroy()
         });
+        const travel = move === 'break' ? 68 : 52;
+        this.tweens.add({ targets: effect, x: effect.x - direction * travel, y: effect.y - 18, duration: 210, yoyo: true, ease: 'Quad.easeOut' });
     }
 
     private playRavenMikaBattlePreview() {
@@ -1617,13 +1624,13 @@ export class Game extends Scene {
         this.time.delayedCall(2720, () => {
             if (this.state !== 'mind-duel') return;
             this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, 'ultimate', -1);
-            this.playMindDuelUltimateEffect(this.playerFighter);
+            this.playMindDuelUltimateEffect(this.playerFighter, -1);
             this.mindDuelReveal?.setText('RAVEN  •  SKYFALL').setVisible(true).setAlpha(1);
         });
         this.time.delayedCall(4580, () => {
             if (this.state !== 'mind-duel') return;
             this.playMindDuelMoveAnimation(this.mindDuelNpcArt, this.npcFighter, 'ultimate', 1);
-            this.playMindDuelUltimateEffect(this.npcFighter);
+            this.playMindDuelUltimateEffect(this.npcFighter, 1);
             this.mindDuelReveal?.setText('MIKA  •  ROLLER BREAK').setVisible(true).setAlpha(1);
         });
     }
