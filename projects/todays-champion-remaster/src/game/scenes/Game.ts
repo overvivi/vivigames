@@ -1,4 +1,5 @@
 import { GameObjects, Math as PhaserMath, Scene } from 'phaser';
+import { AudioControls } from '../AudioControls';
 
 type DuelState = 'title' | 'friend-lobby' | 'select' | 'loading-duel' | 'preview' | 'idle' | 'countdown' | 'reaction' | 'settling' | 'result' | 'mind-duel';
 type CountdownValue = '3' | '2' | '1' | 'FIGHT';
@@ -302,6 +303,13 @@ export class Game extends Scene {
     private mindDuelLastPlayerMove?: MindDuelMove;
     private mindDuelAttackStart?: { x: number; y: number; at: number };
     private mindDuelAudio?: AudioContext;
+    private audioControls?: AudioControls;
+    private audioModalInputEnabled?: boolean;
+    private mindDuelSfxGain?: GainNode;
+    private appliedSfxGain = 1;
+    private activeSfxBases = new WeakMap<Phaser.Sound.BaseSound, number>();
+    private mindDuelBgm?: Phaser.Sound.BaseSound;
+    private mindDuelBgmMode: 'menu' | 'battle' = 'menu';
     private mindDuelDebugPanel?: HTMLElement;
     private mindDuelDebugStyle?: HTMLStyleElement;
     private mindDuelDebugFighterId = 'raven';
@@ -330,9 +338,9 @@ export class Game extends Scene {
         brick: { attack: { x: 112, y: -156, scale: 1.56, angle: 0 }, break: { x: 181, y: -164, scale: 2.24, angle: 0, layer: 'front' }, ultimate: { x: 449, y: -130, scale: 1.1, angle: -2 } }
     };
     private mindDuelUiLayout = {
-        prompt: { x: VIEW_WIDTH / 2, y: 1191, size: 17 },
-        // 手の開示はキャラの足元を隠さず、選択台座の直上で読ませる。
-        reveal: { x: VIEW_WIDTH / 2, y: 1110, size: 32 },
+        prompt: { x: VIEW_WIDTH / 2, y: 1274, size: 17 },
+        // ユーザーの調整値を採用し、手の開示は画面上部で大きく表示する。
+        reveal: { x: VIEW_WIDTH / 2, y: 436, size: 47 },
         actions: {
             break: { x: 173, y: 1435, size: 230 },
             guard: { x: VIEW_WIDTH / 2, y: 1435, size: 230 },
@@ -406,13 +414,23 @@ export class Game extends Scene {
     }
 
     create() {
+        // 初回タップ前の自動再生制限中は最新の画面だけ記憶して、解除後に一曲だけ鳴らす。
+        const resumeBgm = () => this.setMindDuelBgm(this.mindDuelBgmMode);
+        this.sound.on('unlocked', resumeBgm);
         const params = new URLSearchParams(window.location.search);
         this.debugEnabled = params.has('debug');
         // 公開導線を増やさず、2人ぶんの新規素材と必殺範囲を実機で確かめるための確認URLだけを持つ。
         this.battlePreviewEnabled = params.get('battlePreview') === 'raven-mika';
         this.summonStagePreviewEnabled = this.debugEnabled && params.has('layout');
         this.desktopDebugEnabled = this.debugEnabled && this.hasDesktopDebugSpace();
+        this.audioControls = new AudioControls(this.game.canvas, this.debugEnabled, () => this.applyAudioSettings(), open => this.setAudioModalOpen(open));
+        this.applyAudioSettings();
         this.events.once('shutdown', () => {
+            this.audioControls?.destroy(); this.audioControls = undefined;
+            void this.mindDuelAudio?.close(); this.mindDuelAudio = undefined; this.mindDuelSfxGain = undefined;
+            this.sound.off('unlocked', resumeBgm);
+            this.mindDuelBgm?.destroy();
+            this.mindDuelBgm = undefined;
             this.destroyDesktopDebugPanels();
             this.destroyGateHeaderTuner();
             this.destroySummonStageTuner();
@@ -462,6 +480,8 @@ export class Game extends Scene {
 
     private showFighterSelect() {
         this.state = 'select';
+        this.audioControls?.setScreen('select');
+        this.setMindDuelBgm('menu');
         this.titleLayer?.destroy();
         this.titleLayer = undefined;
         this.destroyTitleDebugPanel();
@@ -532,6 +552,8 @@ export class Game extends Scene {
 
     private showTitleScreen() {
         this.state = 'title';
+        this.audioControls?.setScreen('default');
+        this.setMindDuelBgm('menu');
         // ロビーから戻る時は旧タイトルが残っている。重ねると選択画面の上に
         // 古いタイトルが居残り、ボタンを押しても進まないように見える。
         this.titleLayer?.destroy();
@@ -743,8 +765,21 @@ export class Game extends Scene {
     private destroyFriendLobby() {
         this.friendLobby?.remove(); this.friendLobbyStyle?.remove(); this.friendLobby = undefined; this.friendLobbyStyle = undefined;
         if (this.friendLobbyInputEnabled !== undefined) {
-            this.input.enabled = this.friendLobbyInputEnabled;
+            // 音設定が重なっていた場合、閉じたロビーの入力状態だけを更新する。
+            if (this.audioModalInputEnabled !== undefined) this.audioModalInputEnabled = this.friendLobbyInputEnabled;
+            else this.input.enabled = this.friendLobbyInputEnabled;
             this.friendLobbyInputEnabled = undefined;
+        }
+    }
+
+    private setAudioModalOpen(open: boolean) {
+        if (open) {
+            if (this.audioModalInputEnabled === undefined) this.audioModalInputEnabled = this.input.enabled;
+            this.input.enabled = false;
+        } else if (this.audioModalInputEnabled !== undefined) {
+            // フレンドの入力ダイアログなど、元から停止中だった入力を勝手に再開しない。
+            this.input.enabled = this.audioModalInputEnabled;
+            this.audioModalInputEnabled = undefined;
         }
     }
 
@@ -1099,6 +1134,8 @@ export class Game extends Scene {
     private beginMindDuel() {
         this.friendDuelStarting = false;
         this.state = 'mind-duel';
+        this.audioControls?.setScreen('default');
+        this.setMindDuelBgm('battle');
         this.selectTitle = undefined;
         this.selectionLayer?.destroy();
         this.selectionLayer = undefined;
@@ -1358,16 +1395,21 @@ export class Game extends Scene {
         if (npcMove === 'attack' || npcMove === 'break') this.playMindDuelMoveEffect(this.npcFighter, npcMove, 1);
         if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter, -1);
         if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter, 1);
-        const attackVolume = playerMove === 'attack' && npcMove === 'attack' ? 0.45 : 0.65;
-        const playerAttackSound = playerMove === 'attack' && this.playMindDuelAttackSfx(this.playerFighter, attackVolume);
-        const npcAttackSound = npcMove === 'attack' && this.playMindDuelAttackSfx(this.npcFighter, attackVolume);
-        if (playerMove === 'ultimate' || npcMove === 'ultimate') this.playMindDuelSfx('ultimate');
-        else if (playerGuardBroken || npcGuardBroken) this.playMindDuelSfx('break');
+        // 左右が別の技でも各キャラの採用音を同時に鳴らす。重なる時だけ減音し、
+        // 前ラウンドの長い余韻は止めて次の攻撃音を埋もれさせない。
+        this.stopMindDuelMoveSfx();
+        const simultaneous = playerMove !== 'guard' && npcMove !== 'guard';
+        const playerSound = this.playMindDuelMoveSfx(this.playerFighter, playerMove, simultaneous);
+        const npcSound = this.playMindDuelMoveSfx(this.npcFighter, npcMove, simultaneous);
+        if ((playerMove === 'ultimate' && !playerSound) || (npcMove === 'ultimate' && !npcSound)) this.playMindDuelSfx('ultimate');
+        else if ((playerGuardBroken && !npcSound) || (npcGuardBroken && !playerSound)) this.playMindDuelSfx('break');
         else if (playerGauge || npcGauge) this.playMindDuelSfx('guard');
-        else if ((playerDamage || npcDamage) && !playerAttackSound && !npcAttackSound) this.playMindDuelSfx('impact');
+        else if ((playerDamage || npcDamage) && ((playerMove !== 'guard' && !playerSound) || (npcMove !== 'guard' && !npcSound))) this.playMindDuelSfx('impact');
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
         const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
         if (playerReadyNow || npcReadyNow) { this.playMindDuelSfx('ready'); this.announceMindDuelUltimateReady(playerReadyNow); }
+        // MAXでは獲得音を重ねず一発だけ。満タン後のガードや必殺消費も獲得扱いにしない。
+        else if (this.mindDuelPlayerGauge > playerGaugeBefore || this.mindDuelNpcGauge > npcGaugeBefore) this.playMindDuelSfx('charge');
         const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
         if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
         this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
@@ -1421,34 +1463,89 @@ export class Game extends Scene {
         }
     }
 
-    private playMindDuelAttackSfx(fighter: FighterDefinition, volume: number) {
-        const key = `battle-audio-${fighter.id}-attack`;
-        // 左右やホスト／ゲストではなく、実際に攻撃したキャラの採用音を鳴らす。
-        // 同時攻撃は呼出側で音量を抑え、生成音に共通の仮ヒット音を重ねない。
+    private setMindDuelBgm(mode: 'menu' | 'battle') {
+        if (this.mindDuelBgmMode !== mode) {
+            this.mindDuelBgm?.destroy();
+            this.mindDuelBgm = undefined;
+        }
+        this.mindDuelBgmMode = mode;
+        const key = `bgm-${mode}`;
+        if (this.sound.locked || !this.cache.audio.exists(key)) return;
+        const prefs = this.audioControls?.settings;
+        this.mindDuelBgm ??= this.sound.add(key, { loop: true, volume: prefs?.bgmMuted ? 0 : (prefs?.bgm ?? 35) / 100 });
+        // タイトル→セレクトでは同じ曲を途切れさせず、戦闘／リザルト切替だけ頭へ戻す。
+        if (!this.mindDuelBgm.isPlaying) this.mindDuelBgm.play();
+    }
+
+    private playMindDuelMoveSfx(fighter: FighterDefinition, move: 'attack' | 'guard' | 'break' | 'ultimate', simultaneous = false) {
+        if (move === 'guard') return false;
+        const prefs = this.audioControls?.settings;
+        const gain = prefs?.sfxMuted ? 0 : (prefs?.sfx ?? 100) / 100;
+        // ミュートは読込失敗でない。仮ヒット音へフォールバックさせない。
+        if (gain === 0) return true;
+        const key = `battle-audio-${fighter.id}-${move}`;
+        const volume = (move === 'ultimate' ? (simultaneous ? 0.55 : 0.8) : (simultaneous ? 0.45 : 0.65)) * gain;
+        // ホスト／ゲストでなく実際のキャラと技を使い、欠落時だけ仮音へ戻す。
         if (!this.cache.audio.exists(key)) return false;
         return this.sound.play(key, { volume });
     }
 
-    private playMindDuelSfx(kind: 'choose' | 'guard' | 'break' | 'impact' | 'ready' | 'ultimate-cue' | 'ultimate' | 'victory' | 'defeat') {
+    private stopMindDuelMoveSfx() {
+        this.sound.stopByKey('battle-audio-gauge-charge');
+        [this.playerFighter, this.npcFighter].forEach((fighter) => {
+            (['attack', 'break', 'ultimate'] as const).forEach((move) => this.sound.stopByKey(`battle-audio-${fighter.id}-${move}`));
+        });
+    }
+
+    private applyAudioSettings() {
+        const prefs = this.audioControls?.settings;
+        if (!prefs) return;
+        const sfxGain = prefs.sfxMuted ? 0 : prefs.sfx / 100;
+        (this.mindDuelBgm as Phaser.Sound.WebAudioSound | undefined)?.setVolume(prefs.bgmMuted ? 0 : prefs.bgm / 100);
+        // 再生途中も音量を変える。ミュート解除で曲や長い必殺音を頭からやり直さない。
+        for (const sound of this.sound.getAllPlaying()) {
+            if (!sound.key.startsWith('battle-audio-')) continue;
+            const audio = sound as Phaser.Sound.WebAudioSound;
+            const base = this.activeSfxBases.get(sound) ?? audio.volume / (this.appliedSfxGain || 1);
+            this.activeSfxBases.set(sound, base); audio.setVolume(base * sfxGain);
+        }
+        this.appliedSfxGain = sfxGain;
+        if (this.mindDuelSfxGain && this.mindDuelAudio) this.mindDuelSfxGain.gain.setValueAtTime(sfxGain, this.mindDuelAudio.currentTime);
+    }
+
+    private playMindDuelSfx(kind: 'choose' | 'guard' | 'break' | 'impact' | 'charge' | 'ready' | 'ultimate-cue' | 'ultimate' | 'victory' | 'defeat') {
+        const prefs = this.audioControls?.settings;
+        if (prefs?.sfxMuted || prefs?.sfx === 0) return;
+        if (kind === 'charge' || kind === 'ready') {
+            // ユーザー指定で1個目用#2を両段階へ共用し、音量も揃える。
+            const key = 'battle-audio-gauge-charge';
+            const volume = 0.65 * (prefs?.sfx ?? 100) / 100;
+            // 事前ロード済みの採用#2を優先。共通接頭辞で再生中のSE音量変更にも追従する。
+            if (this.cache.audio.exists(key) && this.sound.play(key, { volume })) return;
+        }
         // 効果音ファイルを都度読むと携帯の初戦で演出より遅れるため、短い発振音を重ねて
         // 操作・防御・破壊の判別に必要な音だけをその場で作る。最初のタップでContextを起動する。
         const AudioContextClass = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!AudioContextClass) return;
         this.mindDuelAudio ??= new AudioContextClass();
         const audio = this.mindDuelAudio;
+        if (!this.mindDuelSfxGain) {
+            this.mindDuelSfxGain = audio.createGain(); this.mindDuelSfxGain.connect(audio.destination);
+        }
+        this.mindDuelSfxGain.gain.setValueAtTime((prefs?.sfx ?? 100) / 100, audio.currentTime);
         void audio.resume();
         const now = audio.currentTime;
         const tone = (frequency: number, endFrequency: number, duration: number, volume: number, type: OscillatorType = 'sine', delay = 0) => {
             const oscillator = audio.createOscillator(); const gain = audio.createGain();
             oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, now + delay); oscillator.frequency.exponentialRampToValueAtTime(Math.max(18, endFrequency), now + delay + duration);
             gain.gain.setValueAtTime(0.0001, now + delay); gain.gain.exponentialRampToValueAtTime(volume, now + delay + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + duration);
-            oscillator.connect(gain).connect(audio.destination); oscillator.start(now + delay); oscillator.stop(now + delay + duration + 0.02);
+            oscillator.connect(gain).connect(this.mindDuelSfxGain!); oscillator.start(now + delay); oscillator.stop(now + delay + duration + 0.02);
         };
         if (kind === 'choose') tone(700, 840, 0.07, 0.05, 'triangle');
         if (kind === 'guard') { tone(190, 135, 0.16, 0.10, 'triangle'); tone(540, 430, 0.12, 0.035, 'sine', 0.025); }
         if (kind === 'impact') { tone(150, 68, 0.19, 0.13, 'sawtooth'); tone(430, 180, 0.11, 0.04, 'square'); }
         if (kind === 'break') { tone(300, 55, 0.28, 0.14, 'sawtooth'); tone(720, 120, 0.17, 0.055, 'square', 0.025); }
-        if (kind === 'ready') { tone(660, 660, 0.20, 0.07, 'sine'); tone(990, 990, 0.28, 0.06, 'sine', 0.10); }
+        if (kind === 'charge' || kind === 'ready') tone(640, 1280, 0.18, 0.06, 'sine');
         if (kind === 'ultimate-cue') { tone(250, 510, 0.24, 0.09, 'triangle'); tone(720, 1080, 0.30, 0.05, 'sine', 0.10); }
         if (kind === 'ultimate') { tone(105, 42, 0.42, 0.18, 'sawtooth'); tone(520, 82, 0.34, 0.07, 'square', 0.04); }
         if (kind === 'victory') { tone(440, 440, 0.22, 0.08, 'sine'); tone(660, 660, 0.25, 0.07, 'sine', 0.13); tone(880, 880, 0.38, 0.07, 'sine', 0.27); }
@@ -1565,9 +1662,11 @@ export class Game extends Scene {
         const toLoad: Array<{ key: string; path: string }> = [];
         const audioToLoad: Array<{ key: string; path: string }> = [];
         unique.forEach((fighter) => {
-            // キャラ画像と一緒にデコードまで終え、携帯の初回アタックで読込遅延を出さない。
-            const audioKey = `battle-audio-${fighter.id}-attack`;
-            if (!this.cache.audio.exists(audioKey)) audioToLoad.push({ key: audioKey, path: `assets/championship-re/audio/${fighter.id}-attack-v1.mp3` });
+            // 全技の音も事前デコードし、携帯の初回BREAK／必殺技を遅らせない。
+            (['attack', 'break', 'ultimate'] as const).forEach((move) => {
+                const audioKey = `battle-audio-${fighter.id}-${move}`;
+                if (!this.cache.audio.exists(audioKey)) audioToLoad.push({ key: audioKey, path: `assets/championship-re/audio/${fighter.id}-${move}-v1.mp3` });
+            });
             (['idle', 'attack', 'guard', 'break', 'ultimate'] as BattleCharacterPose[]).forEach((pose) => {
                 const key = this.mindDuelCharacterKey(fighter, pose);
                 if (!this.textures.exists(key)) toLoad.push({ key, path: `assets/championship-re/battle/characters/${fighter.id}-battle-${pose}-v1.webp` });
@@ -1752,6 +1851,7 @@ export class Game extends Scene {
 
     private showMindDuelResult() {
         this.state = 'result';
+        this.setMindDuelBgm('menu');
         const playerWins = this.mindDuelNpcHp === 0;
         const background = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'battle-result-background').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
         const shade = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0x03050b, 0.30);
@@ -1773,6 +1873,7 @@ export class Game extends Scene {
 
     private returnToMindDuelTitle() {
         if (this.state !== 'result') return;
+        this.stopMindDuelMoveSfx();
         this.resultLayer?.destroy(); this.resultLayer = undefined;
         this.mindDuelLayer?.destroy(); this.mindDuelLayer = undefined;
         this.destroyDesktopDebugPanels();
@@ -1892,6 +1993,7 @@ export class Game extends Scene {
 
     private showMotionPreview() {
         this.state = 'preview';
+        this.audioControls?.setScreen('default');
         this.hideCountdownChrome();
         this.promptText.setText('MOTION CHECK');
         this.statusText.setText(`${this.playerFighter.name} の攻撃エフェクトと表示を確認`);

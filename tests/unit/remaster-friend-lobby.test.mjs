@@ -112,6 +112,7 @@ test('タイトル再表示で旧レイヤーを破棄し、選択画面を覆�
     const display = { setDepth() { return this; }, setDisplaySize() { return this; }, setInteractive() { return this; }, on() { return this; }, add() {} };
     scene.add = { container: () => display, image: () => display, text: () => display };
     scene.applyTitleLayout = () => {};
+    scene.setMindDuelBgm = () => {};
     scene.showTitleScreen();
     assert.equal(destroyed, true);
     assert.equal(scene.titleLayer, display);

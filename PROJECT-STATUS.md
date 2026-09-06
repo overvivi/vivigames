@@ -8,6 +8,34 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 ## 現在の状態
 
+- 2026-09-07 / Codex 公開対象の分離: commit準備中に別作業のGame.tsへ必殺ワンタップボタン化が入ったため、その未完了変更と新ボタン画像は作業ツリーに保持して公開対象から除外。Gitのコミット対象Game.tsは検証済みblob`1b8c09e7c446f12325eb27e35e56cee797c38194`を指定し、構文・両ゲージ同音/0.65・従来の長押し入力保持・新ボタン参照なしを再検証した。公開ビルドは同ソースから作った`index-WFpLLI0J.js`。このpushでは必殺操作方式は変更しない。残るGame.ts差分は別作業の所有であり消さないこと。
+
+- 2026-09-07 / Codex 公開準備: ユーザーの「プッシュ」により、ゲージ両段階で1個目用#2を共用する修正と、採用済みBGM・7人BREAK/ULTIMATE・音量設定・確定UI配置を今回まとめて公開する。旧MAX候補／ローカル合成試作／別ゲームモックアップ／tmpは対象外として保持。`index.html`のBGMクレジット「音楽：パンダの中のパンダ」を個別URL公開時点で表示するよう更新（一覧のCOMING SOONは維持）。公開前検証: npm test=97/98成功、残1件Elegant Solitaireはネットワーク制限のERR_NETWORK_ACCESS_DENIEDで失敗したが、制限外で当該1件を再実行し成功。リマスター関連unit31件・tsc・verify・diffチェック成功。ローカル配信JS=`index-WFpLLI0J.js`でcharge/readyが同じキー・同音量、旧MAXキーなしを確認済み。origin/mainのランキング記録更新`82e681f`をfast-forward取込済み。commit/push後はPagesの反映と共通チャージ音HTTP200を確認する。
+
+- 2026-09-07 / Codex ゲージ音共用の訂正: ユーザーの意図は「1個目で使っている音を1個目・2個目両方へ適用」。`gauge-charge-v1.mp3`（ElevenLabsの1個目用#2）を0→1／1→2とも基準音量0.65で共用するようGame.tsを修正。Bootの旧MAX音ロードを撤去、旧MAXファイルは比較用に保持。必殺解放表示・ゲージ判定・SE設定連動は維持。対応テスト・音源README・採用記録・コメント内パッチノートを更新。関連16テスト、tsc、ローカルビルド成功。未commit／未push。直下の「最新2組とも#2」採用は誤解だったため本項で訂正。
+
+- 2026-09-07 / Codex 必殺ゲージ音採用・組込: 最新ElevenLabsの1個目／MAXともユーザーが#2を採用。`One_short_energy_cha_#2-1788713121163.mp3`を`public/assets/championship-re/audio/gauge-charge-v1.mp3`、`One_short_magical_en_#2-1788713121165.mp3`を`gauge-max-v1.mp3`へ無加工保存。Bootで事前ロード、Game.tsで0→1はcharge、1→2はMAXだけを再生。満タン維持・ガード同士・崩されたガード・必殺消費では獲得音なし。左右共通、MAX音と1個目／旧READY音は重ねない。ガード衝突音は維持。基準音量0.65／0.8に既存SE設定を適用し、再生途中の音量・ミュートも追従。次発動／タイトル復帰で短い余韻も停止。変更: Boot.ts、Game.ts、採用MP32本とREADME、source/audio/gaugeの採用記録、tests/unit/remaster-attack-audio.test.mjs、index.htmlコメント内パッチノート、ローカル公開用ビルド。関連29テスト・tsc・FFmpegデコード・元音/正本/ビルドのハッシュ一致・verify・diffチェック成功。ブラウザでタイトル→セレクト→CPU対戦起動、エラーなし。実機戦闘中の聴感はユーザー確認待ち。未commit／未push。上記の旧候補待ち表記は過去履歴。
+
+- 2026-09-07 / Codex バトルUI添付反映: ユーザーから前ターン添付`694e3147-f9c3-4e7d-9b38-d08f118cc848/pasted-text.txt`のUIも反映するよう訂正。`Game.ts`のmindDuelUiLayout初期値をprompt=(470.5,1274,size17)、reveal=(470.5,436,size47)へ変更。アクション3ボタンは既に添付と一致（x173/470.5/768、y1435,size230）。ASTから初期値を取得して添付JSONの全character/effect/uiを比較し差分ゼロを確認、キャラ・効果の再変更は不要だった。`tests/unit/remaster-battle-ui.test.mjs`追加、全UI初期値・描画と当たり判定反映の2件、tsc、公開ビルド成功。Choose画像は既存どおりprompt.y-11=1263で配置。直前のセレクト専用♪は維持。ローカル反映済み・未commit／未push。下記の添付未反映記述は当時の履歴で、この更新で解消。
+
+- 2026-09-07 / Codex セレクト専用♪配置: ユーザー指定のx805/y105/size110をセレクト画面だけに適用。タイトル・戦闘・プレビューは従来x865/y280/size110へ戻す。対戦相手の選択待ち／素材読込中は選択画面のため指定位置を保持。`AudioControls.ts`の配置をdefault/select別へ分離、`Game.ts`の画面入口で切替。デバッグTUNERは現在のSELECT/DEFAULTを表示し、その画面区分だけを調整する。保存キー`tc-audio-layout-v3`、COPY形式`{audioUi:{default:{button:{...}},select:{button:{...}}}}`。旧v2の全画面共通調整は移行せず、今回の指定位置が他画面へ漏れるのを防ぐ。音量設定キー・初期音量は変更なし。添付のcharacter/effect等JSONは今回の明示依頼ではないため未反映。関連17テスト・tsc成功、ローカルビルド実施。未commit／未push。別作業のゲージSE生成・既存変更は保持。
+
+- 2026-09-07 / Codex 必殺ゲージSE ElevenLabs: ユーザーが制作サイトの指定をパンダBGMから`https://elevenlabs.io/app/sound-effects/history`へ訂正。ElevenLabsで1個目（0.5秒、`One short energy charge gained`）と2個目MAX（0.8秒、`One short magical energy meter FULL`）を各4候補生成し履歴表示を確認。履歴の上から1個目→MAX。MAXは前置きのping・二音連打なしの単発SHAAANG指定。初回の長い文面はサイトエラー、再読込後に短い文へ修正して成功。設定はループOFF・影響度100%・自動改善OFF、最後の尺0.5秒。生成画面の表示費用は20＋32クレジット（残表示は更新されず実残高未確認）。プロンプト正本=`projects/todays-champion-remaster/source/audio/gauge/elevenlabs-prompts.md`。ローカルv1/v2は採用対象外、旧ファイル保持。ユーザーの各採用番号待ち、MP3保存・ゲーム組み込みは未実施。
+
+- 2026-09-07 / Codex 音量設定のモバイル改善: 下記の右上BGM/SE二組UIを廃止し、単一♪→画面中央の音量ポップアップへ変更。`AudioControls.ts`で実ピクセル基準の大きいBGM/SEスライダー（操作帯48px・つまみ30px）、各ミュート（♪×）、右上48pxの閉じる×を配置。外側タップでは閉じず全画面バックドロップで遮断、Escape終了／Tabフォーカス循環も対応。♪は最低44pxのタップ領域。ゲーム入力は開いた間停止し閉じると元の有効状態だけ復元、フレンドロビーが重なった場合も勝手に有効化しない。通信・戦闘の進行自体は一時停止しない。設定保存`tc-audio-settings-v1`と承認済み初期音量は維持。デバッグ左下AUDIO UI TUNERは単一♪のX/Y/SIZE調整＋JSONコピーへ変更、配置キーは`tc-audio-layout-v2`、形式`{audioUi:{button:{x:865,y:280,size:110}}}`。通常版はデバッグ配置を使用しない。変更: AudioControls.ts、Game.ts、tests/unit/remaster-audio-controls.test.mjs、公開ビルド、index.html（未掲載リマスター用のコメント内パッチノート）。関連26テスト・tsc・ビルド・verify・diffチェック成功。ブラウザで開閉、ミュート、スライダー、背面タップ遮断、配置変更とJSONを確認。スマホ実機での指操作はユーザー確認待ち。ローカル反映済み・未commit／未push。
+
+- 2026-09-07 / Codex 必殺ゲージSE v2: v1のBGM加工音はユーザーから「効果音っぽくない」と不採用。ゲーム風のエネルギーチャージ2音を`source/audio/gauge/build-gauge-v2.mjs`で新規合成。`gauge-energy-one-v2`は0.28秒の短い上昇音、`gauge-energy-max-v2`は0.65秒の単発で倍音・低音を重ねたMAX解放音。2個目を二音連打にしない仕様を維持。48kHz WAV／192kbps MP3、異常値・クリップなし、MP3デコード成功。v2はサイトBGMを使っていない。旧v1は比較用に保持、v2の実聴採用待ち。ゲームへの接続・公開は未実施。
+
+- 2026-09-07 / Codex 必殺ゲージSE試聴版: ユーザー指定により、フリーBGM by パンダの中のパンダの`混沌の神_loop.mp3`を短く加工し、`projects/todays-champion-remaster/source/audio/gauge/`へ未組み込みの2音を作成。1個目は結晶点灯の`gauge-crystal-one-v1`（0.25秒、短い「キン」）、2個目は必殺解放の`gauge-ultimate-ready-v1`（0.73秒、単発の「シャーン」）。WAV/192kbps MP3ともFFmpegでデコード確認済み。ゲームコード・公開用素材は未変更で、ユーザーの実聴・採用判断待ち。公開時はサイト規約に従い`音楽：パンダの中のパンダ`をクレジットへ記載する。
+
+- 2026-09-07 / Codex 音設定UI: ユーザーがBGM／SEの初期バランスを承認。`src/game/AudioControls.ts`を新設し、全画面共通の右上にBGM／SEの♪ボタン（ミュート中×）と個別音量スライダーを追加。BGM初期35%、SE初期100%（既存のキャラ／技別音量への倍率）。ミュート解除で設定音量・再生位置を保持し、生成SE／仮ガード・準備・勝敗音も一括で制御。再生中の音にも即時反映。設定はブラウザ単位の`tc-audio-settings-v1`へ保存、保存拒否時も操作可。DOM操作はbodyの音声アンロックを通し、documentで伝播を止め背面Phaserへ届かせない。`?debug=1`の左下`AUDIO UI TUNER`でBGM／SEを個別にX/Y/SIZE調整、`COPY AUDIO UI`とJSON欄で共有。デバッグ配置`tc-audio-layout-v1`は通常版に適用しない。初期配置=bgm(725,280,size110)、sfx(865,280,size110)、941×1672ゲーム座標基準で画面拡縮に追従。`Game.ts`へ接続、`tests/unit/remaster-audio-controls.test.mjs`追加。関連計23テスト、tsc、公開ビルド、verify、diffチェック成功。ブラウザで♪×、キーボード音量変更、配置変更・コピー、通常版のデバッグ非表示、設定復元を確認。試験後はBGM35／SE100・両ミュートOFFと初期配置へ戻した。ローカルビルド済み／未commit・未push。確認URL=`http://127.0.0.1:4173/games/todays-champion-remaster/index.html?debug=1`。
+
+- 2026-09-07 / Codex BGM試聴版: ユーザー提供`C:/Users/vivin/Downloads/混沌の神_loop.mp3`（76.848秒、SHA256 `613740502197d0f2cf6191d0a28ec6a4faac33f8339f34d825111f8b6545efbe`）から`public/assets/championship-re/audio/bgm-menu-v1.mp3`（0〜18秒、17〜18秒でフェード完了）と`bgm-battle-v1.mp3`（19秒〜最後、57.848秒）を192kbpsで作成。原本は不変、18〜19秒は不使用。`Boot.ts`で事前ロードし`Game.ts`で一曲だけloop再生、音量0.35の試聴用初期値。タイトル／フレンドロビー／セレクト／勝敗リザルト=menu、戦闘開始=battle。menu内では継続し、戦闘・結果への切替で各曲先頭から再生。初回の自動再生制限はPhaserのunlockedイベントで最新画面の曲だけ再開、shutdown時破棄。`tests/unit/remaster-bgm.test.mjs`を追加、関連計19件＋tsc＋公開用ビルド＋verify＋diffチェック成功。18秒尺・末尾フェード、戦闘先頭と原曲19秒の相関0.997、公開コピー一致も確認。ブラウザ起動・セレクト遷移確認。音量／つなぎ目の実聴はユーザー待ち。未commit／未push。前ターンのBREAK・ULTIMATE追加も保持。
+
+- 2026-09-07 / Codex: ユーザーが公開版でフレンド対戦できたことを確認。続く依頼で、採用済みBREAK／ULTIMATE全7人分を保存・組み込み。BREAKはRAVENとKIRI=TΩ9初版#3、TΩ9=#2、NOISE改訂#3、BRICK咆哮#4、VIVI#4、MIKA#2。ULTIMATEはBRICK大音量改訂#4、TΩ9#4、KIRI#3、NOISE#4、MIKA#2、RAVEN/VIVI=既存+2半音90ms×10共通版。ブラウザのElevenLabs履歴から採用音のみMP3保存、新規生成なし。正本`projects/todays-champion-remaster/public/assets/championship-re/audio/`とREADME、`src/game/scenes/Game.ts`、`tests/unit/remaster-attack-audio.test.mjs`、公開ビルドを更新。全3技を画像と事前ロードしVFXと同時に各キャラの音を再生、単独ATTACK/BREAK 0.65・ULTIMATE 0.8、双方攻撃時0.45/0.55。仮音は読込失敗時だけ、ガード成功・準備・結果音は維持。長い余韻は次ラウンド発動／タイトル復帰で停止し、ゲーム速度・入力待ちは変更なし。検証: 関連テスト15件（16通りの手、21音のキー、共用音一致・Ω本人との相違含む）、tsc、全21音FFmpegデコード、ビルド音と正本の一致、`npm run verify`、`git diff --check`成功。ブラウザでCPU対戦開始・BREAK操作も確認。音量・響きの実聴はユーザー待ち。ローカルビルド済み／未commit・未push。下記の音未組み込み表記は過去履歴。
+
+- 2026-09-07 / Codex push完了: `d9652cc`を`origin/main`へ送信済み（フレンドロビー修正＋通常ATTACK音）。push直後の公開確認ではRemaster本体200だが旧ビルド参照、新JS／音は404でPages反映待ち。既存HELL RUNNER本体・BGMは200、AGENTS記載の`images/bg1-hell.png`は404（今回変更なし）。2端末再対戦は新版反映後に実施する。
+
 - 2026-09-07 / Codex 公開準備: ユーザーのpush依頼により、フレンドロビー修正・通常ATTACK採用音7人分・対応テスト・公開ビルドを今回のコミット対象とする。直前の関連テスト13件、`npm run verify`成功。BREAK／ULTIMATE試作音、素材作業ファイル、別ゲームのモックアップ変更は対象外でローカル保持。下記の未commit／未push表記は各作業時点の履歴。公開後は両PCで再読込して新規部屋で再対戦する。
 
 - 2026-09-07 / Codex 修正: PCフレンド戦の片側`ROOM CONNECTION LOST`につながる背面誤操作を遮断。PhaserがDOM上のmousedownもwindow経由で拾い、背面CPU入口が`friendRoom`とsessionStorageを消す経路をVMで再現して修正した。`projects/todays-champion-remaster/src/game/scenes/Game.ts`でロビー中のシーン入力停止／終了時復元、DOMイベント伝播停止、タイトル以外のモード変更拒否、部屋なしCONTINUE拒否、閉じたロビーへの遅延RPC結果拒否を追加。ブラウザ検証でBACK時に古いタイトルが重複して次画面を覆う問題も発見し、再表示前の旧レイヤー破棄で解消。`tests/unit/remaster-friend-lobby.test.mjs`9件＋既存ATTACK音4件、TypeScript、公開用ビルド、`npm run verify`、`git diff --check`成功。実ブラウザでもロビー入力・背面クリック遮断・BACK→CPU選択画面を確認。本番RPCはテストで呼んでおらず、友人との2端末再対戦は公開後に要確認。ビルド済み／未commit・未push。BREAK／ULTIMATE音の組み込みは引き続き保留。
@@ -439,6 +467,10 @@ HEXAMINEの公開前チェックとして3項目を挙げていたが、**すべ
 - HELL RUNNER 2 は β として掲載済み。完成したら説明とタグを見直す
 - HELL RUNNER 2 の完成後に `node tools/game-images.mjs games/hell-runner-2.html` を通す。
   無印と同じ **未使用の `UI_B64`（2.5MB）** が残っているので、まずそれを消すと効果が大きい
+- **本日の最強決定戦リマスターをカートリッジ一覧へ載せるとき、CREDITSダイアログ（`index.html` の
+  `credits-dialog`）にあるコメントアウト済みの「音楽：パンダの中のパンダ」を必ず外す。**
+  このBGMはクレジット表記が使用条件。未掲載のうちからタイトル名を出さないためコメントにしてあるだけで、
+  掲載とクレジットは同じコミットで出すこと
 
 ### STILL（新作・2026-09-05）
 
