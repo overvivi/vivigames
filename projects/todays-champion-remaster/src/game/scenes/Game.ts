@@ -1557,7 +1557,11 @@ export class Game extends Scene {
         // 他4人の既存原画は右向きなので、素材の意図に応じて反転基準を分ける。
         const sourceNeedsPlayerFlip = fighter.id === 'kiri' || fighter.id === 'vivi';
         const tuning = this.mindDuelEffectTuningFor(fighter.id, 'ultimate');
-        const effect = this.add.image(VIEW_WIDTH / 2 + tuning.x, (wideUltimate ? 1010 : 940) + tuning.y, key)
+        // 調整値は左のプレイヤーから右へ撃つ基準。敵は素材だけでなく発生座標も
+        // 画面中央で鏡写しにする。ここを同じXへ置くと、敵の火や矢が右端から生えた。
+        const playerEffectX = VIEW_WIDTH / 2 + tuning.x;
+        const effectX = enemySide ? VIEW_WIDTH - playerEffectX : playerEffectX;
+        const effect = this.add.image(effectX, (wideUltimate ? 1010 : 940) + tuning.y, key)
             .setOrigin(0.5)
             .setDisplaySize((wideUltimate ? 1440 : 1000) * tuning.scale, (wideUltimate ? 960 : 1500) * tuning.scale)
             .setFlipX(sourceNeedsPlayerFlip ? !enemySide : enemySide).setAngle(enemySide ? -tuning.angle : tuning.angle)

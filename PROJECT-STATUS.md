@@ -23,6 +23,7 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 - 2026-09-06: iPhone Safariでvoid RPCの成功204をJSONとして読んでいたため、`The string did not match the expected pattern.`でキャラ同期後に止まる不具合を修正。204は本文なし成功として扱う。フレンド入口を専用フラグでも保持し、部屋情報が無い場合はCPU戦へフォールバックせず接続エラーを表示する。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`git diff --check`成功。未push。
 - 2026-09-06: PCの選択画面遷移で座席トークンが消える場合に備え、部屋コード・座席トークンを当該タブの`sessionStorage`へ一時保存し、フレンド選択開始・START DUEL時に復元するよう補強。CPU入口では同データを明示的に破棄する。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`git diff --check`成功。未push。
 - 2026-09-06: フレンド戦で同キャラ対戦になった時、必殺VFXをキャラIDだけで敵側判定して左右反転していた不具合を、画面上の左右方向を明示的に渡す方式へ修正。ATTACK／BREAK／ULTIMATEのVFXはキャラの踏み込みと同じX/Y量・時間で追従する。これにより口・武器の発生点からエフェクトが離れない。検証: `npx tsc --noEmit`、Remaster公開用ビルド成功。未push。
+- 2026-09-06: 敵側ULTIMATEは素材の向きだけを反転し、位置は左プレイヤー基準のままだったため、右端から火・矢が生える不具合を修正。プレイヤー基準のVFX X座標を画面中央で鏡写しにしてから描画する。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`git diff --check`成功。未push。
 
 - ランキング系テストの取りこぼしを修正（2026-09-05 / Claude Code）。`tests/ranking-submit.spec.js`の4件失敗の原因は、`addInitScript`で置いた`window.supabase`スタブを、後から読まれるCDNの実物`supabase-js`が上書きしていたこと。スタブが効かず**本番の`runner_scores_hell_runner_2_draft`へ実際にINSERTしていた**。他テストと同じ`page.route('**/supabase-js@2', ...)`方式へ変更し、保険として`*.supabase.co`をabortする。同じ書き方だった`tests/boss-battle.spec.js`（読み取りのみで書き込み事故はなし）も揃えた。**ゲーム本体は変更していない**（凍結を維持）。`tests/ranking-submit.spec.js` 5件・`tests/boss-battle.spec.js` 10件・`npm run verify`すべて成功。**未push**
 - 残作業: 過去のテスト実行で`runner_scores_hell_runner_2_draft`へ入った名前`テスト`の行を、ユーザーがSupabase SQL Editorで削除する
