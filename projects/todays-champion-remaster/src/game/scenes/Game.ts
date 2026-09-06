@@ -221,6 +221,7 @@ export class Game extends Scene {
     private friendLobbyStyle?: HTMLStyleElement;
     private friendRoom?: FriendRoomSession;
     private friendBattleMode = false;
+    private friendLobbyInputEnabled?: boolean;
     private friendPollTimer?: number;
     private friendDuelStarting = false;
     private friendPlayerName = 'PLAYER';
@@ -531,6 +532,10 @@ export class Game extends Scene {
 
     private showTitleScreen() {
         this.state = 'title';
+        // ロビーから戻る時は旧タイトルが残っている。重ねると選択画面の上に
+        // 古いタイトルが居残り、ボタンを押しても進まないように見える。
+        this.titleLayer?.destroy();
+        this.titleLayer = undefined;
         // CPU戦素材はタイトルを押してから作る。入口では旧キャラコンテナがまだ無い。
         if (this.raven !== undefined) this.raven.setVisible(false);
         if (this.mika !== undefined) this.mika.setVisible(false);
@@ -558,6 +563,7 @@ export class Game extends Scene {
         // 表示サイズを指定した画像にscaleを直接掛けると、原寸基準へ跳ね上がる。
         // ボタンの写真素材はサイズを固定し、押下時だけ明度を落として反応を返す。
         button.on('pointerdown', () => {
+            if (this.state !== 'title') return;
             button.setAlpha(0.84);
             action();
         });
@@ -620,6 +626,12 @@ export class Game extends Scene {
     }
 
     private startCpuMode(friendBattle = false) {
+        // DOMロビーのクリックが背面へ届いても、CPU入口から部屋を消させない。
+        if (friendBattle) {
+            if (this.state !== 'friend-lobby') return;
+            this.restoreFriendRoom();
+            if (!this.friendRoom) return;
+        } else if (this.state !== 'title') return;
         // フレンド戦はロビーDOMを閉じた直後にPhaserのstateが切り替わる。state名だけで
         // 判定すると座席トークンを消してCPU戦へ落ちるため、入口から明示的に渡す。
         this.friendBattleMode = friendBattle;
@@ -669,10 +681,17 @@ export class Game extends Scene {
     private showFriendLobby() {
         this.destroyFriendLobby();
         this.state = 'friend-lobby';
+        // Phaserはwindow上のマウス入力も拾う。DOMを手前に描くだけでは裏の
+        // CPUボタンが押されるため、ロビー中はシーン全体の入力を停止する。
+        this.friendLobbyInputEnabled = this.input.enabled;
+        this.input.enabled = false;
         const style = document.createElement('style');
         style.textContent = `.tc-friend-lobby{position:fixed;z-index:9998;left:50%;top:50%;transform:translate(-50%,-50%);width:min(390px,calc(100vw - 34px));box-sizing:border-box;padding:28px 24px 22px;color:#fff4cb;background:linear-gradient(145deg,rgba(8,15,33,.97),rgba(25,8,35,.97));border:2px solid #e6bf62;border-radius:18px;box-shadow:0 0 0 5px rgba(72,28,120,.42),0 20px 70px #000;font-family:Georgia,'Times New Roman',serif;text-align:center}.tc-friend-lobby h2{margin:0 0 7px;font-size:25px;letter-spacing:2px}.tc-friend-lobby p{margin:0 0 18px;color:#cfdaef;font:12px Arial,sans-serif;letter-spacing:1px;line-height:1.55}.tc-friend-lobby input{width:100%;box-sizing:border-box;margin:6px 0;padding:13px;border:1px solid #7564a5;border-radius:8px;background:#060b18;color:#fff4cb;text-align:center;font:bold 16px Arial,sans-serif;letter-spacing:2px}.tc-friend-lobby button{width:100%;margin:6px 0;padding:13px;border:1px solid #f1cf72;border-radius:8px;background:linear-gradient(#55458e,#251640);color:#fff4cb;font:bold 14px Georgia,serif;letter-spacing:1.5px;cursor:pointer}.tc-friend-lobby button:disabled{opacity:.45;cursor:wait}.tc-friend-lobby .tc-friend-lobby__code{margin:10px 0 5px;font:bold 30px Arial,sans-serif;letter-spacing:7px;color:#fff0a8}.tc-friend-lobby .tc-friend-lobby__status{min-height:38px;margin:9px 0;color:#9eeaff;font:bold 12px Arial,sans-serif;line-height:1.55}.tc-friend-lobby hr{border:0;border-top:1px solid #68558e;margin:17px 0}.tc-friend-lobby .tc-friend-lobby__back{border-color:#766b8d;background:#161b2c;color:#d5d9e5}`;
         document.head.appendChild(style);
         const panel = document.createElement('section'); panel.className = 'tc-friend-lobby';
+        ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'click'].forEach((type) => {
+            panel.addEventListener(type, (event) => event.stopPropagation());
+        });
         panel.innerHTML = '<h2>FRIEND BATTLE</h2><p>CREATE A ROOM OR ENTER A FRIEND\'S ROOM CODE</p>';
         const name = document.createElement('input'); name.maxLength = 12; name.placeholder = 'YOUR NAME'; name.autocomplete = 'username';
         const create = document.createElement('button'); create.textContent = 'CREATE ROOM';
@@ -690,6 +709,7 @@ export class Game extends Scene {
             setBusy(true, 'CREATING ROOM...');
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_create_room', { p_name: playerName });
+                if (this.friendLobby !== panel || this.state !== 'friend-lobby') return;
                 const room = result[0]; if (!room) throw new Error('部屋を作成できませんでした');
                 this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' }; this.saveFriendRoom();
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
@@ -702,19 +722,31 @@ export class Game extends Scene {
             setBusy(true, 'JOINING ROOM...');
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_join_room', { p_code: roomCodeValue, p_name: playerName });
+                if (this.friendLobby !== panel || this.state !== 'friend-lobby') return;
                 const room = result[0]; if (!room) throw new Error('部屋に参加できませんでした');
                 this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' }; this.saveFriendRoom();
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'JOIN FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
         };
-        continueButton.onclick = () => { this.destroyFriendLobby(); this.startCpuMode(true); };
-        back.onclick = () => { this.destroyFriendLobby(); this.showTitleScreen(); };
+        continueButton.onclick = () => {
+            if (this.friendLobby !== panel || this.state !== 'friend-lobby') return;
+            this.restoreFriendRoom();
+            if (!this.friendRoom) { status.textContent = 'ROOM INFORMATION MISSING · RETURN TO TITLE AND REJOIN'; return; }
+            this.destroyFriendLobby(); this.startCpuMode(true);
+        };
+        back.onclick = () => { this.destroyFriendLobby(); this.stopFriendRoomPolling(); this.showTitleScreen(); };
         panel.append(name, create, divider, code, join, roomCode, status, continueButton, back); document.body.appendChild(panel);
         this.friendLobby = panel; this.friendLobbyStyle = style;
     }
 
-    private destroyFriendLobby() { this.friendLobby?.remove(); this.friendLobbyStyle?.remove(); this.friendLobby = undefined; this.friendLobbyStyle = undefined; }
+    private destroyFriendLobby() {
+        this.friendLobby?.remove(); this.friendLobbyStyle?.remove(); this.friendLobby = undefined; this.friendLobbyStyle = undefined;
+        if (this.friendLobbyInputEnabled !== undefined) {
+            this.input.enabled = this.friendLobbyInputEnabled;
+            this.friendLobbyInputEnabled = undefined;
+        }
+    }
 
     private saveFriendRoom() {
         if (this.friendRoom) sessionStorage.setItem('tc-friend-room', JSON.stringify(this.friendRoom));
@@ -1326,10 +1358,13 @@ export class Game extends Scene {
         if (npcMove === 'attack' || npcMove === 'break') this.playMindDuelMoveEffect(this.npcFighter, npcMove, 1);
         if (playerMove === 'ultimate') this.playMindDuelUltimateEffect(this.playerFighter, -1);
         if (npcMove === 'ultimate') this.playMindDuelUltimateEffect(this.npcFighter, 1);
+        const attackVolume = playerMove === 'attack' && npcMove === 'attack' ? 0.45 : 0.65;
+        const playerAttackSound = playerMove === 'attack' && this.playMindDuelAttackSfx(this.playerFighter, attackVolume);
+        const npcAttackSound = npcMove === 'attack' && this.playMindDuelAttackSfx(this.npcFighter, attackVolume);
         if (playerMove === 'ultimate' || npcMove === 'ultimate') this.playMindDuelSfx('ultimate');
         else if (playerGuardBroken || npcGuardBroken) this.playMindDuelSfx('break');
         else if (playerGauge || npcGauge) this.playMindDuelSfx('guard');
-        else if (playerDamage || npcDamage) this.playMindDuelSfx('impact');
+        else if ((playerDamage || npcDamage) && !playerAttackSound && !npcAttackSound) this.playMindDuelSfx('impact');
         const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
         const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
         if (playerReadyNow || npcReadyNow) { this.playMindDuelSfx('ready'); this.announceMindDuelUltimateReady(playerReadyNow); }
@@ -1384,6 +1419,14 @@ export class Game extends Scene {
         } else if (this.mindDuelReadyRing !== undefined) {
             this.tweens.killTweensOf(this.mindDuelReadyRing);
         }
+    }
+
+    private playMindDuelAttackSfx(fighter: FighterDefinition, volume: number) {
+        const key = `battle-audio-${fighter.id}-attack`;
+        // 左右やホスト／ゲストではなく、実際に攻撃したキャラの採用音を鳴らす。
+        // 同時攻撃は呼出側で音量を抑え、生成音に共通の仮ヒット音を重ねない。
+        if (!this.cache.audio.exists(key)) return false;
+        return this.sound.play(key, { volume });
     }
 
     private playMindDuelSfx(kind: 'choose' | 'guard' | 'break' | 'impact' | 'ready' | 'ultimate-cue' | 'ultimate' | 'victory' | 'defeat') {
@@ -1520,7 +1563,11 @@ export class Game extends Scene {
     private loadMindDuelBattleAssets(fighters: FighterDefinition[], onComplete: () => void) {
         const unique = fighters.filter((fighter, index) => fighters.findIndex((other) => other.id === fighter.id) === index && this.hasMindDuelCharacter(fighter));
         const toLoad: Array<{ key: string; path: string }> = [];
+        const audioToLoad: Array<{ key: string; path: string }> = [];
         unique.forEach((fighter) => {
+            // キャラ画像と一緒にデコードまで終え、携帯の初回アタックで読込遅延を出さない。
+            const audioKey = `battle-audio-${fighter.id}-attack`;
+            if (!this.cache.audio.exists(audioKey)) audioToLoad.push({ key: audioKey, path: `assets/championship-re/audio/${fighter.id}-attack-v1.mp3` });
             (['idle', 'attack', 'guard', 'break', 'ultimate'] as BattleCharacterPose[]).forEach((pose) => {
                 const key = this.mindDuelCharacterKey(fighter, pose);
                 if (!this.textures.exists(key)) toLoad.push({ key, path: `assets/championship-re/battle/characters/${fighter.id}-battle-${pose}-v1.webp` });
@@ -1535,11 +1582,12 @@ export class Game extends Scene {
                 if (effect !== undefined && !this.textures.exists(effect.key)) toLoad.push({ key: effect.key, path: effect.path });
             });
         });
-        if (!toLoad.length) {
+        if (!toLoad.length && !audioToLoad.length) {
             onComplete();
             return;
         }
         toLoad.forEach(({ key, path }) => this.load.image(key, path));
+        audioToLoad.forEach(({ key, path }) => this.load.audio(key, path));
         this.load.once('complete', onComplete);
         this.load.start();
     }

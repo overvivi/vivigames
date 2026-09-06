@@ -1,12 +1,31 @@
 # PROJECT STATUS — Codex / Claude Code共通引き継ぎ
 
-最終更新: 2026-09-05 / Claude Code
+最終更新: 2026-09-07 / Codex
 
 このファイルが作業状況の正本。Codex・Claude Codeとも、作業前に読み、作業後に更新する。
 詳細な制約は `AGENTS.md` を優先する。特に巨大HTMLの全体読み込み・全体整形は禁止。
 git操作は通常行わず、ユーザーから明示的に許可された場合のみ可能。
 
 ## 現在の状態
+
+- 2026-09-07 / Codex 公開準備: ユーザーのpush依頼により、フレンドロビー修正・通常ATTACK採用音7人分・対応テスト・公開ビルドを今回のコミット対象とする。直前の関連テスト13件、`npm run verify`成功。BREAK／ULTIMATE試作音、素材作業ファイル、別ゲームのモックアップ変更は対象外でローカル保持。下記の未commit／未push表記は各作業時点の履歴。公開後は両PCで再読込して新規部屋で再対戦する。
+
+- 2026-09-07 / Codex 修正: PCフレンド戦の片側`ROOM CONNECTION LOST`につながる背面誤操作を遮断。PhaserがDOM上のmousedownもwindow経由で拾い、背面CPU入口が`friendRoom`とsessionStorageを消す経路をVMで再現して修正した。`projects/todays-champion-remaster/src/game/scenes/Game.ts`でロビー中のシーン入力停止／終了時復元、DOMイベント伝播停止、タイトル以外のモード変更拒否、部屋なしCONTINUE拒否、閉じたロビーへの遅延RPC結果拒否を追加。ブラウザ検証でBACK時に古いタイトルが重複して次画面を覆う問題も発見し、再表示前の旧レイヤー破棄で解消。`tests/unit/remaster-friend-lobby.test.mjs`9件＋既存ATTACK音4件、TypeScript、公開用ビルド、`npm run verify`、`git diff --check`成功。実ブラウザでもロビー入力・背面クリック遮断・BACK→CPU選択画面を確認。本番RPCはテストで呼んでおらず、友人との2端末再対戦は公開後に要確認。ビルド済み／未commit・未push。BREAK／ULTIMATE音の組み込みは引き続き保留。
+
+- 2026-09-07 / Codex: RAVENとVIVIの必殺技SEは、ユーザー実聴後に約+2半音の超高速10連打版へ共通採用で確定。正本はRemasterプロジェクト内`source/audio/ultimate-burst/raven-vivi-ultimate-burst-10x-90ms-pitch-plus2.wav`とMP3。90ms×10、合計0.90秒、ピーク-1.61dBFS。これでBREAK・ULTIMATEとも全7人の採用が確定。旧試作保持、ゲームへの組み込み・pushはまだ行っていない。
+
+- 2026-09-07 / Codex: ULTIMATE採用はBRICK爆砕改訂版#4、TΩ9#4、KIRI#3、NOISE#4、MIKA#2に確定。RAVENとVIVIは「最新版VIVI #3の頭だけを超高速連打」を希望。ElevenLabs `Ten rapid heavy spear jabs` #3をWAV保存し、元音0.045〜0.225秒の一発を音程維持で短縮、90ms間隔×10（0.90秒）と120ms間隔×10（1.20秒）を`projects/todays-champion-remaster/source/audio/ultimate-burst/`へWAV/MP3で試作。生成AIへの追加課金なし。10連打のサンプル一致・長さ・ピークを検査。ユーザー試聴待ち、ゲームへの接続は保留。BREAKの採用も下記で確定済み。
+
+- 2026-09-06 / Codex: ULTIMATEのRAVEN／VIVIが花火のように聞こえるとの指摘で「槍の超高速10連突き」へ表現を変更し各4候補を追加生成（2.5秒）。RAVEN=`Ten extremely fast spear thrusts`、VIVI=`Ten rapid heavy spear jabs`。BRICKも小さく聞こえる指摘で、静かな前置きなし・近接の大音量爆砕指定`One extremely loud close-up ground-shattering explosion`を4候補追加。新しい順はBRICK→VIVI→RAVEN。実聴の比較・採用番号待ち。旧候補は保持、保存・組み込みはまだ行っていない。
+
+- 2026-09-06 / Codex: BREAK採用確定はKIRIとRAVENがTΩ9初版#3を共用、TΩ9本人#2、NOISE破砕改訂版#3、BRICK咆哮改訂版#4、VIVI初版#4、MIKA初版#2。ユーザー指示で保存・組み込みは後回し。
+- 2026-09-06 / Codex: ULTIMATEをElevenLabsで全7人×4候補、各2.5秒生成完了（700クレジット、残5920）。最新履歴の上からTΩ9のファイアブレス（`A dragon-like continuous fire breath`）、VIVIの無数の羽の斬撃（`Countless razor-sharp feathers`）、KIRIの長い空間斬撃（`One enormous scythe`）、NOISEの低音ノイズレーザー（`A sustained low-pitched noise laser beam`）、BRICKの地面爆砕（`A colossal ground explosion`）、MIKAの巨大衝撃波（`A huge forward-travelling shockwave`）、RAVENの光の矢の雨（`A dense rain of glowing arrows`）。採用番号待ち、音源保存・ゲームへの接続は未実施。生成尺の現在設定は2.5秒。コード変更なし。
+
+- 2026-09-06 / Codex: BREAK音4人をユーザー指摘で追加生成（各4候補）。RAVENは低い肘打ち`One heavy elbow hitting a padded torso`、BRICKはライオン咆哮`One powerful adult male lion roar`、NOISEは高く響く障壁破砕`One large brittle glass-like energy barrier shattering`（各1秒）、KIRIは棒の短い打撃`One short hard staff jab into a padded body`（0.5秒）。最新履歴の上からKIRI→NOISE→BRICK→RAVEN。前のBREAK候補は残し、採用番号待ち。ローカル保存・ゲーム組み込みは未実施。ElevenLabsの尺設定は最後の0.5秒になっているので次回生成時に注意。
+
+- 2026-09-06 / Codex: ユーザーが通常アタック7音の実機タイミングを確認しOK。続いてElevenLabsでBREAKを全7人×4候補（各1秒）生成完了、採用番号待ち。履歴の新しい順はTΩ9（`Single powerful rising kick`）、VIVI（`Single electrified sword thrust breaking a guard`）、KIRI（`Single metal pole-end thrust`）、NOISE（`Single sonic blast shattering an energy barrier`）、BRICK（`Single heavy metal shield bash`）、MIKA（`Single two-palm shockwave`）、RAVEN（`Single close-range elbow strike`）。BREAK音のローカル保存／組み込みはまだ行っていない。ゲームコード変更なし。
+
+- 2026-09-06 / Codex: ElevenLabsからユーザー採用の通常アタックSE7音をMP3保存しRemasterへ接続。VIVI最新版#4、KIRI最新版#2、TΩ9#2、NOISE#4、BRICK#4、MIKA#1、RAVEN#2。正本は`projects/todays-champion-remaster/public/assets/championship-re/audio/`（採用元は同README）。`src/game/scenes/Game.ts`で対戦キャラ分を画像と同時に事前ロードし、左右それぞれのATTACK開始時に再生。単独0.65／同時ATTACKは各0.45、通常攻撃の仮ヒット音は重ねず、未読込時のみフォールバック。GUARD／BREAK／ULTIMATE等の仮SEは維持。検証: `tests/unit/remaster-attack-audio.test.mjs`4件（16通りの手の組合せを含む）、TypeScript、公開用ビルド、全7音FFmpegデコード、元音とビルド音の一致、`npm run verify`、`git diff --check`成功。ローカルCPU対戦開始・読込エラーなしも確認。音量とタイミングの実聴・携帯での最終確認はユーザー待ち。未commit／未push。ローカルサーバーを`127.0.0.1:4173`で再起動済み。
 
 - `本日の最強決定戦 Remaster`へ7人全員の通常攻撃／BREAK固有VFXとTΩ9の戦闘ポーズ5種・必殺炎演出を追加。CPU BATTLEのキャラ選択は、旧7枠ではなく上段ミニゲート＋中央召喚門の完成版へ接続済み。`?debug=1`のPC用`BATTLE TUNER`で、選んだキャラの各ポーズとATTACK／BREAK／ULTIMATE VFXを即時表示し、X／Y／サイズ／角度を調整できる。X/Y範囲はキャラ±500・VFX±700へ拡大し、現在の対戦者以外でも左側プレビューへ即時反映、表示中VFXも数値変更に追従するよう修正した。ユーザーが確認したRAVEN／NOISE／MIKA／KIRI／VIVI／TΩ9の送付済み調整値は初期値へ採用済み。縦横比を固定した表示へ修正し、旧ゲート調整パネルが`START DUEL`まで無効にしていた入力停止も撤去済み。戦闘素材を初回読込する間は`SUMMONING...`を出して二重入力を防ぐ（2026-09-06 / Codex）。ローカル公開用ビルドまで完了、未push。次は実機で各エフェクトの位置・大きさを確認して微調整する
 - 2026-09-06: 最新の送付値（7人全ポーズ／VFX）へ初期値を更新。KIRIのATTACK／BREAK VFXは向きを反転し、通常・必殺VFXを「左の味方の前、右の敵の後ろ」になる中間レイヤーへ置く方式を追加。検証: `npx tsc --noEmit`、Remaster公開用ビルド、`npm run test:champion`（20件）、`npm run verify`、`git diff --check`成功。
