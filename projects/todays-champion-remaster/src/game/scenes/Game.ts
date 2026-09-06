@@ -220,6 +220,7 @@ export class Game extends Scene {
     private friendLobby?: HTMLElement;
     private friendLobbyStyle?: HTMLStyleElement;
     private friendRoom?: FriendRoomSession;
+    private friendBattleMode = false;
     private friendPollTimer?: number;
     private friendDuelStarting = false;
     private friendPlayerName = 'PLAYER';
@@ -621,6 +622,7 @@ export class Game extends Scene {
     private startCpuMode(friendBattle = false) {
         // フレンド戦はロビーDOMを閉じた直後にPhaserのstateが切り替わる。state名だけで
         // 判定すると座席トークンを消してCPU戦へ落ちるため、入口から明示的に渡す。
+        this.friendBattleMode = friendBattle;
         if (!friendBattle) { this.friendRoom = undefined; this.stopFriendRoomPolling(); }
         if (this.gameplayAssetsLoaded) {
             // CPU戦のキャラ選択は、旧7枠ではなく完成した召喚門セレクトを本導線にする。
@@ -656,6 +658,10 @@ export class Game extends Scene {
             const detail = await response.json().catch(() => undefined) as { message?: string } | undefined;
             throw new Error(detail?.message ?? `接続エラー (${response.status})`);
         }
+        // set_character / submit_moveのようなvoid RPCは成功時204で本文を返さない。
+        // Safariは空本文にresponse.json()を呼ぶと曖昧なPatternエラーになるため、
+        // 本文があるRPCだけJSONとして読む。
+        if (response.status === 204) return undefined as T;
         return response.json() as Promise<T>;
     }
 
@@ -684,7 +690,7 @@ export class Game extends Scene {
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_create_room', { p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋を作成できませんでした');
-                this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' };
+                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' };
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'CREATE FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
@@ -696,7 +702,7 @@ export class Game extends Scene {
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_join_room', { p_code: roomCodeValue, p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋に参加できませんでした');
-                this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' };
+                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' };
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'JOIN FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
@@ -987,7 +993,11 @@ export class Game extends Scene {
 
     private startSelectedDuel() {
         if (this.state !== 'select') return;
-        if (this.friendRoom) { void this.startFriendSelectedDuel(); return; }
+        if (this.friendBattleMode) {
+            if (this.friendRoom) void this.startFriendSelectedDuel();
+            else this.add.text(VIEW_WIDTH / 2, 1310, 'ROOM CONNECTION LOST · RETURN TO TITLE', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#ffbeca', stroke: '#05080e', strokeThickness: 6, letterSpacing: 2 }).setOrigin(0.5).setDepth(160);
+            return;
+        }
         // 戦闘用の透過素材は初回だけ遅延読込する。無反応に見せず、二重タップで
         // 同じ読込完了処理が重ならないよう、選択をこの時点でロックする。
         this.state = 'loading-duel';
