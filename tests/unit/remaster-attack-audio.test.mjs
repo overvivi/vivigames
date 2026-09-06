@@ -92,7 +92,7 @@ test('ゲージ獲得は両側とも0→1でcharge、1→2でreadyだけ、満�
         [2, 'guard', 'attack', undefined], [1, 'guard', 'guard', undefined],
         [1, 'guard', 'break', undefined], [2, 'ultimate', 'guard', undefined]
     ]) {
-        const played = []; const announced = [];
+        const played = []; const announced = []; const charged = [];
         const scene = Object.assign(Object.create(prototype), {
             playerFighter: { id: 'kiri' }, npcFighter: { id: 'vivi' },
             mindDuelPlayerHp: 1000, mindDuelNpcHp: 1000,
@@ -101,11 +101,14 @@ test('ゲージ獲得は両側とも0→1でcharge、1→2でreadyだけ、満�
             playMindDuelUltimateEffect() {}, flashArena() {}, stopMindDuelMoveSfx() {},
             playMindDuelMoveSfx: () => true, playMindDuelSfx: kind => played.push(kind),
             announceMindDuelUltimateReady: player => announced.push(player),
+            playMindDuelGuardCharge: (player, gauge) => charged.push([player, gauge]),
             cameras: { main: { shake() {} } }, time: { delayedCall() {} }
         });
         scene.resolveMindDuelRound(enemy ? other : own, enemy ? own : other);
-        assert.deepEqual(played.filter(kind => ['charge', 'ready'].includes(kind)), expected ? [expected] : []);
-        assert.deepEqual(announced, expected === 'ready' ? [!enemy] : []);
+        assert.deepEqual(charged, expected ? [[!enemy, before + 1]] : []);
+        // チャージ音とMAX告知は即時ではなく光がゲージへ着いた時に出す。
+        assert.deepEqual(played.filter(kind => ['charge', 'ready'].includes(kind)), []);
+        assert.deepEqual(announced, []);
     }
 });
 

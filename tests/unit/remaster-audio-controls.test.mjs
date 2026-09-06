@@ -107,6 +107,40 @@ test('セレクトだけ指定の♪位置にし、他画面へ戻ると従来�
     c.setScreen('select'); assert.equal(c.opener.style.top, `${667 * 105 / 1672}px`);
     c.destroy();
 });
+test('相性アイコンはバトルだけ、♪と同じ大きさで直下に配置する', () => {
+    const { controls: c, states } = modalFixture();
+    assert.equal(c.rulesButton.hidden, true);
+    c.rulesButton.onclick(); assert.equal(c.rulesOverlay.hidden, true);
+    c.setScreen('select'); assert.equal(c.rulesButton.hidden, true);
+    c.setScreen('battle'); assert.equal(c.rulesButton.hidden, false);
+    assert.equal(c.rulesButton.style.width, c.opener.style.width);
+    assert.equal(c.rulesButton.style.height, c.opener.style.height);
+    assert.equal(c.rulesButton.style.left, c.opener.style.left);
+    assert.equal(parseFloat(c.rulesButton.style.top), parseFloat(c.opener.style.top) + parseFloat(c.opener.style.height) + 8);
+    c.rulesButton.onclick(); assert.equal(c.rulesOverlay.hidden, false);
+    c.setScreen('default'); assert.equal(c.rulesOverlay.hidden, true); assert.equal(c.rulesButton.hidden, true);
+    assert.equal(states.join(','), 'true,false');
+    c.destroy();
+});
+
+test('相性表は×とEscapeで閉じ、背面を遮断してから音設定も正常に開ける', () => {
+    const { controls: c, doc, states } = modalFixture();
+    c.setScreen('battle'); c.rulesButton.focus(); c.rulesButton.onclick();
+    assert.equal(c.rulesDialog.attrs['aria-modal'], 'true');
+    assert.equal(c.rulesDialog.querySelectorAll('img')[0].src, 'assets/championship-re/battle/battle-rules-help-v1.webp');
+    assert.equal(doc.activeElement, c.rulesClose);
+    let blocked = 0;
+    c.block({ target: doc.body, stopPropagation() { blocked++; } }); assert.equal(blocked, 1);
+    c.rulesClose.onclick(); assert.equal(doc.activeElement, c.rulesButton);
+    c.block({ target: c.rulesClose, stopPropagation() { blocked++; } }); assert.equal(blocked, 2);
+    c.opener.onclick(); assert.equal(c.overlay.hidden, false); assert.equal(c.rulesOverlay.hidden, true);
+    c.close.onclick(); c.rulesButton.onclick();
+    c.keyboard({ key: 'Escape', preventDefault() {}, stopPropagation() {} });
+    assert.equal(c.rulesOverlay.hidden, true);
+    assert.equal(states.join(','), 'true,false,true,false,true,false');
+    c.destroy();
+});
+
 test('音量・各ミュートを別々に復元し、範囲外の値を制限する', () => {
     const settings = readAudioSettings({ getItem: () => JSON.stringify({ bgm: -10, sfx: 200, bgmMuted: true, sfxMuted: false }) });
     assert.equal(settings.bgm, 0); assert.equal(settings.sfx, 100);

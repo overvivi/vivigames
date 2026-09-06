@@ -289,8 +289,6 @@ export class Game extends Scene {
     private mindDuelNpcGems: GameObjects.Image[] = [];
     private mindDuelPlayerArt?: GameObjects.Image;
     private mindDuelNpcArt?: GameObjects.Image;
-    private mindDuelReadyRing?: GameObjects.Image;
-    private mindDuelSwipeTrail?: GameObjects.Image;
     private mindDuelChoosePlate?: GameObjects.Image;
     private mindDuelActionArts = new Map<MindDuelAction, GameObjects.Image>();
     private mindDuelActionHitAreas = new Map<MindDuelAction, GameObjects.Zone>();
@@ -300,8 +298,8 @@ export class Game extends Scene {
     private mindDuelNpcGauge = 0;
     private mindDuelRound = 1;
     private mindDuelLocked = false;
+    private mindDuelFinishing = false;
     private mindDuelLastPlayerMove?: MindDuelMove;
-    private mindDuelAttackStart?: { x: number; y: number; at: number };
     private mindDuelAudio?: AudioContext;
     private audioControls?: AudioControls;
     private audioModalInputEnabled?: boolean;
@@ -382,12 +380,11 @@ export class Game extends Scene {
         this.load.image('battle-arena-background', 'assets/championship-re/battle/battle-arena-background-v1.webp');
         this.load.image('battle-hud-frame', 'assets/championship-re/battle/battle-hud-frame-v1.webp');
         this.load.image('battle-action-attack', 'assets/championship-re/battle/battle-action-attack-v1.webp');
+        this.load.image('battle-action-ultimate', 'assets/championship-re/battle/battle-action-ultimate-v1.webp');
         this.load.image('battle-action-guard', 'assets/championship-re/battle/battle-action-guard-v1.webp');
         this.load.image('battle-action-break', 'assets/championship-re/battle/battle-action-break-v1.webp');
         this.load.image('battle-ultimate-crystal', 'assets/championship-re/battle/battle-ultimate-crystal-v1.webp');
         this.load.image('battle-ultimate-socket-crystal', 'assets/championship-re/battle/battle-ultimate-socket-crystal-v1.webp');
-        this.load.image('battle-ultimate-ready-ring', 'assets/championship-re/battle/battle-ultimate-ready-ring-v1.webp');
-        this.load.image('battle-ultimate-swipe-trail', 'assets/championship-re/battle/battle-ultimate-swipe-trail-v1.webp');
         this.load.image('battle-choose-move', 'assets/championship-re/battle/battle-choose-move-v1.webp');
         this.load.image('battle-result-background', 'assets/championship-re/result/battle-result-background-v1.webp');
         this.load.image('battle-result-panel', 'assets/championship-re/result/battle-result-panel-v1.webp');
@@ -444,7 +441,6 @@ export class Game extends Scene {
         });
         this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
             this.finishSelectSwipe(pointer);
-            this.finishMindDuelAttackGesture(pointer);
         });
         this.input.keyboard?.on('keydown-SPACE', () => this.handleAction());
         this.input.keyboard?.on('keydown-LEFT', () => this.stepSelect(-1));
@@ -1133,8 +1129,9 @@ export class Game extends Scene {
 
     private beginMindDuel() {
         this.friendDuelStarting = false;
+        this.mindDuelFinishing = false;
         this.state = 'mind-duel';
-        this.audioControls?.setScreen('default');
+        this.audioControls?.setScreen('battle');
         this.setMindDuelBgm('battle');
         this.selectTitle = undefined;
         this.selectionLayer?.destroy();
@@ -1223,16 +1220,9 @@ export class Game extends Scene {
         layer.add([choosePlate, this.mindDuelStatus, this.mindDuelReveal]);
         this.createMindDuelButton(layer, 'battle-action-break', 'break');
         this.createMindDuelButton(layer, 'battle-action-guard', 'guard');
-        const attack = this.createMindDuelButton(layer, 'battle-action-attack', 'attack');
-        const attackLayout = this.mindDuelUiLayout.actions.attack;
-        this.mindDuelReadyRing = this.add.image(attackLayout.x, attackLayout.y, 'battle-ultimate-ready-ring').setDisplaySize(245, 245).setAlpha(0).setVisible(false);
-        this.mindDuelSwipeTrail = this.add.image(attackLayout.x, attackLayout.y - 107, 'battle-ultimate-swipe-trail').setDisplaySize(155, 210).setAlpha(0).setVisible(false);
-        this.mindDuelReadyRing.setDepth(2);
-        this.mindDuelSwipeTrail.setDepth(2);
-        layer.add([this.mindDuelReadyRing, this.mindDuelSwipeTrail]);
+        this.createMindDuelButton(layer, 'battle-action-attack', 'attack');
         this.applyMindDuelUiLayout();
         if (this.debugEnabled && this.desktopDebugEnabled) this.renderMindDuelDebugPanel();
-        attack.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startMindDuelAttackGesture(pointer));
         this.updateMindDuelUi();
         if (this.battlePreviewEnabled) this.playRavenMikaBattlePreview();
     }
@@ -1270,7 +1260,8 @@ export class Game extends Scene {
         this.mindDuelActionArts.set(move, button);
         this.mindDuelActionHitAreas.set(move, hitArea);
         layer.add([button, hitArea]);
-        if (move !== 'attack') hitArea.on('pointerdown', () => this.chooseMindDuelMove(move));
+        // 長押し・離す位置に依存させず、満タン時は同じタップで必殺技を確定する。
+        hitArea.on('pointerdown', () => this.chooseMindDuelMove(move === 'attack' && this.mindDuelPlayerGauge >= 2 ? 'ultimate' : move));
         // setDisplaySize後にscaleを1へ戻すと、縮めた見た目ではなく原寸へ戻ってしまう。
         hitArea.on('pointerdown', () => !this.mindDuelLocked && button.setAlpha(0.84));
         hitArea.on('pointerup', () => button.setAlpha(1));
@@ -1290,25 +1281,6 @@ export class Game extends Scene {
             // Zoneのサイズも絵と合わせ、見た目だけ移動して押せない事故を避ける。
             this.mindDuelActionHitAreas.get(move)?.setPosition(layout.x, layout.y).setSize(layout.size, layout.size);
         });
-        const attack = this.mindDuelUiLayout.actions.attack;
-        this.mindDuelReadyRing?.setPosition(attack.x, attack.y);
-        this.mindDuelSwipeTrail?.setPosition(attack.x, attack.y - 107);
-    }
-
-    private startMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {
-        if (this.state !== 'mind-duel' || this.mindDuelLocked) return;
-        this.mindDuelAttackStart = { x: pointer.x, y: pointer.y, at: this.time.now };
-    }
-
-    private finishMindDuelAttackGesture(pointer: Phaser.Input.Pointer) {
-        if (this.state !== 'mind-duel' || this.mindDuelAttackStart === undefined || this.mindDuelLocked) return;
-        const start = this.mindDuelAttackStart;
-        this.mindDuelAttackStart = undefined;
-        const heldLongEnough = this.time.now - start.at >= 330;
-        const swipedUp = start.y - pointer.y >= 80 && Math.abs(pointer.x - start.x) < 120;
-        // マウスに上スワイプを要求するとPCでは必殺が出せない。PCは長押し→離すだけで同じ入力にする。
-        const pcLongPress = pointer.event instanceof MouseEvent && heldLongEnough;
-        this.chooseMindDuelMove(this.mindDuelPlayerGauge >= 2 && (pcLongPress || (heldLongEnough && swipedUp)) ? 'ultimate' : 'attack');
     }
 
     private chooseMindDuelMove(move: MindDuelMove) {
@@ -1353,6 +1325,8 @@ export class Game extends Scene {
     }
 
     private resolveMindDuelRound(playerMove: MindDuelMove, npcMove: MindDuelMove) {
+        // 通信の遅延応答が重なっても決着演出と結果画面は一度だけ開始する。
+        if (this.mindDuelFinishing) return;
         const playerGaugeBefore = this.mindDuelPlayerGauge;
         const npcGaugeBefore = this.mindDuelNpcGauge;
         let playerDamage = 0;
@@ -1382,11 +1356,13 @@ export class Game extends Scene {
         }
         this.mindDuelPlayerHp = Math.max(0, this.mindDuelPlayerHp - playerDamage);
         this.mindDuelNpcHp = Math.max(0, this.mindDuelNpcHp - npcDamage);
+        const finishing = this.mindDuelPlayerHp === 0 || this.mindDuelNpcHp === 0;
         this.mindDuelPlayerGauge = Math.min(2, this.mindDuelPlayerGauge + playerGauge);
         this.mindDuelNpcGauge = Math.min(2, this.mindDuelNpcGauge + npcGauge);
         this.mindDuelLastPlayerMove = playerMove;
         this.mindDuelReveal?.setText(`${this.moveLabel(playerMove)}   VS   ${this.moveLabel(npcMove)}`).setColor('#fff2bd').setVisible(true);
-        this.updateMindDuelUi();
+        // 判定値は即時確定し、増えた宝石の見た目だけ光の到着まで待たせる。
+        if (!finishing) this.updateMindDuelUi(playerGauge ? playerGaugeBefore : this.mindDuelPlayerGauge, npcGauge ? npcGaugeBefore : this.mindDuelNpcGauge);
         const playerGuardBroken = playerMove === 'guard' && npcMove === 'break';
         const npcGuardBroken = npcMove === 'guard' && playerMove === 'break';
         this.playMindDuelMoveAnimation(this.mindDuelPlayerArt, this.playerFighter, playerMove, -1, playerGuardBroken);
@@ -1405,18 +1381,17 @@ export class Game extends Scene {
         else if ((playerGuardBroken && !npcSound) || (npcGuardBroken && !playerSound)) this.playMindDuelSfx('break');
         else if (playerGauge || npcGauge) this.playMindDuelSfx('guard');
         else if ((playerDamage || npcDamage) && ((playerMove !== 'guard' && !playerSound) || (npcMove !== 'guard' && !npcSound))) this.playMindDuelSfx('impact');
-        const playerReadyNow = playerGaugeBefore < 2 && this.mindDuelPlayerGauge === 2;
-        const npcReadyNow = npcGaugeBefore < 2 && this.mindDuelNpcGauge === 2;
-        if (playerReadyNow || npcReadyNow) { this.playMindDuelSfx('ready'); this.announceMindDuelUltimateReady(playerReadyNow); }
-        // MAXでは獲得音を重ねず一発だけ。満タン後のガードや必殺消費も獲得扱いにしない。
-        else if (this.mindDuelPlayerGauge > playerGaugeBefore || this.mindDuelNpcGauge > npcGaugeBefore) this.playMindDuelSfx('charge');
+        // MAX維持・ガード同士・BREAKで崩された時には飛ばさない。到着時に音も一度だけ鳴らす。
+        if (this.mindDuelPlayerGauge > playerGaugeBefore) this.playMindDuelGuardCharge(true, this.mindDuelPlayerGauge);
+        if (this.mindDuelNpcGauge > npcGaugeBefore) this.playMindDuelGuardCharge(false, this.mindDuelNpcGauge);
         const hitColor = playerDamage > npcDamage ? this.npcFighter.color : this.playerFighter.color;
-        if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
-        this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
-        if (this.mindDuelPlayerHp === 0 || this.mindDuelNpcHp === 0) {
-            this.time.delayedCall(720, () => { this.playMindDuelSfx(this.mindDuelNpcHp === 0 ? 'victory' : 'defeat'); this.showMindDuelResult(); });
+        if (playerGuardBroken || npcGuardBroken) this.playMindDuelGuardBreak(playerGuardBroken, finishing);
+        if (finishing) {
+            this.playMindDuelFinisher();
             return;
         }
+        if (playerDamage || npcDamage) this.flashArena(hitColor, 0.16, 160);
+        if (!playerGuardBroken && !npcGuardBroken) this.cameras.main.shake(playerMove === 'ultimate' || npcMove === 'ultimate' ? 180 : 85, playerMove === 'ultimate' || npcMove === 'ultimate' ? 0.011 : 0.004);
         this.mindDuelRound += 1;
         this.mindDuelRoundText?.setText(String(this.mindDuelRound).padStart(2, '0'));
         // 3択の意味は「出た瞬間」より、相手の手と自分のポーズを一拍読めることで伝わる。
@@ -1426,6 +1401,78 @@ export class Game extends Scene {
             if (this.friendRoom) { void this.finishFriendMindDuelRound(); return; }
             this.mindDuelLocked = false;
             this.mindDuelReveal?.setVisible(false);
+        });
+    }
+
+    private playMindDuelGuardBreak(player: boolean, finishing: boolean) {
+        const layer = this.mindDuelLayer;
+        const art = player ? this.mindDuelPlayerArt : this.mindDuelNpcArt;
+        const current = () => this.state === 'mind-duel' && this.mindDuelLayer === layer;
+        this.time.delayedCall(260, () => {
+            if (!current()) return;
+            // 決着時は既存の140ms停止へ任せ、二重停止や速度の上書きを避ける。
+            // シーン時計・通信・音設定は止めず、キャラと技の動きだけ止める。
+            if (!finishing) {
+                const motions = this.tweens.getTweensOf(layer?.list ?? []).filter(tween => tween.isPlaying());
+                motions.forEach(tween => tween.pause());
+                this.time.delayedCall(100, () => motions.forEach(tween => { if (!tween.isDestroyed()) tween.resume(); }));
+                this.cameras.main.shake(95, 0.004);
+            }
+            if (!layer || !art || !this.textures.exists('battle-guard-shatter')) return;
+            const direction = player ? 1 : -1;
+            const size = PhaserMath.Clamp(art.displayHeight * 0.625, 325, 450);
+            const shield = this.add.image(0, 0, 'battle-guard-shatter').setDisplaySize(size * 0.8, size * 0.8).setFlipX(!player).setBlendMode('ADD');
+            // 攻撃側ではなく崩された側の胸元へ置き、のけぞりにも追従させる。
+            layer.add(shield);
+            const follow = () => shield.setPosition(art.x + direction * Math.min(65, art.displayWidth * 0.16), art.y - art.displayHeight * 0.5);
+            follow();
+            const burst = this.tweens.add({
+                // 拡散と同じeaseOutで消すと、大きくなる前に薄れて盾の形が読めない。
+                // 先に広げ、最大サイズを一拍見せた後にだけフェードする。
+                targets: shield,
+                displayWidth: { value: size * 1.3, duration: 260 },
+                displayHeight: { value: size * 1.3, duration: 260 },
+                alpha: { value: 0, delay: 360, duration: 280, ease: 'Quad.easeIn' },
+                ease: 'Quad.easeOut',
+                onUpdate: () => { if (current()) follow(); else { burst.stop(); shield.destroy(); } },
+                onComplete: () => shield.destroy()
+            });
+        });
+    }
+
+    private playMindDuelFinisher() {
+        this.mindDuelFinishing = true;
+        this.mindDuelLocked = true;
+        const layer = this.mindDuelLayer;
+        const current = () => this.state === 'mind-duel' && this.mindDuelLayer === layer;
+        // 踏み込みがほぼ届く所で止める。シーンの時計や音を止めると、
+        // 通信・ポップアップまで固まるため、戦闘レイヤーのTweenだけを制御する。
+        this.time.delayedCall(260, () => {
+            if (!current()) return;
+            this.updateMindDuelUi();
+            const motions = this.tweens.getTweensOf(layer?.list ?? []).filter(tween => tween.isPlaying());
+            const speeds = motions.map(tween => tween.timeScale);
+            motions.forEach(tween => tween.pause());
+            // 既存flashは戦闘レイヤーの下なので、決着の一度だけ専用の薄い光を重ねる。
+            const light = this.add.rectangle(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, VIEW_WIDTH, VIEW_HEIGHT, 0xffedcb, 0.22).setDepth(125);
+            this.tweens.add({ targets: light, alpha: 0, duration: 180, ease: 'Quad.easeOut', onComplete: () => light.destroy() });
+            this.cameras.main.shake(220, 0.009);
+            this.time.delayedCall(140, () => {
+                motions.forEach((tween, index) => {
+                    if (tween.isDestroyed()) return;
+                    tween.timeScale = speeds[index] * (current() ? 0.45 : 1);
+                    tween.resume();
+                });
+            });
+            // 残りの動きを読ませた後は必ず元の速度に戻す。次戦へスローを持ち越さない。
+            this.time.delayedCall(760, () => motions.forEach((tween, index) => {
+                if (!tween.isDestroyed()) tween.timeScale = speeds[index];
+            }));
+        });
+        this.time.delayedCall(1800, () => {
+            if (!current()) return;
+            this.playMindDuelSfx(this.mindDuelNpcHp === 0 ? 'victory' : 'defeat');
+            this.showMindDuelResult();
         });
     }
 
@@ -1444,23 +1491,17 @@ export class Game extends Scene {
         } catch (error) { this.mindDuelReveal?.setText(error instanceof Error ? error.message : 'ROUND SYNC FAILED').setVisible(true); }
     }
 
-    private updateMindDuelUi() {
+    private updateMindDuelUi(playerGauge = this.mindDuelPlayerGauge, npcGauge = this.mindDuelNpcGauge) {
         const playerRatio = this.mindDuelPlayerHp / 1000;
         const npcRatio = this.mindDuelNpcHp / 1000;
         this.mindDuelPlayerHpFill?.setDisplaySize(282 * playerRatio, 18);
         this.mindDuelNpcHpFill?.setDisplaySize(282 * npcRatio, 18);
-        this.mindDuelPlayerGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelPlayerGauge ? 1 : 0.18));
-        this.mindDuelNpcGems.forEach((gem, index) => gem.setAlpha(index < this.mindDuelNpcGauge ? 1 : 0.18));
-        const ultimateReady = this.mindDuelPlayerGauge >= 2;
-        this.mindDuelReadyRing?.setVisible(ultimateReady).setAlpha(ultimateReady ? 0.92 : 0);
-        this.mindDuelSwipeTrail?.setVisible(ultimateReady).setAlpha(ultimateReady ? 0.8 : 0);
-        if (ultimateReady && this.mindDuelReadyRing !== undefined) {
-            this.tweens.killTweensOf(this.mindDuelReadyRing);
-            // setDisplaySize済みの写真素材へscaleを掛けると原寸へ跳ねる。サイズは固定で発光だけ脈打たせる。
-            this.tweens.add({ targets: this.mindDuelReadyRing, alpha: 0.46, duration: 780, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        } else if (this.mindDuelReadyRing !== undefined) {
-            this.tweens.killTweensOf(this.mindDuelReadyRing);
-        }
+        this.mindDuelPlayerGems.forEach((gem, index) => gem.setAlpha(index < playerGauge ? 1 : 0.18));
+        this.mindDuelNpcGems.forEach((gem, index) => gem.setAlpha(index < npcGauge ? 1 : 0.18));
+        const ultimateReady = playerGauge >= 2;
+        const attackLayout = this.mindDuelUiLayout.actions.attack;
+        // 画像の原寸が違っても、調整済みボタンサイズと当たり判定を維持する。
+        this.mindDuelActionArts.get('attack')?.setTexture(ultimateReady ? 'battle-action-ultimate' : 'battle-action-attack').setDisplaySize(attackLayout.size, attackLayout.size);
     }
 
     private setMindDuelBgm(mode: 'menu' | 'battle') {
@@ -1830,6 +1871,49 @@ export class Game extends Scene {
             .setPosition(baseX + (direction === -1 ? tuning.x : -tuning.x), 1190 + tuning.y);
     }
 
+    private playMindDuelGuardCharge(player: boolean, gauge: number) {
+        const layer = this.mindDuelLayer;
+        const art = player ? this.mindDuelPlayerArt : this.mindDuelNpcArt;
+        const gem = (player ? this.mindDuelPlayerGems : this.mindDuelNpcGems)?.[gauge - 1];
+        const current = () => this.state === 'mind-duel' && this.mindDuelLayer === layer;
+        const arrive = () => {
+            if (!current()) return;
+            this.updateMindDuelUi();
+            this.playMindDuelSfx(gauge === 2 ? 'ready' : 'charge');
+            if (gauge === 2) this.announceMindDuelUltimateReady(player);
+            else if (gem) this.tweens.add({ targets: gem, alpha: 0.45, duration: 100, yoyo: true, onComplete: () => gem.setAlpha(1) });
+            if (layer && gem && this.textures.exists('battle-guard-charge-orb')) {
+                const glow = this.add.image(gem.x, gem.y, 'battle-guard-charge-orb').setDisplaySize(38, 38).setBlendMode('ADD');
+                layer.add(glow);
+                this.tweens.add({ targets: glow, displayWidth: 140, displayHeight: 140, alpha: 0, duration: 230, onComplete: () => glow.destroy() });
+            }
+        };
+        // ガードの反動が始まる時刻に身体の前から発生。素材なしでも点灯と音は欠落させない。
+        this.time.delayedCall(260, () => {
+            if (!current()) return;
+            if (!layer || !art || !gem || !this.textures.exists('battle-guard-charge-orb')) { this.time.delayedCall(480, arrive); return; }
+            const direction = player ? 1 : -1;
+            const sx = art.x + direction * Math.min(75, art.displayWidth * 0.18);
+            const sy = art.y - art.displayHeight * 0.48;
+            const cx = sx + direction * 105, cy = sy - (sy - gem.y) * 0.58;
+            const motes = Array.from({ length: 5 }, () => this.add.image(sx, sy, 'battle-guard-charge-orb').setBlendMode('ADD'));
+            layer.add(motes);
+            const progress = { t: 0 };
+            const draw = () => motes.forEach((mote, index) => {
+                const t = Math.max(0, progress.t - index * 0.035), u = 1 - t;
+                const shrink = 1 - 0.78 * Math.max(0, (t - 0.72) / 0.28);
+                mote.setPosition(u * u * sx + 2 * u * t * cx + t * t * gem.x, u * u * sy + 2 * u * t * cy + t * t * gem.y)
+                    .setDisplaySize((100 - index * 13) * shrink, (100 - index * 13) * shrink)
+                    .setAlpha(index === 0 ? 1 : (progress.t > index * 0.035 ? (0.42 - index * 0.07) * (1 - progress.t) : 0));
+            });
+            draw();
+            const flight = this.tweens.add({ targets: progress, t: 1, duration: 480, ease: 'Sine.easeInOut',
+                onUpdate: () => { if (current()) draw(); else { flight.stop(); motes.forEach(mote => mote.destroy()); } },
+                onComplete: () => { motes.forEach(mote => mote.destroy()); arrive(); }
+            });
+        });
+    }
+
     private announceMindDuelUltimateReady(playerReadyNow: boolean) {
         const color = playerReadyNow ? 0xffe491 : 0xffb4d8;
         this.flashArena(color, 0.28, 210);
@@ -1838,11 +1922,8 @@ export class Game extends Scene {
             this.tweens.killTweensOf(gem);
             this.tweens.add({ targets: gem, alpha: 0.26, duration: 90, yoyo: true, repeat: 3, ease: 'Sine.easeInOut', onComplete: () => gem.setAlpha(1) });
         });
-        // 手の結果を先に読ませ、直後に「2個目が点いた」ことだけを短く強調する。
-        this.time.delayedCall(520, () => {
-            if (this.state !== 'mind-duel') return;
-            this.mindDuelReveal?.setText(playerReadyNow ? 'ULTIMATE READY' : 'CPU ULTIMATE READY').setColor(playerReadyNow ? '#fff0a1' : '#c9dcff').setVisible(true).setAlpha(1);
-        });
+        // 光の到着まで既に待っているので、追加で遅らせると次入力の直前になってしまう。
+        this.mindDuelReveal?.setText(playerReadyNow ? 'ULTIMATE READY' : 'CPU ULTIMATE READY').setColor(playerReadyNow ? '#fff0a1' : '#c9dcff').setVisible(true).setAlpha(1);
     }
 
     private moveLabel(move: MindDuelMove) {
@@ -1851,6 +1932,7 @@ export class Game extends Scene {
 
     private showMindDuelResult() {
         this.state = 'result';
+        this.audioControls?.setScreen('default');
         this.setMindDuelBgm('menu');
         const playerWins = this.mindDuelNpcHp === 0;
         const background = this.add.image(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 'battle-result-background').setDisplaySize(VIEW_WIDTH, VIEW_HEIGHT);
