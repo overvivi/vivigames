@@ -30,7 +30,9 @@ declare
 begin
   if char_length(trim(p_name)) not between 1 and 12 then raise exception '名前は1〜12文字です'; end if;
   loop
-    new_code := upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 6));
+    -- pgcryptoのgen_random_bytesは環境によって有効化されていないため使わない。
+    -- 6文字の部屋コードは衝突時にINSERTをやり直すので、標準の乱数ハッシュで十分。
+    new_code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
     begin
       insert into mind_duel_rooms (code, host_token, host_name) values (new_code, new_token, trim(p_name));
       exit;
@@ -49,9 +51,9 @@ language plpgsql security definer set search_path = public as $$
 declare new_token uuid := gen_random_uuid();
 begin
   if char_length(trim(p_name)) not between 1 and 12 then raise exception '名前は1〜12文字です'; end if;
-  update mind_duel_rooms
+  update mind_duel_rooms r
      set guest_token = new_token, guest_name = trim(p_name), status = 'selecting', updated_at = now()
-   where code = upper(trim(p_code)) and guest_token is null and expires_at > now();
+   where r.code = upper(trim(p_code)) and r.guest_token is null and r.expires_at > now();
   if not found then raise exception '部屋が見つからないか、すでに満員です'; end if;
   return query select upper(trim(p_code)), new_token;
 end;

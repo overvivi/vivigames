@@ -618,8 +618,10 @@ export class Game extends Scene {
         this.titleDebugPanel = undefined; this.titleDebugStyle = undefined;
     }
 
-    private startCpuMode() {
-        if (this.state !== 'friend-lobby') { this.friendRoom = undefined; this.stopFriendRoomPolling(); }
+    private startCpuMode(friendBattle = false) {
+        // フレンド戦はロビーDOMを閉じた直後にPhaserのstateが切り替わる。state名だけで
+        // 判定すると座席トークンを消してCPU戦へ落ちるため、入口から明示的に渡す。
+        if (!friendBattle) { this.friendRoom = undefined; this.stopFriendRoomPolling(); }
         if (this.gameplayAssetsLoaded) {
             // CPU戦のキャラ選択は、旧7枠ではなく完成した召喚門セレクトを本導線にする。
             // ?layout は同じ画面へガイドを出す確認用で、通常／debugの操作性は変えない。
@@ -674,6 +676,7 @@ export class Game extends Scene {
         const status = document.createElement('div'); status.className = 'tc-friend-lobby__status'; status.textContent = 'ENTER YOUR NAME TO CREATE OR JOIN';
         const continueButton = document.createElement('button'); continueButton.textContent = 'CONTINUE TO FIGHTER SELECT'; continueButton.hidden = true;
         const back = document.createElement('button'); back.className = 'tc-friend-lobby__back'; back.textContent = 'BACK TO TITLE';
+        const closeEntryForm = () => { name.hidden = true; create.hidden = true; divider.hidden = true; code.hidden = true; join.hidden = true; };
         const setBusy = (busy: boolean, message: string) => { create.disabled = busy; join.disabled = busy; status.textContent = message; };
         create.onclick = async () => {
             const playerName = name.value.trim(); if (!playerName) { status.textContent = 'ENTER YOUR NAME'; return; }
@@ -682,7 +685,7 @@ export class Game extends Scene {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_create_room', { p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋を作成できませんでした');
                 this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' };
-                roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
+                closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'CREATE FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
         };
@@ -694,11 +697,11 @@ export class Game extends Scene {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_join_room', { p_code: roomCodeValue, p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋に参加できませんでした');
                 this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' };
-                roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
+                closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'JOIN FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
         };
-        continueButton.onclick = () => { this.destroyFriendLobby(); this.startCpuMode(); };
+        continueButton.onclick = () => { this.destroyFriendLobby(); this.startCpuMode(true); };
         back.onclick = () => { this.destroyFriendLobby(); this.showTitleScreen(); };
         panel.append(name, create, divider, code, join, roomCode, status, continueButton, back); document.body.appendChild(panel);
         this.friendLobby = panel; this.friendLobbyStyle = style;
