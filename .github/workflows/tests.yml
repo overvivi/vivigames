@@ -32,8 +32,13 @@ jobs:
         with:
           node-version: '24'
 
-      # 依存はPlaywrightとsharp/ffmpegだけで、ここで動かす検査には要らない。
-      # インストールを省くぶん、pushから結果が出るまでが速い。
+      # Remasterの単体テストはTypeScriptと音声デコードを使うため、
+      # ルートとゲーム側の両lockfileに沿って依存を揃える。
+      - name: 単体テストの依存をインストール
+        run: |
+          npm ci
+          npm ci --prefix projects/todays-champion-remaster
+
       - name: 構文・構造・素材参照
         run: npm run verify
 
