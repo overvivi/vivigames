@@ -8,17 +8,21 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // 開発中を含む遊べる8本 + COMING SOON。COMING SOON は常に最後
-  await expect(page.locator('.cart')).toHaveCount(9);
+  // 開発中を含む遊べる9本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(10);
+  await expect(page.locator('.arcade-status')).toContainText('NOW PLAYING 9');
   await expect(page.locator('.cart .cname')).toHaveText([
-    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', 'STILL',
+    'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', '本日の最強決定戦リマスター', 'STILL',
     'SOLITAIRE', 'IMMUNE DEFENSE', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
   await expect(page.locator('#deck')).toHaveClass(/on/);
-  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
-  await expect(page.locator('#playLink')).toHaveAttribute('href','games/hexamine.html');
+  await expect(page.locator('#capTitle')).toHaveText('本日の最強決定戦リマスター');
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/todays-champion-remaster/index.html');
+  await expect(page.locator('#deckTags')).toContainText('NPC戦');
+  await expect(page.locator('#deckTags')).toContainText('フレンド戦');
+  await expect(page.locator('#deckTags')).not.toContainText('ランキング');
 
   // 別のカセットを選ぶと、本体の中身が入れ替わる
   await page.locator('.cart').first().click();
@@ -129,7 +133,7 @@ test('カセットが増えても1列のまま横へ流れる', async ({ page })
 test('掴んで動かしただけではゲームが切り替わらない', async ({ page })=>{
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
-  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
+  await expect(page.locator('#capTitle')).toHaveText('本日の最強決定戦リマスター');
   await overflowRack(page);
 
   const box = await page.locator('#rack').boundingBox();
@@ -142,7 +146,7 @@ test('掴んで動かしただけではゲームが切り替わらない', async
   const moved = await page.evaluate(()=> document.getElementById('rack').scrollLeft);
   expect(moved).toBeGreaterThan(0);
   // 掴んで動かしただけなのに挿し変わると、操作として気持ち悪い
-  await expect(page.locator('#capTitle')).toHaveText('HEXAMINE');
+  await expect(page.locator('#capTitle')).toHaveText('本日の最強決定戦リマスター');
 });
 
 // ロゴは画像をやめてCSSで組んだ。画像ロゴは、それを載せる暗いパネルごと
@@ -180,10 +184,24 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     '/images/portal/cart-label-hell-runner.webp',
     '/images/portal/cart-label-boss-2048.webp',
     '/images/portal/cart-label-hexamine.webp',
-    '/images/portal/cart-label-todays-champion.webp'
+    '/images/portal/cart-label-todays-champion.webp',
+    '/images/portal/cart-label-championship-re-v1.webp',
+    '/games/todays-champion-remaster/index.html'
   ];
   for(const file of files){
     const response=await request.get(file);
     expect(response.ok(),file).toBe(true);
   }
+});
+
+test('リマスターの掲載案内とBGMサイト・曲名がモーダル内に表示される', async ({ page })=>{
+  await page.goto('/index.html');
+  await page.getByRole('button',{name:/PATCH NOTES/}).click();
+  await expect(page.locator('#patch-dialog')).toContainText('本日の最強決定戦リマスター');
+  await expect(page.locator('#patch-dialog')).toContainText('CPU BATTLE');
+  await expect(page.locator('#patch-dialog')).toContainText('FRIEND BATTLE');
+  await page.locator('#patch-dialog .dialog-close').click();
+  await page.getByRole('button',{name:/CREDITS/}).click();
+  await expect(page.getByRole('link',{name:'フリーBGM by パンダの中のパンダ',exact:true})).toBeVisible();
+  await expect(page.getByRole('link',{name:'混沌の神',exact:true})).toHaveAttribute('href','https://free-bgm.panda-clip.com/kontonnokami/');
 });

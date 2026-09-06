@@ -361,7 +361,6 @@ export class Game extends Scene {
         titleAsset('title-orb-seven-fighters', 'assets/championship-re/title/title-orb-seven-fighters-v1.webp');
         titleAsset('title-cpu-battle', 'assets/championship-re/title/title-cpu-battle-v2.webp');
         titleAsset('title-friend-battle', 'assets/championship-re/title/title-friend-battle-v2.webp');
-        titleAsset('title-online-battle', 'assets/championship-re/title/title-online-battle-v2.webp');
     }
 
     private queueGameplayAssets() {
@@ -570,7 +569,7 @@ export class Game extends Scene {
         layer.add([gameBase, logo]);
         this.createTitleModeButton(layer, 'cpu', 'title-cpu-battle', () => this.startCpuMode());
         this.createTitleModeButton(layer, 'friend', 'title-friend-battle', () => this.showFriendLobby());
-        this.createTitleModeButton(layer, 'online', 'title-online-battle', () => this.showTitleComingSoon('ONLINE BATTLE'));
+        // 当面はCPU戦と部屋コードのフレンド戦だけを提供し、未予定のモードを案内しない。
         this.applyTitleLayout();
         if (this.debugEnabled && this.desktopDebugEnabled) this.renderTitleDebugPanel();
     }
@@ -634,7 +633,6 @@ export class Game extends Scene {
         addFields('TITLE LOGO', this.titleLayout.logo);
         addFields('CPU BATTLE', this.titleLayout.modes.cpu);
         addFields('FRIEND BATTLE', this.titleLayout.modes.friend);
-        addFields('ONLINE BATTLE', this.titleLayout.modes.online);
         const copy = document.createElement('button'); copy.textContent = 'COPY TITLE TUNING'; copy.onclick = () => void navigator.clipboard?.writeText(JSON.stringify({ title: this.titleLayout }, null, 2)); panel.appendChild(copy);
     }
 
@@ -806,11 +804,6 @@ export class Game extends Scene {
             const state = rows[0]; if (state) this.friendRoom.state = state;
             return state;
         } catch { return undefined; }
-    }
-
-    private showTitleComingSoon(mode: string) {
-        const notice = this.add.text(VIEW_WIDTH / 2, 1080, `${mode}\nCOMING SOON`, { fontFamily: 'Arial, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#fff2bd', stroke: '#070b10', strokeThickness: 7, align: 'center', letterSpacing: 3 }).setOrigin(0.5).setDepth(140);
-        this.tweens.add({ targets: notice, alpha: 0, y: 1035, duration: 1100, ease: 'Sine.easeOut', onComplete: () => notice.destroy() });
     }
 
     private createSummonStagePreview(layer: GameObjects.Container) {

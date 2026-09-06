@@ -61,6 +61,8 @@ RAVEN／VIVIのULTIMATEだけは、既に採用済みの約+2半音・90ms×10�
 
 ## BGM「混沌の神_loop」（2026-09-07試聴版）
 
+採用済み。配布サイト: [フリーBGM by パンダの中のパンダ](https://free-bgm.panda-clip.com/)。曲名: [混沌の神](https://free-bgm.panda-clip.com/kontonnokami/)。ゲーム置き場のCREDITSにサイト名・曲名・区間ループ/フェード編集を表示する。
+
 ユーザー提供`混沌の神_loop.mp3`から192kbps MP3を2本作成。原本は変更しない。
 
 - `bgm-menu-v1.mp3`: 元曲0〜18秒。17〜18秒の1秒で線形フェードアウトし、18秒で無音まで下げて0秒へループ。

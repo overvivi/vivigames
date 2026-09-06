@@ -117,4 +117,5 @@ test('タイトル再表示で旧レイヤーを破棄し、選択画面を覆�
     assert.equal(destroyed, true);
     assert.equal(scene.titleLayer, display);
     assert.equal(scene.state, 'title');
+    assert.deepEqual([...scene.titleModeButtons.keys()], ['cpu', 'friend']);
 });

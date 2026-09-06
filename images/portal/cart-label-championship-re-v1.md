@@ -1,0 +1,9 @@
+# 本日の最強決定戦リマスター・カセット画像
+
+2026-09-07。内蔵 image_gen で既存タイトル絵とロゴを参照し新規生成。原本: `source/cart-label-championship-re-v1.png`（既存方針でGit対象外）。配布用: `cart-label-championship-re-v1.webp`、640×640、quality86。形を引き伸ばさず、正方形で再構成。
+
+参照: `projects/todays-champion-remaster/public/assets/championship-re/title/title-orb-seven-fighters-v2.webp` と `ui/championship-re-title-final-v3.webp`。
+
+## 最終プロンプト
+
+Use case: stylized-concept. Asset type: square flat game cartridge label artwork for an existing browser-game portal, NOT an actual physical cartridge. Reference image 1: existing game key art, preserve these seven fantasy fighters' identities and the dark gothic stone arena, cyan/magenta/orange/violet magic palette. Reference image 2: exact game's ornate gold title logo; preserve the text CHAMPIONSHIP, large RE, and REMASTER. Create a premium square cover illustration: seven fighters arranged in a compact dynamic ensemble around a luminous multicolored central magic clash. Pink-haired demonic girl upper left, huge fiery armored warrior upper right, cyan swordsman left, violet hooded fighter right, pale blue-haired magic user lower left, white-winged fair fighter lower right, small red-brown fluffy animal martial artist lower center. Large readable gold CHAMPIONSHIP RE REMASTER logo across the upper quarter, remaining lower three quarters contain the ensemble. Make RE especially readable even as a 140px thumbnail. Full-bleed square 1:1 artwork, rich black background with beautiful blue/pink edge lighting and engraved gold logo. No physical plastic shell, no photographed cartridge, no perspective product mockup, no outer border, no extra text, no ranking imagery, no multiplayer promises, no UI buttons. Recompose for square instead of stretching or cropping the existing portrait. High-detail polished fantasy game cover.
