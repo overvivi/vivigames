@@ -623,7 +623,8 @@ export class Game extends Scene {
         // フレンド戦はロビーDOMを閉じた直後にPhaserのstateが切り替わる。state名だけで
         // 判定すると座席トークンを消してCPU戦へ落ちるため、入口から明示的に渡す。
         this.friendBattleMode = friendBattle;
-        if (!friendBattle) { this.friendRoom = undefined; this.stopFriendRoomPolling(); }
+        if (friendBattle) this.restoreFriendRoom();
+        else { this.friendRoom = undefined; this.stopFriendRoomPolling(); sessionStorage.removeItem('tc-friend-room'); }
         if (this.gameplayAssetsLoaded) {
             // CPU戦のキャラ選択は、旧7枠ではなく完成した召喚門セレクトを本導線にする。
             // ?layout は同じ画面へガイドを出す確認用で、通常／debugの操作性は変えない。
@@ -690,7 +691,7 @@ export class Game extends Scene {
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_create_room', { p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋を作成できませんでした');
-                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' };
+                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'host' }; this.saveFriendRoom();
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'SEND THIS CODE TO YOUR FRIEND'; continueButton.hidden = true; this.startFriendRoomPolling(() => { status.textContent = 'FRIEND JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; });
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'CREATE FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
@@ -702,7 +703,7 @@ export class Game extends Scene {
             try {
                 const result = await this.callFriendRoomRpc<Array<{ code: string; seat_token: string }>>('mind_duel_join_room', { p_code: roomCodeValue, p_name: playerName });
                 const room = result[0]; if (!room) throw new Error('部屋に参加できませんでした');
-                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' };
+                this.friendBattleMode = true; this.friendRoom = { code: room.code, token: room.seat_token, seat: 'guest' }; this.saveFriendRoom();
                 closeEntryForm(); roomCode.textContent = room.code; status.textContent = 'JOINED · CONTINUE TO SELECT'; continueButton.hidden = false; this.startFriendRoomPolling();
             } catch (error) { status.textContent = error instanceof Error ? error.message : 'JOIN FAILED'; }
             finally { create.disabled = false; join.disabled = false; }
@@ -714,6 +715,18 @@ export class Game extends Scene {
     }
 
     private destroyFriendLobby() { this.friendLobby?.remove(); this.friendLobbyStyle?.remove(); this.friendLobby = undefined; this.friendLobbyStyle = undefined; }
+
+    private saveFriendRoom() {
+        if (this.friendRoom) sessionStorage.setItem('tc-friend-room', JSON.stringify(this.friendRoom));
+    }
+
+    private restoreFriendRoom() {
+        if (this.friendRoom) return;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('tc-friend-room') ?? '') as FriendRoomSession;
+            if (typeof saved.code === 'string' && typeof saved.token === 'string' && (saved.seat === 'host' || saved.seat === 'guest')) this.friendRoom = saved;
+        } catch { sessionStorage.removeItem('tc-friend-room'); }
+    }
 
     private startFriendRoomPolling(onGuestJoined?: () => void) {
         this.stopFriendRoomPolling();
@@ -994,6 +1007,7 @@ export class Game extends Scene {
     private startSelectedDuel() {
         if (this.state !== 'select') return;
         if (this.friendBattleMode) {
+            this.restoreFriendRoom();
             if (this.friendRoom) void this.startFriendSelectedDuel();
             else this.add.text(VIEW_WIDTH / 2, 1310, 'ROOM CONNECTION LOST · RETURN TO TITLE', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#ffbeca', stroke: '#05080e', strokeThickness: 6, letterSpacing: 2 }).setOrigin(0.5).setDepth(160);
             return;
