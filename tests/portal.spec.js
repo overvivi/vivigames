@@ -19,6 +19,7 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
   await expect(page.locator('#deck')).toHaveClass(/on/);
   await expect(page.locator('#capTitle')).toHaveText('本日の最強決定戦リマスター');
+  await expect(page.locator('#screenArt')).toHaveCSS('background-image', /cart-label-championship-re-v2\.webp/);
   await expect(page.locator('#playLink')).toHaveAttribute('href','games/todays-champion-remaster/index.html');
   await expect(page.locator('#deckTags')).toContainText('NPC戦');
   await expect(page.locator('#deckTags')).toContainText('フレンド戦');
@@ -185,7 +186,7 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     '/images/portal/cart-label-boss-2048.webp',
     '/images/portal/cart-label-hexamine.webp',
     '/images/portal/cart-label-todays-champion.webp',
-    '/images/portal/cart-label-championship-re-v1.webp',
+    '/images/portal/cart-label-championship-re-v2.webp',
     '/games/todays-champion-remaster/index.html'
   ];
   for(const file of files){

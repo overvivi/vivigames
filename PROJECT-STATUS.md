@@ -8,6 +8,9 @@ git操作は通常行わず、ユーザーから明示的に許可された場�
 
 ## 現在の状態
 
+- 2026-09-07 / Codex カセット画像見切れ修正: ユーザー報告で`docs/ポータル実機デザインの仕様.md`を再確認。v1は「文字なし／主役を上10〜45%」に反し画像ロゴが画面のcoverで切れていた。内蔵image_genで文字なし・7人の顔を上15〜35%へまとめたv2を生成し、640² WebPへ変換。index.htmlと変換TARGETSを`cart-label-championship-re-v2.webp`へ変更、生成記録.mdを追加。旧v1は履歴素材として保持。HTMLのタイトル・CSSのトリミング・ゲーム本体は変更なし。portal11件／verify／diffチェック成功、実ブラウザPC1280幅・携帯390幅で新画像、タイトル全文、横はみ出し0を確認。今回の画像差し替え分のみユーザー指定でcommit/pushし、Pages反映を確認する。別ゲームのモックアップと未採用音源は対象外。
+- 2026-09-07 / Codex Aseprite制作環境を導入: 今後のドット絵・スプライトシート・フレームアニメーション制作向けに、公式ソースと全submoduleをゲームリポジトリ外の`C:\Users\vivin\Tools\aseprite`へ取得。公式指定のVisual Studio Community 2022 C++環境／CMake／Ninjaと公式Skiaを用い、Aseprite `1.3.18.3-13-g56757b5fc-dev`をソースビルドした。実行ファイル=`C:\Users\vivin\Tools\aseprite\build\bin\aseprite.exe`、`--version`成功、デスクトップの`Aseprite (source build)`ショートカットを作成。Asepriteは制作アプリとして使うもので、ゲームへ実行時依存として組み込まない。ゲームリポジトリの素材・コードには変更なし。ソースおよびビルド済み実行ファイルはAseprite EULAに従い個人利用に留め、再配布しない。
+- 2026-09-07 / Codex 掲載分公開完了: `1d2d539`をorigin/mainへpush済み。GitHub CI `34053874371`、Pages `34053873477`、パッチノート通知`34053874390`がすべて成功。本番ポータルの新カセット/曲クレジット、ゲームHTMLの`index-DV8CjkSm.js`参照、カセットWebP（167170 bytes）とJSのHTTP 200を確認済み。下記掲載準備の未commit/未push表記は当時の履歴。本項のみ公開後のローカル引き継ぎ追記。
 - 2026-09-07 / Codex 掲載分の公開: ユーザーの「おわったらPUSH」に従い、下記ゲーム置き場掲載分をcommit/pushする。公開前検証は全体99件、unit92件、verify、tsc、diffチェックがすべて成功。対象はポータル、新カセットWebP/生成記録、2モード化、BGMクレジット、テスト、公開ビルドと引き継ぎ。別ゲームのモックアップと未採用音源は含めない。push後にGitHub Pagesと本番素材を確認する。
 - 2026-09-07 / Codex ゲーム置き場掲載準備: ユーザー依頼でRemasterを9本目のカセットへ追加し、初期選択もID `champion-re`で指定。旧作は残す。PLAYはローカルサーバーのディレクトリ404を避け`games/todays-champion-remaster/index.html`へ接続。カセット画像は内蔵image_genで既存7人のタイトル絵＋ロゴを参照した正方形を新規生成。配布用=`images/portal/cart-label-championship-re-v1.webp`（640²、167KB）、原本=`images/portal/source/cart-label-championship-re-v1.png`（既存方針でGit対象外）、生成記録は配布画像と同名.md。変換ツールTARGETSへ追加。indexの掲載本数9／更新日／NEWS／初公開パッチノートを更新、掲載前の細かい開発履歴はコメント内へ保持。クレジットには確認済みサイト名「フリーBGM by パンダの中のパンダ」と曲名「混沌の神」の各リンク、区間ループ/フェード編集を表示。音源READMEも更新。Game.tsでは当面未予定のONLINE BATTLEボタン・案内・ロード・デバッグ項目を撤去（素材と保存済み座標は保持）。NPC戦と部屋コードのフレンド戦だけを提供し、ランキング／ランダムオンライン対戦は現時点で実装予定なしと確定。検証=portal11件（携帯幅含む）、friend-lobby単体9件、tsc、ビルド、verify、diffチェック成功。実ブラウザでカセット表示→PLAY→2ボタンのゲームタイトル起動を確認。変更index.html、Game.ts、portal-images.mjs、audio README、テスト2本、新カセット/記録、公開ビルド。本ターンはローカル掲載のみ、未commit/未push。別ゲームのモックアップや未採用音源は保持。
 - 2026-09-07 / Codex 公開完了: `40064a0`をorigin/mainへpush済み。必殺タップ化・相性ヘルプ・決着演出・ガード吸収・視認性調整済み盾破砕を公開。GitHub CI `34052847309`成功、Pages `34052846872`もbuild/deploy成功。本番HTMLの最新`index-CzxlHQgg.js`参照を確認。ローカル検証はunit92件・全体98件（通信制限の1件は制限外再実行成功）・tsc・verify。別作業と未採用素材は未コミットのまま保持。本項は公開後のローカル引き継ぎ記録。下記公開準備／未push表記は当時の履歴。
@@ -486,10 +489,7 @@ HEXAMINEの公開前チェックとして3項目を挙げていたが、**すべ
 - HELL RUNNER 2 は β として掲載済み。完成したら説明とタグを見直す
 - HELL RUNNER 2 の完成後に `node tools/game-images.mjs games/hell-runner-2.html` を通す。
   無印と同じ **未使用の `UI_B64`（2.5MB）** が残っているので、まずそれを消すと効果が大きい
-- **本日の最強決定戦リマスターをカートリッジ一覧へ載せるとき、CREDITSダイアログ（`index.html` の
-  `credits-dialog`）にあるコメントアウト済みの「音楽：パンダの中のパンダ」を必ず外す。**
-  このBGMはクレジット表記が使用条件。未掲載のうちからタイトル名を出さないためコメントにしてあるだけで、
-  掲載とクレジットは同じコミットで出すこと
+- 本日の最強決定戦リマスターの掲載とBGMクレジット公開は`1d2d539`で完了。サイト名と曲名のリンクを掲載済みなので、クレジットを非表示へ戻さない。
 
 ### STILL（新作・2026-09-05）
 
