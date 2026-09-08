@@ -21,6 +21,7 @@ const FILES = [
   'games/boss-battle-demo.html',
   'games/hexamine.html',
   'games/still.html',
+  'games/night-rhythm.html',
   // React製のミニゲームを単一HTMLへ畳んだもの。元は elegant-solitaire/ と immune-defense/
   //（作り直しは npm run games:build）
   'games/elegant-solitaire.html',

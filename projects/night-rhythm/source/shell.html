@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff8e9"><meta name="description" content="タップと長押しで遊ぶ7ステージと3つの別シフト。オリジナルの音楽、かわいい仲間、切手集めを楽しむリズムゲーム。">
+<title>よるのリズム便 — 夜のおしごとと切手コレクション</title>
+<style>/* STYLES */</style>
+</head>
+<body>
+<header class="site-header"><button class="brand" id="homeButton" aria-label="おしごと選びに戻る"><span class="brand-mark">♪</span><span>よるのリズム便<small>NIGHT RHYTHM CLUB</small></span></button><button class="icon-button" id="settingsButton" aria-label="音とタイミングの設定">♫ <span>音の設定</span></button></header>
+<main>
+<section id="menu" class="menu">
+<div class="menu-heading"><div><p class="eyebrow">小さな街の、夜がはじまる。</p><h1>今夜は、どのおしごと？</h1></div><p class="menu-note"><span>♪</span> 音を聴いて、リズムにのろう。<br><small>タップ / 長押しして離す · PCはスペースキー</small></p></div>
+<div class="game-cards">
+<article class="game-card mail"><div class="card-art"><img src="@@mail@@" alt="夜の郵便局で働く犬の郵便屋さん"><span class="card-number">01</span><span class="mode-tag">タップ</span></div><div class="card-body"><p class="card-caption">POST OFFICE · ひと押し、ぴったり。</p><h2>夜ふかし郵便局</h2><p>コン、カン、ひと呼吸。<br>お手紙に、ぽんっと判子を。</p><div class="card-bottom"><span class="best" data-best="mail">はじめてのおしごと</span><button class="play-button" data-game="mail">あそぶ <span>↗</span></button></div></div></article>
+<article class="game-card soda"><div class="card-art"><img src="@@soda@@" alt="雲のソーダ屋で働く白い猫"><span class="card-number">02</span><span class="mode-tag">長押し → 離す</span></div><div class="card-body"><p class="card-caption">CLOUD SODA · しゅわっと、できあがり。</p><h2>雲のソーダ屋</h2><p>合図で注いで、拍を数えて。<br>いいところで、指を離そう。</p><div class="card-bottom"><span class="best" data-best="soda">はじめてのおしごと</span><button class="play-button" data-game="soda">あそぶ <span>↗</span></button></div></div></article>
+<article class="game-card moon"><div class="card-art"><img src="@@moon@@" alt="月面でおそうじする宇宙服のうさぎ"><span class="card-number">03</span><span class="mode-tag">リズムをまねっこ</span></div><div class="card-body"><p class="card-caption">MOON SWEEP · きいて、こたえて。</p><h2>月面おそうじ隊</h2><p>お手本を聴いたら、あなたの番。<br>同じリズムで、月をぴかぴかに。</p><div class="card-bottom"><span class="best" data-best="moon">はじめてのおしごと</span><button class="play-button" data-game="moon">あそぶ <span>↗</span></button></div></div></article>
+<article class="game-card remix remix-card"><div class="remix-emblem" aria-hidden="true"><span>✉</span><span>♫</span><span>☾</span><b>04</b></div><div class="card-body"><p class="card-caption">FINAL STAGE · 136 BPM · HARD</p><h2>真夜中のリミックス</h2><p>3つのおしごとが、ノンストップで交代。<br>タップも長押しも、最後まで決めよう。</p><div class="card-bottom"><span class="best" data-best="remix">はじめてのおしごと</span><button class="play-button" data-game="remix">挑戦する <span>↗</span></button></div></div><span class="remix-stamp" aria-hidden="true">ALL<br>TOGETHER<br>♪</span></article>
+</div>
+<div class="new-district"><p class="eyebrow">橋をわたって、もうひとつの夜。</p><h2>新しいおしごと</h2></div>
+<div class="game-cards">
+<article class="game-card fireworks"><div class="card-art"><img src="@@fireworks@@" alt="星降る花火工房のレッサーパンダ"><span class="card-number">05</span><span class="mode-tag">長押し → 打ち上げ</span></div><div class="card-body"><p class="card-caption">FIREWORKS · 夜空に、大きな花。</p><h2>星降る花火工房</h2><p>導火線に火をつけて、拍を数えて。<br>指を離したら、夜空へドン！</p><div class="card-bottom"><span class="best" data-best="fireworks"></span><button class="play-button" data-game="fireworks">あそぶ <span>↗</span></button></div></div></article>
+<article class="game-card ghost"><div class="card-art"><img src="@@ghost@@" alt="おばけ写真館の小さなカメラマン"><span class="card-number">06</span><span class="mode-tag">掛け声でタップ</span></div><div class="card-body"><p class="card-caption">GHOST PHOTO · はい、チーズ。</p><h2>おばけ写真館</h2><p>掛け声の間隔が、ゆっくり、急に。<br>チーズの1拍後にシャッターを。</p><div class="card-bottom"><span class="best" data-best="ghost"></span><button class="play-button" data-game="ghost">あそぶ <span>↗</span></button></div></div></article>
+<article class="game-card bakery"><div class="card-art"><img src="@@bakery@@" alt="星のパン屋のくまのパン職人"><span class="card-number">07</span><span class="mode-tag">まねっこ＋長押し</span></div><div class="card-body"><p class="card-caption">STAR BAKERY · こねて、のばして。</p><h2>星のパン屋</h2><p>こねるリズムをまねっこしたら、<br>長押しして、生地をのばそう。</p><div class="card-bottom"><span class="best" data-best="bakery"></span><button class="play-button" data-game="bakery">あそぶ <span>↗</span></button></div></div></article>
+</div>
+<section class="collection-panel"><div class="collection-heading"><div><p class="eyebrow">おしごとの思い出を、1枚ずつ。</p><h2>夜の切手帳 <span id="stampTotal">0 / 30</span></h2></div><p>65点で初クリア · 85点 · ノーミス</p></div><div id="nightTown" class="night-town" aria-hidden="true"></div><p id="townCaption" class="town-caption"></p><details><summary>切手をながめる</summary><div id="stampGrid" class="stamp-grid"></div></details></section>
+<footer class="menu-footer"><span>7ステージ＋3つの別シフト。各約1分。</span><span>別シフトは最初の3つの説明画面から。 <b>✦</b></span></footer>
+</section>
+<section id="playScreen" class="play-screen" hidden>
+<div class="play-top"><button id="backButton" class="text-button">← おしごと選び</button><div class="game-heading"><span id="gameIndex">01 / 03</span><h1 id="gameTitle">夜ふかし郵便局</h1></div><button id="pauseButton" class="icon-button" aria-label="一時停止">Ⅱ</button></div>
+<div class="playboard" id="playboard">
+<div class="score-row"><span id="phaseLabel">READY</span><div class="beat-dots" aria-label="4拍のリズム"><i></i><i></i><i></i><i></i></div><span id="comboLabel">音を聴いてみよう</span></div>
+<div class="stage" id="stage"><img id="stageArt" alt="" class="stage-art"><canvas id="gameCanvas" aria-label="音と動きのリズムステージ"></canvas><div class="stage-caption" id="stageCaption">音に合わせて、おしごと。</div><div class="feedback" id="feedback" aria-live="polite"></div>
+<div class="stage-overlay" id="briefing"><div class="brief-panel"><span class="pill" id="briefType">タップ</span><h2 id="briefTitle">コン、カン、…ポン！</h2><p id="briefText"></p><div id="patternGuide" class="pattern-guide"></div><div class="brief-buttons"><button id="practiceButton" class="primary-button">れんしゅうする ♪</button><button id="startButton" class="text-button">本番へ →</button></div><button id="shiftButton" class="shift-button" hidden></button><small id="briefFoot">お手本のあとに、まねしてみよう。</small></div></div>
+<div class="stage-overlay" id="result" hidden><div class="result-panel"><p class="eyebrow" id="resultSubtitle">おしごと、おつかれさま！</p><h2 id="resultTitle">いいリズム！</h2><div class="result-score"><b id="resultScore">0</b><span>点</span></div><p id="resultAdvice"></p><div class="result-stats"><span>ぴったり<b id="perfectCount">0</b></span><span>成功<b id="goodCount">0</b></span><span>ミス<b id="missCount">0</b></span></div><div class="result-buttons"><button id="retryButton" class="primary-button">もう一度 ♪</button><button id="nextButton" class="secondary-button">次のおしごと →</button></div><button id="resultMenu" class="text-button">おしごと選びに戻る</button></div></div>
+</div>
+<p id="resultStamps" class="result-stamps" aria-live="polite"></p><div class="song-progress"><div id="songProgress"></div></div>
+<div class="control-zone"><div class="control-hint"><b id="actionTitle">音を聴いて、ぽん！</b><span id="actionHint">どこを押しても同じ。タイミングが大切。</span></div><button id="tapPad" class="tap-pad" aria-label="リズム入力" disabled><span class="pad-symbol">◎</span><span id="padText">タップ</span><small>SPACE / TAP</small></button></div>
+</div><p class="play-tip" id="playTip">音がずれると感じたら、右上の「音の設定」で調整できます。</p>
+</section>
+</main>
+<dialog id="settingsDialog"><div class="dialog-heading"><h2>音とタイミング</h2><button class="icon-button" data-close="settingsDialog" aria-label="設定を閉じる">×</button></div><p class="dialog-intro">聴きやすい音で、気持ちよく。</p><label class="range-label">音量 <output id="volumeOutput">70%</output><input id="volume" type="range" min="0" max="100" value="70"></label><label class="range-label">タイミング調整 <output id="offsetOutput">0 ms</output><input id="offset" type="range" min="-250" max="250" step="5" value="0"></label><p class="field-note">音に合わせても「おそい」なら＋、「はやい」なら−へ。<br>イヤホンを変えたら、もう一度お試しください。</p><div class="sound-test"><button id="soundTest" class="secondary-button">♪ 音を試す</button><button id="calibrateButton" class="secondary-button">タップで調整</button></div><div id="calibration" hidden><p id="calibrationText">4拍聴いて、そのあと音に合わせてタップ。</p><button id="calibrationPad" class="tap-pad">♪ タップ</button><button id="cancelCalibration" class="text-button">やめる</button></div><label class="check-label"><input id="visualHelp" type="checkbox" checked> 拍と合図のヒントを表示</label><p class="field-note">設定とベスト記録は、この端末に保存します。</p></dialog>
+<dialog id="pauseDialog"><div class="pause-content"><span class="pause-symbol">Ⅱ</span><h2>ちょっと、ひとやすみ。</h2><p>続きは4拍の合図から。<br>いまのフレーズの最初へ戻ります。</p><button id="resumeButton" class="primary-button">つづける ♪</button><button id="restartButton" class="secondary-button">はじめから</button><button id="pauseMenu" class="text-button">おしごと選びへ</button></div></dialog>
+<div id="toast" role="status" class="toast" hidden></div>
+<script>/* CORE */</script><script>/* AUDIO */</script><script>/* APP */</script>
+</body></html>

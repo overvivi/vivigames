@@ -222,7 +222,7 @@
 <body>
 <header class="hero" id="entrance">
   <div class="topbar"><div class="shell topbar-inner"><a class="mini-brand pixel" href="#entrance">VIVI GAME BASE</a><nav class="nav pixel" aria-label="メインメニュー"><a href="#cartridges">CARTRIDGES</a><a href="#information">INFORMATION</a><a href="#credits" data-dialog="credits-dialog">CREDITS</a></nav></div></div>
-  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>9</strong></span><span>LAST UPDATE <strong>2026.09.07</strong></span></div></div>
+  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>10</strong></span><span>LAST UPDATE <strong>2026.09.09</strong></span></div></div>
 </header>
 <main>
   <section class="shell" id="cartridges" aria-labelledby="cartridges-title">
@@ -265,6 +265,8 @@
 <footer><div class="shell footer-inner"><span>© 2026 VIVI</span><span><a href="https://github.com/overvivi/vivigames" target="_blank" rel="noopener">GITHUB</a> · <a href="#credits">CREDITS</a> · SITE VERSION 0.1</span></div></footer>
 <dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>本日の最強決定戦リマスター 登場</h3><p>7人の戦士で三すくみの読み合いを楽しもう。NPC戦と、部屋コードを共有して遊ぶフレンド戦に対応。PC・スマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.09.07</strong><ul><li>リマスター専用カセットを追加</li><li>CPU BATTLE ／ FRIEND BATTLEの2モードで提供</li><li>遊べるゲームは9本になりました</li></ul></div><h3>HEXAMINE 稼働開始</h3><div class="patch-entry"><strong>2026.08.20</strong><ul><li>HEXAMINE 稼働開始（デイリーランキングあり）</li><li>ゲーム置き場をゲーム機＋カセット方式へ刷新</li><li>読み込みを軽くしました（HELL RUNNER 6.2MB→1.8MB、討伐2048 7.2MB→3.2MB）</li></ul></div></div></dialog>
 <dialog id="patch-dialog" aria-labelledby="patch-title"><div class="dialog-head"><h2 class="pixel" id="patch-title">PATCH NOTES</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body">
+  <h3>よるのリズム便</h3>
+  <div class="patch-entry"><strong>v0.3 / 2026.09.09</strong><ul><li>音を聴いてタップ・長押しで遊ぶリズムゲームを公開。専用カセットを追加</li><li>郵便局・ソーダ屋・月面おそうじ・リミックス・花火工房・おばけ写真館・パン屋の7ステージと3つの別シフト</li><li>練習、音ずれ調整、ベスト保存、30枚の切手集めに対応</li></ul></div>
   <h3>SOLITAIRE</h3>
   <div class="patch-entry"><strong>v0.1</strong><ul><li>クロンダイク（ソリティア）を追加。<b>配られるのは必ず最後まで解ける盤面だけ</b>で、初手から詰んでいることがありません</li><li>札をタップして選び、置きたい場所をタップ。同じ札をもう一度タップすると自動で移動します</li><li>裏向きの札が無くなるとAUTOが出て、残りをまとめて片付けられます</li><li>手数・時間・スコアの表示、無制限のやり直し（UNDO）</li></ul></div>
 
@@ -360,6 +362,9 @@
     { id:'immune', name:'IMMUNE DEFENSE', desc:'細胞を並べて病原体の侵入を止める', href:'games/immune-defense.html',
       color:'#34d399', art:'images/portal/cart-label-immune-defense.webp',
       tags:['スマホ対応','音あり'] },
+    { id:'night-rhythm', name:'よるのリズム便', desc:'音を聴いてタップ！ 夜のおしごとリズムゲーム', href:'games/night-rhythm.html',
+      color:'#efbb77', art:'images/portal/cart-label-night-rhythm.webp',
+      tags:['リズムゲーム','全10コース','スマホ対応','音あり'] },
     { id:'next', name:'COMING SOON', desc:'次のゲームは準備中', href:null, blank:true }
   ];
 
@@ -507,7 +512,7 @@
 
   // 最初は一番新しいゲームを挿しておく
   // 並び順を変えても新作の初期選択が別ゲームへずれないよう、IDで選ぶ。
-  var featuredIndex = GAMES.findIndex(function(g){ return g.id === 'champion-re'; });
+  var featuredIndex = GAMES.findIndex(function(g){ return g.id === 'night-rhythm'; });
   insert(GAMES[featuredIndex], buttons[featuredIndex]);
   refreshNav();
 })();
