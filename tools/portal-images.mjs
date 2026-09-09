@@ -20,6 +20,7 @@ const dryRun = process.argv.includes('--dry-run');
 // width は「画面に出る最大の幅の約2倍」。高解像度の画面でも粗が出ない範囲で、
 // これ以上大きくしても見た目が変わらない値にしてある。
 const TARGETS = [
+  { src:'cart-label-amber-bow.png', out:'cart-label-amber-bow.webp', width:640, note:'AMBER BOW・新規キャラクター対決ラベル' },
   { src:'cart-label-night-rhythm.png', out:'cart-label-night-rhythm.webp', width:640, note:'よるのリズム便・文字なし安全地帯ラベル' },
   { src:'arcade-bg-desktop.png',          out:'arcade-bg-desktop.webp',      width:2560, note:'秘密基地背景（PC）' },
   { src:'arcade-bg-mobile.png',           out:'arcade-bg-mobile.webp',       width:1080, note:'秘密基地背景（携帯）' },

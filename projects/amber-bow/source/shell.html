@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101d20"><title>AMBER BOW — 黄昏の弓くらべ</title>
+<style>/* STYLE */</style>
+</head>
+<body>
+<main class="app">
+  <header class="mast"><a href="../../index.html" class="brand">VIVI'S GAMES <span>／ ORIGINAL EXPERIMENT</span></a><div class="mast-right"><span class="local">LOCAL EDITION · 01</span><button id="sound" class="icon" aria-label="音をオンにする" title="音の切替">音 OFF</button><button id="pause" class="icon" aria-label="一時停止">Ⅱ</button></div></header>
+  <section class="heading"><div><p class="eyebrow">A DUEL AT DUSK</p><h1>AMBER <span>BOW</span><i>↗</i></h1><p class="subtitle">黄昏の弓くらべ</p></div><p class="intro">風を読んで、弦を引く。<br>一本の矢で、流れを変える。</p></section>
+  <section class="arena" aria-label="弓対戦ゲーム">
+    <div class="hud"><div class="fighter"><div class="names"><b>ローワン</b><span id="player-hp">100 / 100</span></div><div class="health"><i id="player-trail" class="trail"></i><i id="player-bar"></i></div><small>WOODLAND ARCHER</small></div><div class="round-info"><b id="round">ROUND 01</b><div id="score">○ ○ <span>—</span> ○ ○</div></div><div class="fighter enemy"><div class="names"><b>レイヴン</b><span id="enemy-hp">100 / 100</span></div><div class="health"><i id="enemy-trail" class="trail"></i><i id="enemy-bar"></i></div><small>THE IRON FEATHER</small></div></div>
+    <div class="world"><canvas id="game" width="480" height="270" aria-label="夕暮れの森で弓を撃ち合うゲーム" aria-describedby="pull-hint" tabindex="0"></canvas><div class="weather"><span id="wind">→ 0</span><span id="distance">距離 —</span></div><div class="turn-badge" id="turn-label">風を読む、小さな決闘。</div><div class="scout-note" id="scout-note" hidden>敵を偵察中 · 照準に戻ってから発射</div><div id="pull-readout" class="pull-readout" hidden><b id="pull-values"></b><span id="pull-state"></span><i><em id="pull-fill"></em></i></div></div>
+    <div class="event-line"><span class="live-dot"></span><span id="message" role="status" aria-live="polite">角度と威力を決めて、一射目を。</span><button id="trace" aria-pressed="true">軌跡 ON</button><button id="scout" aria-pressed="false">敵を見る <kbd>E</kbd></button></div>
+    <div class="overlay" id="overlay"><div class="menu" id="menu"></div></div>
+  </section>
+  <p class="pull-hint" id="pull-hint"><b>↙ 引っぱって、放つ</b><span>画面を押して左下へ引く · 方向で射角 / 長さで威力</span></p>
+  <section class="controls" aria-label="弓の操作"><label class="adjust"><span><small>01 / ANGLE</small><b>射角 <output id="angle-value">45°</output></b></span><input id="angle" type="range" min="5" max="80" value="45" step="1" aria-label="射角"><span class="range-label"><span>低く</span><span>高く</span></span></label><label class="adjust"><span><small>02 / POWER</small><b>威力 <output id="power-value">72%</output></b></span><input id="power" type="range" min="20" max="100" value="72" step="1" aria-label="威力"><span class="range-label"><span>近く</span><span>遠く</span></span></label><button id="fire" class="fire">弓を放つ <span>SHOOT <kbd>Z</kbd> ↗</span></button></section>
+  <footer><span>2ラウンド先取 <i>·</i> 胴体 30 / 頭 45ダメージ</span><span class="key-help">↑↓ 射角 <i>·</i> ←→ 威力 <i>·</i> X＋方向 大きく調整 <i>·</i> V 軌跡 <i>·</i> Enter 停止</span><button id="help">遊び方</button></footer>
+</main>
+<script>/* ENGINE */</script>
+<script>/* ASSETS */</script>
+<script>/* APP */</script>
+</body>
+</html>
