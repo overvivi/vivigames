@@ -18,6 +18,7 @@ const vm = require('vm');
 const FILES = [
   'index.html',
   'games/amber-bow.html',
+  'games/comic-coast-racer.html',
   'games/temple-run-clone.html',
   'games/boss-battle-demo.html',
   'games/hexamine.html',

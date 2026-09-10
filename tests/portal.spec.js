@@ -8,22 +8,22 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // 開発中を含む遊べる11本 + COMING SOON。COMING SOON は常に最後
-  await expect(page.locator('.cart')).toHaveCount(12);
-  await expect(page.locator('.arcade-status')).toContainText('NOW PLAYING 11');
+  // 開発中を含む遊べる12本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(13);
+  await expect(page.locator('.arcade-status')).toContainText('NOW PLAYING 12');
   await expect(page.locator('.cart .cname')).toHaveText([
     'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', '本日の最強決定戦リマスター', 'STILL',
-    'SOLITAIRE', 'IMMUNE DEFENSE', 'よるのリズム便', 'AMBER BOW', 'COMING SOON'
+    'SOLITAIRE', 'IMMUNE DEFENSE', 'よるのリズム便', 'AMBER BOW', '珍走！ラーメン海道', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
   await expect(page.locator('#deck')).toHaveClass(/on/);
-  await expect(page.locator('#capTitle')).toHaveText('AMBER BOW');
-  await expect(page.locator('#screenArt')).toHaveCSS('background-image', /cart-label-amber-bow\.webp/);
-  await expect(page.locator('#playLink')).toHaveAttribute('href','games/amber-bow.html');
-  await expect(page.locator('#deckTags')).toContainText('弓対戦');
-  await expect(page.locator('#deckTags')).toContainText('引っぱり操作');
-  await expect(page.locator('#deckTags')).not.toContainText('ランキング');
+  await expect(page.locator('#capTitle')).toHaveText('珍走！ラーメン海道');
+  await expect(page.locator('#screenArt')).toHaveCSS('background-image', /cart-label-ramen-race\.webp/);
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/comic-coast-racer.html');
+  await expect(page.locator('#deckTags')).toContainText('全6ステージ');
+  await expect(page.locator('#deckTags')).toContainText('スマホ対応');
+  await expect(page.locator('#deckTags')).toContainText('タイムランキング');
 
   // 別のカセットを選ぶと、本体の中身が入れ替わる
   await page.locator('.cart').first().click();
@@ -134,7 +134,7 @@ test('カセットが増えても1列のまま横へ流れる', async ({ page })
 test('掴んで動かしただけではゲームが切り替わらない', async ({ page })=>{
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
-  await expect(page.locator('#capTitle')).toHaveText('AMBER BOW');
+  await expect(page.locator('#capTitle')).toHaveText('珍走！ラーメン海道');
   await overflowRack(page);
 
   const box = await page.locator('#rack').boundingBox();
@@ -147,7 +147,7 @@ test('掴んで動かしただけではゲームが切り替わらない', async
   const moved = await page.evaluate(()=> document.getElementById('rack').scrollLeft);
   expect(moved).toBeGreaterThan(0);
   // 掴んで動かしただけなのに挿し変わると、操作として気持ち悪い
-  await expect(page.locator('#capTitle')).toHaveText('AMBER BOW');
+  await expect(page.locator('#capTitle')).toHaveText('珍走！ラーメン海道');
 });
 
 // ロゴは画像をやめてCSSで組んだ。画像ロゴは、それを載せる暗いパネルごと
@@ -189,6 +189,8 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     '/images/portal/cart-label-championship-re-v2.webp',
     '/images/portal/cart-label-night-rhythm.webp',
     '/images/portal/cart-label-amber-bow.webp',
+    '/images/portal/cart-label-ramen-race.webp',
+    '/games/comic-coast-racer.html',
     '/games/amber-bow.html',
     '/games/night-rhythm.html',
     '/games/todays-champion-remaster/index.html'
@@ -197,6 +199,18 @@ test('公開に必要なポータル画像を取得できる', async ({ request 
     const response=await request.get(file);
     expect(response.ok(),file).toBe(true);
   }
+});
+
+test('ラーメン海道のカセットから本編を起動できる', async ({ page })=>{
+  await page.goto('/index.html');
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/comic-coast-racer.html');
+  await page.locator('#playLink').click();
+  await expect(page).toHaveURL(/\/games\/comic-coast-racer\.html$/);
+  await expect(page.getByRole('button',{name:'出前に出発！'})).toBeEnabled();
+  await page.getByRole('button',{name:'出前に出発！'}).click();
+  await expect(page.locator('#overlay')).toBeHidden();
+  await page.getByRole('button',{name:'一時停止',exact:true}).click();
+  await expect(page.getByRole('button',{name:'再開',exact:true})).toBeVisible();
 });
 
 test('リマスターの掲載案内とBGMサイト・曲名がモーダル内に表示される', async ({ page })=>{
