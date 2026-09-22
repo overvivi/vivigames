@@ -96,7 +96,6 @@
           if(f.ritual){const d=D.ultimates[f.ritual],age=(f.maxLife||f.life)-f.life,phase=f.life<.45?3:age<.25?0:1+Math.floor(age*4)%2;this.sprite(d.image,d.row*4+phase,4,3,f.x,f.y,f.r*2.2,f.r*2.2,false,a+.08*fx);}
           else if(rot){const age=(f.maxLife||f.life)-f.life,phase=f.life<.3?3:age<.25?0:1+Math.floor(age*5)%2;this.sprite('resonancefx',8+phase,4,4,f.x,f.y,f.r*2.2,f.r*2.2,false,a+.08*fx);}
           else this.sprite(f.kind==='void'?'fx':'skillfx',Math.floor(t*7)%4+(f.kind==='void'?12:8),4,4,f.x,f.y,f.r*2.2,f.r*2.2,false,a);
-          c.strokeStyle=f.kind==='void'?'#ba77c5':'#9cbf7c';c.globalAlpha=.25;c.beginPath();c.ellipse(f.x,f.y,f.r,f.r*.55,0,0,Math.PI*2);c.stroke();c.globalAlpha=1;
         }
         for(const h of run.hazards){
           if(h.kind==='sweep')continue;
@@ -130,7 +129,6 @@
           // 弾頭も画像素材を使用。敵弾は明るい橙の輪で見分ける。
           const kind=b.sprite??(run.has('ossuary')?1:['lantern','needle','censer','bell','book','scythe'].indexOf(run.weapon.id));
           c.save();c.translate(Math.round(b.x),Math.round(b.y));c.rotate(Math.atan2(b.vy,b.vx));this.sprite('projectiles',kind,6,2,0,0,b.r*6.4,b.r*6.4,false,.98*fx);c.restore();
-          c.fillStyle='#fff0d4';c.fillRect(Math.round(b.x)-1,Math.round(b.y)-1,2,2);
         }
         for(const v of run.pickups)this.sprite('projectiles',10,6,2,v.x,v.y+Math.sin(t*4+v.x)*1.4,28,28,false,v.life<3?.5+Math.sin(t*10)*.3:1);
         this.drawPlayer(run,dt);

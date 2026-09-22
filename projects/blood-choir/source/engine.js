@@ -92,7 +92,7 @@
     for(const k of ['hitRing','flashes','shake','gore','autoFire','autoAim'])if(typeof raw.settings?.[k]==='boolean')p.settings[k]=raw.settings[k];
     return p;
   }
-  function awardAchievements(p){const gained=[];for(const a of D.achievements)if(!p.achievements.includes(a.id)&&a.test(p)){p.achievements.push(a.id);p.ashes+=a.reward;gained.push(a);}return gained;}
+  function awardAchievements(p){const gained=[];for(const a of D.achievements)if(!p.achievements.includes(a.id)&&a.test(p)){p.achievements.push(a.id);p.ashes+=Math.ceil(a.reward*D.ASH.medal);gained.push(a);}return gained;}
   function settle(p,run,date=new Date().toLocaleDateString('sv-SE')){
     if(run.practice)return[];
     if(p.settled.includes(run.id))return[];
@@ -103,7 +103,7 @@
     if(run.completed>=32&&!run.daily)p.clearedDifficulty=Math.max(p.clearedDifficulty,run.difficulty);
     p.discovered=[...new Set([...p.discovered,...Object.keys(run.stacks)])];p.evolutions=[...new Set([...p.evolutions,...run.evolved])];p.resonances=[...new Set([...p.resonances,...run.stats.resonances])];
     run.finalRecord=normalizeRecord({journey:run.journey,journeyOmitted:run.journeyOmitted,score:Math.floor(run.score),wave:run.completed,kills:run.kills,time:run.time,weapon:run.weapon.id,mask:run.mask.id,difficulty:run.difficulty,daily:run.daily,date,won:run.completed>=32,seed:run.seed,guidance:run.initialGuidance,dailyDate:run.dailyDate,dailyFormat:run.dailyFormat,meta:run.meta,stacks:run.stacks,evolved:run.evolved,covenants:run.covenants,lastHit:run.lastHit,wounds:run.wounds,enemyKills:run.enemyKills,outcome:run.outcome,bestCombo:run.bestCombo,growth:run.growth,damageTally:run.damageTally,secretKills:run.secretKills,crownKills:run.crownKills,reliquaryKills:run.reliquaryKills});p.records.push(run.finalRecord);
-    p.records.sort((a,b)=>b.wave-a.wave||b.score-a.score||a.time-b.time);p.records=p.records.slice(0,30);
+    p.records.sort((a,b)=>b.wave-a.wave||a.time-b.time);p.records=p.records.slice(0,30);
     return awardAchievements(p);
   }
   function purchase(p,type,id){
@@ -117,10 +117,10 @@
   }
   class Run{
     constructor(options={}){
-      this.seed=(finite(options.seed,Date.now())>>>0)||1;this.rng=this.seed;this.offerRng=hash(this.seed+'-offer');this.daily=!!options.daily;this.dailyDate=validDate(options.dailyDate)?options.dailyDate:'';this.dailyFormat=this.daily&&options.dailyFormat===2&&this.dailyDate?2:1;const dailyGear=this.dailyFormat===2?dailyLoadout(this.dailyDate):{weapon:'lantern',mask:'mourner',guidance:'bloodrain'};
+      this.seed=(finite(options.seed,Date.now())>>>0)||1;this.rng=this.seed;this.offerRng=hash(this.seed+'-offer');this.daily=!!options.daily;this.endless=!!options.endless;this.dailyDate=validDate(options.dailyDate)?options.dailyDate:'';this.dailyFormat=this.daily&&options.dailyFormat===2&&this.dailyDate?2:1;const dailyGear=this.dailyFormat===2?dailyLoadout(this.dailyDate):{weapon:'lantern',mask:'mourner',guidance:'bloodrain'};
       this.id=options.id||String(Date.now())+'-'+this.seed;this.difficulty=this.daily?0:clamp(Math.floor(finite(options.difficulty)),0,4);
       this.weapon=D.weapons.find(w=>w.id===(this.daily?dailyGear.weapon:options.weapon))||D.weapons[0];this.mask=D.masks.find(m=>m.id===(this.daily?dailyGear.mask:options.mask))||D.masks[0];
-      this.guidance=this.daily?dailyGear.guidance:D.guidanceTargets.some(e=>e.id===options.guidance)?options.guidance:'bloodrain';this.initialGuidance=this.daily?dailyGear.guidance:D.guidanceTargets.some(e=>e.id===options.initialGuidance)?options.initialGuidance:this.guidance;
+      this.guidance='';this.initialGuidance='';
       this.meta=this.daily?{}:{...options.meta};this.stacks={};this.evolved=[];this.banned=[];this.covenants=[];this.covenantChoices=[];this.oathWave=0;this.rerolls=2+(this.meta.reroll||0)+(this.mask.rerolls||0);this.banishes=1+(this.meta.banish||0);
       // 外部の記録を読み込むときも、永久強化を正規の範囲へ揃える。
       for(const d of D.meta)this.meta[d.id]=this.daily?0:clamp(Math.floor(finite(this.meta[d.id])),0,d.max);
@@ -152,7 +152,7 @@
       stats.hp=Math.max(25,stats.hp-o('glass')*25-o('chalice')*15);stats.damage*=1+o('glass')*.4-o('hunger')*.12;stats.cooldown*=1-o('vigil')*.28;stats.dashCD*=1+o('vigil')*.3;stats.armor=Math.min(.72,stats.armor+o('marrow')*.12);stats.speed*=1-o('marrow')*.1;stats.harvest+=o('pilgrim')*.4;stats.ultimate=Math.max(8,stats.ultimate-o('chalice')*8);return stats;
     }
     damageValue(){return this.stats.damage*(1+clamp(1-this.p.hp/this.stats.hp,0,1)*this.stats.rage);}
-    scoreMultiplier(){return 1+Math.min(10,Math.floor(this.combo/5))*.1;}
+    
     beginWave(wave){
       this.wave=wave;this.state='playing';this.waveTime=0;this.clearElapsed=0;this.waveDamage=0;this.intro=2.2;this.spawnTimer=.25;this.bossSpawned=false;this.enemies=[];this.bullets=[];this.hostile=[];this.fields=[];this.pickups=[];this.hazards=[];this.rituals=[];this.choices=[];
       this.spawnLeft=wave%8===0?Math.min(10,3+Math.floor(wave/8)):Math.min(52,5+Math.floor(wave*1.65));
@@ -177,19 +177,6 @@
       if(this.wave>=9&&this.wave%3===0&&this.wave%8!==0&&ordinal===2)this.crownEnemy(e,D.crowns[hash(this.seed+'-crown-'+this.wave)%D.crowns.length].id);return e;
     }
     eligibleEvolutions(){return D.evolutions.filter(e=>!this.has(e.id)&&Object.entries(e.needs).every(([id,n])=>this.count(id)>=n));}
-    guidancePlan(id=this.guidance){
-      const target=D.guidanceTargets.find(d=>d.id===id);if(!target)return null;
-      const steps=(target.pair||[target.id]).map(key=>{const definition=lookup[key],awakened=this.has(key),needs=Object.entries(definition.needs),missing=needs.reduce((n,[item,count])=>n+Math.max(0,count-this.count(item)),0),blocked=!awakened&&needs.some(([item,count])=>this.banned.includes(item)&&this.count(item)<count);return{definition,awakened,missing,blocked,ready:!awakened&&missing===0};});
-      // 材料が揃った進化は取得待ちにし、共鳴のもう一方へ材料の導きを渡す。
-      const active=steps.find(s=>!s.awakened&&!s.blocked&&s.missing>0)||steps.find(s=>!s.awakened&&!s.blocked)||null;
-      return{target,steps,active,complete:steps.every(s=>s.awakened),blocked:steps.some(s=>s.blocked)};
-    }
-    setGuidance(id){
-      const plan=this.guidancePlan(id);
-      if(this.daily||this.practice||!['playing','upgrade','victory'].includes(this.state)||!plan||plan.complete||plan.blocked)return false;
-      // 目標の変更だけでは、既に引いた候補や乱数を動かさない。
-      this.guidance=id;return true;
-    }
     preview(id){
       const d=lookup[id];if(!d&&id!=='communion')return null;
       // 表示のために実際の所持効果や乱数を進めない。実戦と同じ計算式へ仮の一段階だけ通す。
@@ -201,14 +188,11 @@
       return{stats:next.stats,shot:next.damageValue()*Math.pow(.92,next.count('multishot')),hp:next.p.hp,ready:next.eligibleEvolutions().map(e=>e.id)};
     }
     drawChoices(){
-      const choices=[],eligible=this.eligibleEvolutions(),target=D.guidanceTargets.find(d=>d.id===this.guidance),guided=target?.pair?eligible.filter(e=>target.pair.includes(e.id)):[],ev=guided.length?guided:eligible;if(ev.length)choices.push(ev[Math.floor(this.offerRandom()*ev.length)].id);
-      const pool=D.items.filter(i=>this.count(i.id)<i.max&&!this.banned.includes(i.id)&&!(i.id==='fortune'&&this.stats.choices>=6));
-      // 三波ごとに選んだ進化への材料を一つ保証し、運だけで構築が止まるのを防ぐ。
-      const path=target?.pair?this.guidancePlan().active?.definition:D.evolutions.find(e=>e.id===this.guidance);
-      if(this.wave%3===0&&path&&!this.has(path.id)){
-        const needed=Object.entries(path.needs).filter(([id,n])=>this.count(id)<n&&!this.banned.includes(id));
-        if(needed.length){const id=needed[Math.floor(this.offerRandom()*needed.length)][0];choices.push(id);pool.splice(pool.findIndex(i=>i.id===id),1);}
-      }
+      const choices=[],pool=D.items.filter(i=>this.count(i.id)<i.max&&!this.banned.includes(i.id)&&!(i.id==='fortune'&&this.stats.choices>=6));
+      // 条件の揃った禁忌進化は待たせず候補へ出す。普通の強化の枠は一つ残す。
+      const ready=this.eligibleEvolutions();
+      for(let i=ready.length-1;i>0;i--){const j=Math.floor(this.offerRandom()*(i+1));const t=ready[i];ready[i]=ready[j];ready[j]=t;}
+      for(const e of ready.slice(0,Math.max(1,this.stats.choices-1)))choices.push(e.id);
       while(choices.length<this.stats.choices&&pool.length){
         const weights=pool.map(i=>1+Math.min(3,this.count(i.id))*.75);let r=this.offerRandom()*weights.reduce((a,b)=>a+b,0),at=0;
         while(at<pool.length-1&&r>weights[at])r-=weights[at++];choices.push(pool.splice(at,1)[0].id);
@@ -245,7 +229,7 @@
         else this.state='practiceDone';this.emit('clear',{wave:this.wave});return;
       }
       const beforeSouls=this.souls,beforeHp=this.p.hp,leftoverHeal=this.pickups.reduce((sum,p)=>sum+(p.life>0?p.heal:0),0);
-      this.completed=this.wave;this.score+=this.wave*100*(1+this.difficulty*.2);this.souls+=Math.ceil((3+Math.floor(this.wave/5)+(this.wave%8===0?12:0))*this.stats.harvest);
+      this.completed=this.wave;
       if(this.waveDamage===0){this.flawless++;this.souls+=2;}
       this.growth+=this.count('growth')*.02;this.stats=this.computeStats();this.p.hp=Math.min(this.stats.hp,this.p.hp+leftoverHeal+6+(this.meta.mercy||0)*2+(this.wave%8===0?this.stats.hp*.18:0));
       this.waveReport={souls:this.souls-beforeSouls,heal:Math.round(this.p.hp-beforeHp),flawless:this.waveDamage===0};
@@ -253,7 +237,7 @@
       this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=[];this.emit(this.wave===32?'victory':'clear',{wave:this.wave,flawless:this.waveDamage===0});
       this.covenantChoices=[];
       if(this.wave%8===0){const pool=D.covenants.filter(d=>!this.covenants.includes(d.id));while(pool.length&&this.covenantChoices.length<3)this.covenantChoices.push(pool.splice(Math.floor(this.offerRandom()*pool.length),1)[0].id);}
-      if(this.wave===32){this.state='victory';return;}this.state='upgrade';this.choices=this.drawChoices();
+      if(this.wave===32&&!this.endless){this.state='victory';return;}this.state='upgrade';this.choices=this.drawChoices();
     }
     continueEndless(){if(this.state!=='victory')return false;this.state='upgrade';this.choices=this.drawChoices();return true;}
     gauntletBoon(id){
@@ -317,9 +301,10 @@
       if(e.hp<=0)this.kill(e);
     }
     kill(e){
-      if(e.dead)return;e.dead=true;this.kills++;if(enemyIds.has(e.kind))this.enemyKills[e.kind]=(this.enemyKills[e.kind]||0)+1;if(e.crown){const d=D.crowns.find(d=>d.id===e.crown);this.crownKills++;this.souls+=d.reward;this.score+=Math.round(75*this.scoreMultiplier());this.emit('crownDeath',{x:e.x,y:e.y,reward:d.reward});}if(e.kind==='oblivion')this.secretKills++;if(e.kind==='reliquary')this.reliquaryKills++;this.charge=Math.min(this.stats.ultimate,this.charge+(e.boss?10:1));
-      this.combo=this.comboTime>0?this.combo+1:1;this.comboTime=4.5;this.bestCombo=Math.max(this.bestCombo,this.combo);this.score+=Math.round((e.score||300)*Math.ceil(1+this.wave*.06)*this.scoreMultiplier());
-      if(this.combo%10===0)this.emit('combo',{x:this.p.x,y:this.p.y,n:this.combo,multiplier:this.scoreMultiplier()});
+      if(e.dead)return;e.dead=true;this.kills++;if(enemyIds.has(e.kind))this.enemyKills[e.kind]=(this.enemyKills[e.kind]||0)+1;if(e.crown){const d=D.crowns.find(d=>d.id===e.crown);this.crownKills++;this.souls+=d.reward;this.emit('crownDeath',{x:e.x,y:e.y,reward:d.reward});}if(e.kind==='oblivion')this.secretKills++;if(e.kind==='reliquary')this.reliquaryKills++;this.charge=Math.min(this.stats.ultimate,this.charge+(e.boss?10:1));
+      if(e.boss)this.souls+=Math.ceil(D.ASH.boss*this.stats.harvest);
+      else if(this.random()<D.ASH.chance)this.pickups.push({x:e.x,y:e.y,vy:-60,life:16,heal:0,souls:Math.ceil(D.ASH.drop*this.stats.harvest)});
+      
       if(this.covenants.includes('hunger')&&this.p.hp>0)this.p.hp=Math.min(this.stats.hp,this.p.hp+1);
       this.emit('death',{x:e.x,y:e.y,boss:e.boss,sprite:e.sprite,enemyKind:e.kind,size:e.r*(e.boss?3.05:3.25),flip:e.facing<0,pose:{boss:e.boss,sprite:e.sprite,kind:e.kind,age:e.age,arrival:e.arrival,arrivalDuration:e.arrivalDuration,cast:e.cast,shoot:e.shoot,gap:e.gap?{...e.gap}:null}});
       if(this.random()<.14||e.boss)this.pickups.push({x:e.x,y:e.y,vy:20,life:15,heal:e.boss?18:4});
@@ -509,7 +494,7 @@
     update(dt,input={}){
       if(this.state==='clearing'){this.updateClearing(clamp(finite(dt),0,.05),input);return;}
       if(this.state!=='playing')return;dt=clamp(finite(dt),0,.05);this.time+=dt;this.waveTime+=dt;const p=this.p,s=this.stats;
-      this.comboTime=Math.max(0,this.comboTime-dt);if(this.comboTime===0)this.combo=0;
+      
       this.intro=Math.max(0,this.intro-dt);p.invuln=Math.max(0,p.invuln-dt);p.dashCD=Math.max(0,p.dashCD-dt);p.shotCD-=dt;p.hp=Math.min(s.hp,p.hp+s.regen*dt);
       const playerX=p.x,playerY=p.y,move=this.movePlayer(dt,input,true);
       // 射撃の瞬間だけ向きを変えると左右へ点滅する。照準方向を毎フレーム同じ規則で決める。
@@ -551,7 +536,7 @@
     checkpoint(){
       if(this.practice)return null;
       // 波の冒頭と選択画面だけを保存する。飛翔中の弾を復元して不意打ちを作らない。
-      return{journey:this.journey.map(v=>({...v})),journeyOmitted:this.journeyOmitted,enemyKills:{...this.enemyKills},wounds:this.wounds.map(v=>({...v})),lastHit:this.lastHit?{...this.lastHit}:null,reliquaryKills:this.reliquaryKills,secretKills:this.secretKills,crownKills:this.crownKills,damageTally:{...this.damageTally},bestCombo:this.bestCombo,waveReport:this.waveReport?{...this.waveReport}:null,covenants:[...this.covenants],covenantChoices:[...this.covenantChoices],oathWave:this.oathWave,version:1,id:this.id,seed:this.seed,rng:this.rng,offerRng:this.offerRng,guidance:this.guidance,initialGuidance:this.initialGuidance,daily:this.daily,dailyDate:this.dailyDate,dailyFormat:this.dailyFormat,difficulty:this.difficulty,weapon:this.weapon.id,mask:this.mask.id,meta:{...this.meta},stacks:{...this.stacks},evolved:[...this.evolved],banned:[...this.banned],rerolls:this.rerolls,banishes:this.banishes,time:this.time,kills:this.kills,score:this.score,souls:this.souls,completed:this.completed,growth:this.growth,rebirths:this.rebirths,revivesUsed:this.revivesUsed,flawless:this.flawless,charge:this.charge,wave:this.wave,state:this.state,choices:[...this.choices],hp:this.p.hp,shield:this.p.shield};
+      return{journey:this.journey.map(v=>({...v})),journeyOmitted:this.journeyOmitted,enemyKills:{...this.enemyKills},wounds:this.wounds.map(v=>({...v})),lastHit:this.lastHit?{...this.lastHit}:null,reliquaryKills:this.reliquaryKills,secretKills:this.secretKills,crownKills:this.crownKills,damageTally:{...this.damageTally},bestCombo:this.bestCombo,waveReport:this.waveReport?{...this.waveReport}:null,covenants:[...this.covenants],covenantChoices:[...this.covenantChoices],oathWave:this.oathWave,version:1,id:this.id,endless:this.endless,seed:this.seed,rng:this.rng,offerRng:this.offerRng,guidance:this.guidance,initialGuidance:this.initialGuidance,daily:this.daily,dailyDate:this.dailyDate,dailyFormat:this.dailyFormat,difficulty:this.difficulty,weapon:this.weapon.id,mask:this.mask.id,meta:{...this.meta},stacks:{...this.stacks},evolved:[...this.evolved],banned:[...this.banned],rerolls:this.rerolls,banishes:this.banishes,time:this.time,kills:this.kills,score:this.score,souls:this.souls,completed:this.completed,growth:this.growth,rebirths:this.rebirths,revivesUsed:this.revivesUsed,flawless:this.flawless,charge:this.charge,wave:this.wave,state:this.state,choices:[...this.choices],hp:this.p.hp,shield:this.p.shield};
     }
     static restore(c){
       if(c?.practice||c?.daily&&c?.dailyFormat===2&&!validDate(c.dailyDate))return null;

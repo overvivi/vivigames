@@ -1,11 +1,11 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./engine.js'));else root.BCTraining=factory(root.BCCore);})(this,function(C){
   'use strict';
   const lessons=[
-    {title:'長衣を、滑らせる。',text:'左右へ移動してみよう。足元の小さな輪が、あなたの当たり判定。',pc:'A / D または ← / →',pad:'左スティック または 十字キー',touch:'画面下の ◀ / ▶',icon:19},
-    {title:'空中で、もう一度。',text:'一度跳び、着地する前にもう一度。着地すると跳躍回数が戻る。',pc:'SPACE を離して、もう一度押す',pad:'下ボタンを離して、もう一度押す',touch:'「跳躍」を離して、もう一度押す',icon:15},
-    {title:'影を、すり抜ける。',text:'移動方向へ短く回避。その間は無敵。止まっている時は向いている方向へ。',pc:'SHIFT または 右クリック',pad:'右ボタン または RB / R1',touch:'「回避」を押す',icon:20},
-    {title:'大奇跡を、解き放つ。',text:'橙の弾を一掃し、異形をまとめて葬る。本番では撃破で力を溜める。',pc:'E を押す',pad:'左ボタン または LB / L1',touch:'「大奇跡」を押す',icon:23},
-    {title:'三つの命を、葬る。',text:'照準と射撃は自動。移動・跳躍・回避を使いながら異形を倒そう。',pc:'A / D · SPACE · SHIFT',pad:'左スティック · 下ボタン · 右ボタン',touch:'移動 · 跳躍 · 回避',icon:0},
+    {title:'長衣を、滑らせる。',text:'左右へ移動してみよう。足元の小さな輪が、あなたの当たり判定。',pc:'A / D または ← / →',pad:'左スティック または 十字キー',touch:'画面を左右へなぞる',icon:19},
+    {title:'空中で、もう一度。',text:'一度跳び、着地する前にもう一度。着地すると跳躍回数が戻る。',pc:'SPACE を離して、もう一度押す',pad:'下ボタンを離して、もう一度押す',touch:'指を離して、もう一度叩く',icon:15},
+    {title:'影を、すり抜ける。',text:'移動方向へ短く回避。その間は無敵。止まっている時は向いている方向へ。',pc:'SHIFT または 右クリック',pad:'右ボタン または RB / R1',touch:'素早く横へ払う',icon:20},
+    {title:'大奇跡を、解き放つ。',text:'橙の弾を一掃し、異形をまとめて葬る。本番では撃破で力を溜める。',pc:'E を押す',pad:'左ボタン または LB / L1',touch:'右下の「大奇跡」を押す',icon:23},
+    {title:'三つの命を、葬る。',text:'照準と射撃は自動。移動・跳躍・回避を使いながら異形を倒そう。',pc:'A / D · SPACE · SHIFT',pad:'左スティック · 下ボタン · 右ボタン',touch:'なぞる · 叩く · 払う',icon:0},
     {title:'力を、身体に刻む。',text:'ひとつ選ぶ。同じ能力を重ねると、禁忌進化への道が開く。',pc:'クリック または 1 / 2 / 3',pad:'十字キーで選ぶ · 下ボタンで決定',touch:'欲しい能力をタップ',icon:2}
   ];
   class Training{

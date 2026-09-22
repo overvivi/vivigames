@@ -8,14 +8,14 @@ body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 126px)*1.77778))}
 body.qa-mode #overlay{bottom:36px}
 body.qa-mode .title-bottom{bottom:34px}
 @media(max-width:600px){body.qa-mode #overlay{bottom:65px}body.qa-mode #game-frame{width:100vw}body.qa-mode .title-bottom{bottom:65px}}
-@media(pointer:coarse) and (orientation:landscape) and (max-height:560px){body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 145px)*1.77778))}body.qa-mode #touch-controls{bottom:38px}}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:560px){body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 145px)*1.77778))}}
 .oath-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 18px;margin-bottom:18px;border:1px solid #894858;background:linear-gradient(90deg,#35151f,#181015)}.oath-banner p{font-size:12px;margin:6px 0 0;color:#bb9e9e}.oath-banner button{flex-shrink:0}.oath-banner b{font:18px Georgia,serif}
 .touch-hint{display:none}
 .costume-portrait{display:block;width:112px;height:112px;margin:0 auto 8px;image-rendering:pixelated}.enemy-portrait{background:none;image-rendering:pixelated;flex-shrink:0}
 .item-tile:disabled{opacity:1;cursor:default}.item-tile:disabled .price{color:#a68991}.item-tile:disabled:hover{background:#171115;border-color:#604847}
 #topbar{padding-left:max(28px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right))}#fullscreen-button{font-size:17px;padding:0 8px}
 @media(max-width:600px){#topbar{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));gap:8px}.top-actions{gap:4px}.wordmark{letter-spacing:.1em}}
-@media(pointer:coarse){#touch-controls{padding-left:max(15px,env(safe-area-inset-left));padding-right:max(15px,env(safe-area-inset-right))}}
+@media(pointer:coarse){}
 @media(pointer:coarse) and (orientation:portrait){#play-screen{justify-content:flex-start;padding-top:clamp(28px,10vh,90px)}.touch-hint{display:block;color:#aa9688;font-size:12px;text-align:center;padding:8px 16px;margin:0}#hud .hud-label,#hp-label,#hud .hud-sub{font-size:9px}.wave-block>span,.wave-block small{font-size:9px}#game-frame{overflow:visible}#hud{top:10px}#run-bottom{bottom:6px}}
 @media(pointer:coarse) and (orientation:landscape) and (max-height:560px){#play-screen{padding-bottom:54px}#game-frame{width:min(100vw,calc((100dvh - 110px)*1.77778))}}
 @media(max-width:600px){.oath-banner{flex-wrap:wrap}.oath-banner button{width:100%}}
@@ -154,3 +154,122 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 #overlay,#title-screen{margin-top:var(--save-notice-height,0px)}
 
 .journey-log{margin:24px 0;border:1px solid #65513d;background:#201619}.journey-log>summary{cursor:pointer;padding:16px 18px;color:#dfc497;font-size:14px}.journey-log>summary span{font-size:11px;color:#bba487;margin-left:12px}.journey-log>p{font-size:12px;color:#c3b09c;line-height:1.9;margin:0 18px 15px}.journey-body{margin:0 18px 16px}.journey-controls{display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:2;background:#201619;padding:10px 0;border-bottom:1px solid #67513c}.journey-controls button{padding:8px 12px;font-size:11px;white-space:nowrap}.journey-controls select{min-width:0;flex:1;padding:9px 8px;background:#171015;color:#dbbf95;border:1px solid #6b513a;font-family:inherit;font-size:12px}.journey-log ol{list-style:none;margin:0;padding:0}.journey-log li{display:grid;grid-template-columns:40px 48px minmax(0,1fr);gap:14px;align-items:center;border-bottom:1px solid #4b3730;padding:13px 0}.journey-wave{font-size:10px;text-align:center;color:#b3a08a}.journey-wave b{display:block;color:#dabc86;font:19px Georgia,serif;margin:2px 0}.journey-log .relic-icon{width:44px;height:44px;margin:0}.journey-log li strong{display:block;font-size:13px;color:#dfc4a9;font-weight:500;margin:4px 0}.journey-log li small{font-size:10px;color:#b5976e}.journey-log li div>span{font-size:11px;color:#bda99b}.journey-log li.journey-gap{display:block;text-align:center;font-size:11px;color:#ba9b6f;background:#39291e55;padding:12px}@media(max-width:650px){.journey-body{margin:0 12px 12px}.journey-log li{grid-template-columns:34px 40px minmax(0,1fr);gap:10px}.journey-log .relic-icon{width:38px;height:38px}.journey-controls button{padding:8px}.journey-controls select{font-size:11px}.journey-log>summary span{display:block;margin:5px 0 0 18px}}
+
+
+/* ── スマホ：長押しの選択と、タップの青い強調を出さない ───────────── */
+*{-webkit-tap-highlight-color:transparent}
+@media(pointer:coarse){
+  body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  input,textarea,select{-webkit-user-select:auto;user-select:auto}
+}
+
+/* ── 画面全体を、なぞり操作の受け皿にする ─────────────────────── */
+#hud,#boss-hud,#combat-toast{pointer-events:none}
+#run-bottom{pointer-events:none}
+#run-bottom button{pointer-events:auto}
+
+/* ── 操作の案内は、戦いの始めに一度だけ薄く出して引く ─────────────── */
+.touch-hint{display:none}
+@media(pointer:coarse) and (orientation:landscape){
+  .touch-hint{display:block;position:absolute;left:0;right:0;bottom:58px;z-index:6;margin:0;padding:7px 16px;text-align:center;font-size:11px;letter-spacing:.06em;color:#d7c4ab;background:#0a080bcc;opacity:0;transition:opacity .6s ease;pointer-events:none}
+  .touch-hint.show{opacity:1}
+}
+
+/* ── 横持ちでは盤面を広く取り、手元のボタンを押しやすく ─────────────── */
+@media(pointer:coarse) and (orientation:landscape){
+  #play-screen{padding-bottom:0}
+  #game-frame{width:min(100vw,calc((100dvh - 42px)*1.77778))}
+  body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 76px)*1.77778))}
+  #run-bottom{bottom:9px;left:12px;right:12px}
+  #ultimate-button{min-width:104px;padding:5px 9px;font-size:8px;gap:3px 7px}
+  #build-button{padding:7px 12px;font-size:9px}
+}
+
+/* ── 縦持ちでは戦わせない ───────────────────────────────── */
+#rotate-gate{display:none}
+@media(pointer:coarse) and (orientation:portrait){
+  #play-screen:not([hidden])+#rotate-gate{display:flex;position:fixed;inset:46px 0 0;z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:34px;text-align:center;background:#0a080bfa}
+  #rotate-gate .rotate-mark{font-size:54px;font-style:normal;color:#a33246;animation:rotate-hint 2.6s ease-in-out infinite}
+  #rotate-gate strong{font:22px Georgia,"Yu Mincho",serif;letter-spacing:.16em;color:#d8ccba}
+  #rotate-gate span{font-size:12px;line-height:2;color:#9c9086}
+}
+@keyframes rotate-hint{0%,100%{transform:rotate(-14deg)}55%{transform:rotate(76deg)}}
+
+/* ── 強化の選択：出た瞬間は受け付けず、指から遠い上側へ寄せる ────────── */
+@media(pointer:coarse){
+  #panel.tap-guard button{pointer-events:none}
+  #overlay:has(#panel[data-mode="upgrade"]),#overlay:has(#panel[data-mode="covenant"]){align-items:flex-start}
+}
+
+/* ── 横持ちの強化選択：見出しと札を詰めて、指の届く下側を空ける ─────── */
+@media(pointer:coarse) and (orientation:landscape){
+  #panel[data-mode="upgrade"],#panel[data-mode="covenant"]{padding:7px 14px 10px}
+  #panel[data-mode="upgrade"] .panel-header,#panel[data-mode="covenant"] .panel-header{margin-bottom:2px}
+  #panel[data-mode="upgrade"] .eyebrow,#panel[data-mode="covenant"] .eyebrow{display:none}
+  #panel[data-mode="upgrade"] .panel-header h2,#panel[data-mode="covenant"] .panel-header h2{font-size:16px;margin:0 0 2px}
+  #panel[data-mode="upgrade"] .panel-header p,#panel[data-mode="covenant"] .panel-header p{font-size:10px;margin:0;line-height:1.6}
+  #panel[data-mode="upgrade"]>.progress-line,#panel[data-mode="upgrade"] .resonance-goal{font-size:10px;margin:0 0 5px}
+  #panel[data-mode="upgrade"] .upgrade-card,#panel[data-mode="covenant"] .upgrade-card{min-height:128px;border-width:7px;border-image-width:13px}
+  #panel[data-mode="upgrade"] .upgrade-card .choose,#panel[data-mode="covenant"] .upgrade-card .choose{padding:7px 5px}
+  #panel[data-mode="upgrade"] .upgrade-card .relic-icon,#panel[data-mode="covenant"] .upgrade-card .relic-icon{width:42px;height:42px;margin:3px auto}
+  #panel[data-mode="upgrade"] .upgrade-card h3,#panel[data-mode="covenant"] .upgrade-card h3{font-size:13px;margin-bottom:3px}
+  #panel[data-mode="upgrade"] .upgrade-card p,#panel[data-mode="covenant"] .upgrade-card p{font-size:10px;line-height:1.55}
+  #panel[data-mode="upgrade"] .upgrade-card .school-label{font-size:8px}
+  #panel[data-mode="upgrade"] .upgrade-card .banish{padding:4px;font-size:9px;margin:0 6px 3px}
+  #panel[data-mode="upgrade"] .panel-actions{margin-top:8px}
+}
+@media(pointer:coarse) and (orientation:landscape){
+  #panel[data-mode="upgrade"] .selection-grid,#panel[data-mode="covenant"] .selection-grid{align-items:start}
+  #panel[data-mode="upgrade"] .upgrade-card .choose,#panel[data-mode="covenant"] .upgrade-card .choose{flex:0 0 auto}
+}
+@media(pointer:coarse) and (orientation:landscape){
+  #panel[data-mode="upgrade"] .upgrade-card .school-label,#panel[data-mode="covenant"] .upgrade-card .school-label{margin:0 0 2px}
+  #panel[data-mode="upgrade"] .upgrade-card p,#panel[data-mode="covenant"] .upgrade-card p{margin:0 0 4px}
+  #panel[data-mode="upgrade"] .upgrade-card .upgrade-delta,#panel[data-mode="covenant"] .upgrade-card .upgrade-delta{margin:2px 0;padding:3px 0 0}
+  #panel[data-mode="upgrade"] .upgrade-card .level-dots{margin:2px 0 0}
+  #panel[data-mode="upgrade"] .upgrade-card .evolution-hint{margin:2px 0 0}
+  #panel[data-mode="upgrade"] .upgrade-card .evo-needs{margin:2px 0 0;font-size:9px}
+}
+
+/* ── 戦闘中は、盤面の外の帯をすべて伏せる ─────────────────────── */
+#app:has(#play-screen:not([hidden])) #topbar{display:none}
+#app:has(#play-screen:not([hidden])) #play-screen{height:100dvh}
+body.qa-mode #app:has(#play-screen:not([hidden])) #play-screen{height:calc(100dvh - 34px)}
+#pause-frame{position:absolute;top:10px;right:12px;z-index:7;min-width:0;padding:6px 10px;font-size:10px;letter-spacing:.18em;line-height:1;color:#b9a591;background:#0d0a0ec4;border-color:#4b3630;opacity:.55;transition:opacity .2s}
+#pause-frame:hover,#pause-frame:focus-visible{opacity:1}
+@media(pointer:coarse){#pause-frame{padding:9px 13px;font-size:11px;opacity:.75}}
+
+/* ── 勝利：英文をそのまま主役に置く ───────────────────────── */
+.victory-title{font:clamp(30px,6vw,58px)/1.05 Georgia,"Times New Roman",serif;letter-spacing:.14em;text-align:center;color:#e8dcc4;margin:0 0 20px;text-shadow:0 0 38px #a3324666}
+@media(max-height:560px) and (orientation:landscape){.victory-title{font-size:26px;margin:0 0 10px}}
+
+/* ── 遺灰を捧げる確認 ─────────────────────────────────── */
+.buy-confirm{display:grid;grid-template-columns:96px 1fr;gap:18px;align-items:center;margin:14px 0 4px}
+.buy-confirm .relic-icon,.buy-confirm canvas{width:96px;height:96px}
+.buy-confirm p{margin:0 0 10px;font-size:13px;line-height:1.9;color:#c0b2a0}
+.buy-price{display:flex;align-items:baseline;gap:12px;font-size:13px;color:#d8ccba}
+.buy-price b{font:22px Georgia,serif;color:#e6c889}
+@media(max-width:600px){.buy-confirm{grid-template-columns:64px 1fr;gap:12px}.buy-confirm .relic-icon,.buy-confirm canvas{width:64px;height:64px}}
+
+/* ── PC：帯を外した分、盤面とHUDを大きく取る ───────────────────── */
+@media(pointer:fine) and (min-width:900px){
+  #app:has(#play-screen:not([hidden])) #game-frame{width:min(100vw,calc((100dvh - 34px)*1.77778))}
+  body.qa-mode #app:has(#play-screen:not([hidden])) #game-frame{width:min(100vw,calc((100dvh - 70px)*1.77778))}
+  #hud{padding:18px 26px}
+  #hud .hud-label{font-size:clamp(12px,.95vw,18px);letter-spacing:.16em}
+  #hud .hud-sub{font-size:clamp(11px,.8vw,15px)}
+  #hp-label{font-size:clamp(13px,1vw,19px)}
+  .health-track{height:11px}
+  #wave-label{font-size:clamp(24px,2.3vw,42px)}
+  #zone-label{font-size:clamp(11px,.85vw,16px)}
+  #enemy-label{font-size:clamp(11px,.85vw,16px)}
+  #soul-label{font-size:clamp(20px,1.8vw,34px)}
+  #score-label{font-size:clamp(11px,.85vw,16px)}
+  #combo-label{font-size:clamp(12px,.9vw,17px)}
+  #boss-name{font-size:clamp(14px,1.1vw,21px)}
+  #run-bottom{bottom:22px;left:28px;right:28px}
+  #ultimate-button{min-width:clamp(150px,12vw,215px);padding:13px 17px;font-size:clamp(10px,.75vw,13px)}
+  #build-button{padding:13px 19px;font-size:clamp(11px,.8vw,14px)}
+  #pause-frame{padding:9px 14px;font-size:12px}
+  #combat-toast{font-size:clamp(15px,1.3vw,25px)}
+}
