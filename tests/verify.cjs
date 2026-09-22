@@ -19,6 +19,7 @@ const FILES = [
   'index.html',
   'games/amber-bow.html',
   'games/comic-coast-racer.html',
+  'games/blood-choir/index.html',
   'games/temple-run-clone.html',
   'games/boss-battle-demo.html',
   'games/hexamine.html',
@@ -45,7 +46,8 @@ const ASSET_RE = /['"`(]([^'"`()\s]+\.(?:png|jpe?g|webp|gif|svg|ogg|mp3|wav|ico)
 // 参照文字列だけでは場所が決まらないため、名前の実在で確認する。
 function indexFiles(dir, index){
   for(const entry of fs.readdirSync(dir, { withFileTypes:true })){
-    if(entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'test-results') continue;
+    // 外部依存やキャッシュはゲーム素材の補完先にしない。権限付きのPython配布物も除外する。
+    if(['.git','node_modules','test-results','vendor','.venv','.cache'].includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if(entry.isDirectory()) indexFiles(full, index);
     else index.add(entry.name);
