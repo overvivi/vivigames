@@ -5,7 +5,8 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const mime = {
   '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8',
-  '.css':'text/css; charset=utf-8', '.png':'image/png', '.jpg':'image/jpeg'
+  '.css':'text/css; charset=utf-8', '.png':'image/png', '.jpg':'image/jpeg',
+  '.webmanifest':'application/manifest+json', '.ico':'image/x-icon'
 };
 
 const server = http.createServer((req,res)=>{
