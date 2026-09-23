@@ -171,7 +171,7 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 /* ── 操作の案内は、戦いの始めに一度だけ薄く出して引く ─────────────── */
 .touch-hint{display:none}
 @media(pointer:coarse) and (orientation:landscape){
-  .touch-hint{display:block;position:absolute;left:0;right:0;bottom:58px;z-index:6;margin:0;padding:7px 16px;text-align:center;font-size:11px;letter-spacing:.06em;color:#d7c4ab;background:#0a080bcc;opacity:0;transition:opacity .6s ease;pointer-events:none}
+  .touch-hint{display:block;position:absolute;left:0;right:0;bottom:104px;z-index:6;margin:0;padding:7px 16px;text-align:center;font-size:11px;letter-spacing:.06em;color:#d7c4ab;background:#0a080bcc;opacity:0;transition:opacity .6s ease;pointer-events:none}
   .touch-hint.show{opacity:1}
 }
 
@@ -273,3 +273,26 @@ body.qa-mode #app:has(#play-screen:not([hidden])) #play-screen{height:calc(100dv
   #pause-frame{padding:9px 14px;font-size:12px}
   #combat-toast{font-size:clamp(15px,1.3vw,25px)}
 }
+
+/* ── スマホ：手元のボタン。回避が左、跳躍が右、大奇跡は中央下 ─────── */
+#touch-pad{display:none}
+@media(pointer:coarse){
+  #touch-pad{display:flex;gap:12px;position:absolute;right:14px;bottom:12px;z-index:7}
+  #touch-pad button{min-width:74px;height:74px;padding:0;border-radius:50%;font-size:12px;letter-spacing:.08em;
+    color:#e2d2bb;background:radial-gradient(circle at 50% 38%,#3a2830cc,#150e13e0);border:1px solid #8d6655aa;
+    box-shadow:0 4px 18px #0009;touch-action:none;user-select:none}
+  #touch-pad button:active,#touch-pad button.pressed{background:#854052cc;border-color:#c89a86}
+  #touch-pad [data-touch="jump"]{border-color:#bc8d69aa}
+  /* ビルドは指の置き場なので戦闘中は出さない。休息から見る。 */
+  #build-button{display:none}
+  #run-bottom{left:0;right:0;justify-content:center;bottom:14px}
+  #ultimate-button{min-width:132px;padding:10px 14px;font-size:9px}
+}
+@media(pointer:coarse) and (orientation:landscape){
+  #touch-pad{right:18px;bottom:14px;gap:14px}
+  #touch-pad button{min-width:80px;height:80px;font-size:13px}
+  #run-bottom{bottom:16px}
+}
+/* 端のスワイプで前の画面へ戻らないようにする */
+html,body{overscroll-behavior:none}
+@media(pointer:coarse){#play-screen{touch-action:none;overscroll-behavior:none}}

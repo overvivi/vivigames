@@ -1,0 +1,13 @@
+{
+  "name": "BLOOD CHOIR",
+  "short_name": "BLOOD CHOIR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#100b0e",
+  "theme_color": "#100b0e",
+  "icons": [
+    { "src": "assets/cover.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

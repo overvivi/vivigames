@@ -16,7 +16,7 @@
   const controller=new window.BCController.Controller();let padUsed=false,padState={connected:false,move:0};
   let touchMode=matchMedia('(pointer:coarse)').matches;
   let pendingImport=null,training=null;
-  const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15,flick:58,flickMs:110,priorMs:220,priorMax:34,trailMs:300,flickRest:320};
+  const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15};
   const points=new Map();let stickId=null,touchAxis=0,hintTimer=0,tapTimer=0;
   const keys=new Set(),input={move:0,aimX:480,aimY:140,fire:false,autoAim:true,jump:false,dash:false,ultimate:false};let mouseDown=false,mouseInside=false;
   function saveProfile(){if(!write(KEY,profile))return false;profilePending=false;if(checkpoint&&profile.settled.includes(checkpoint.id)){checkpoint=null;write(RUNKEY,null);}return true;}
@@ -91,7 +91,16 @@
     }else{input.jump||=padState.jump;input.dash||=padState.dash;input.ultimate||=padState.ultimate;}
   }
   function resetInput(){if(run?.p)run.p.jumpBuffer=0;keys.clear();releaseTouch();mouseDown=false;mouseInside=false;input.move=0;input.fire=false;input.jump=input.dash=input.ultimate=false;document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));}
-  async function toggleFullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('この画面では全画面に切り替えられませんでした。');}}
+  async function toggleFullscreen(){
+    try{
+      if(document.fullscreenElement)await document.exitFullscreen();
+      else{
+        await document.documentElement.requestFullscreen();
+        // 端末が許せば横へ固定する。iOSのSafariは対応していないので黙って諦める。
+        try{await screen.orientation?.lock?.('landscape');}catch{}
+      }
+    }catch{toast('この画面では全画面に切り替えられませんでした。');}
+  }
   if(!document.fullscreenEnabled)$('#fullscreen-button').hidden=true;
   document.addEventListener('fullscreenchange',()=>$('#fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'全画面を終了':'全画面'));
   function title(){
@@ -277,7 +286,7 @@
     show('settings',header('RITUAL SETTINGS','儀式の調律','')+[['music','環境音'],['sfx','効果音']].map(([k,n])=>'<label class="settings-row"><span>'+n+'</span><input type="range" data-setting="'+k+'" aria-label="'+n+'" min="0" max="1" step=".05" value="'+profile.settings[k]+'"></label>').join('')+'<label class="settings-row"><span>背景の暗さ<small>異形と弾の明るさは保つ</small></span><input type="range" data-setting="backgroundDim" aria-label="背景の暗さ" min="0" max=".6" step=".05" value="'+profile.settings.backgroundDim+'"></label><label class="settings-row"><span>味方の演出の濃さ<small>敵弾と攻撃予告の濃さは一定</small></span><input type="range" data-setting="effectOpacity" aria-label="味方の演出の濃さ" min=".35" max="1" step=".05" value="'+profile.settings.effectOpacity+'"></label>'+'<label class="settings-row"><span>ダメージの数字<small>回復の数字は常に出る</small></span><select class="option-select" data-setting="damageNumbers" aria-label="ダメージの数字">'+[['all','すべて'],['critical','会心だけ'],['none','表示しない']].map(([id,n])=>'<option value="'+id+'" '+(profile.settings.damageNumbers===id?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+[['hitRing','自分の当たり判定の輪','淡い輪の内側が被弾する範囲。無敵中は青白く'],['autoAim','自動照準','切ると、マウスの位置へ撃つ'],['autoFire','自動射撃','切ると、長押しで撃つ'],['shake','画面の揺れ','被弾と大きな攻撃の振動'],['flashes','被弾・無敵の点滅','切ると、赤い画面と点滅を抑える'],['gore','血飛沫の粒子と血痕','異形の絵そのものは変わらない']].map(([k,n,d])=>'<label class="settings-row"><span>'+n+'<small>'+d+'</small></span><input type="checkbox" data-setting="'+k+'" aria-label="'+n+'" '+(profile.settings[k]?'checked':'')+'></label>').join('')+'<div class="panel-actions"><button data-action="soundTest">効果音を試聴</button><button data-action="close">戻る</button></div>',true);
   }
   function help(){
-    show('help',header('HOW TO SURVIVE','生き残るために','')+'<div class="help-grid"><p><kbd>A</kbd><kbd>D</kbd> / ← →<br>左右へ滑るように移動</p><p><kbd>SPACE</kbd> / W / ↑<br>二段跳躍。空中でもう一度</p><p><kbd>SHIFT</kbd> / 右クリック<br>短い無敵回避。移動方向へ</p><p><kbd>E</kbd><br>撃破で溜まる大奇跡。敵弾を一掃</p><p><kbd>ESC</kbd><br>一時停止 / ビルド確認</p><p>マウスで照準、長押し射撃<br>自動照準・射撃は設定で切替</p></div><h3 class="section-label">葬送の流れ</h3><p class="help-copy">橙色の弾が敵の攻撃。足元の輪が、自分の当たり判定。<br>波の敵を絶やすと、強化をひとつ刻む。同じ強化が重なり、禁書の条件を満たせば「禁忌進化」が目を開く。<br>8波ごとに、聖堂の主。第32波で神を葬れば、帰るか、さらに深く降りるかを選べる。<br>倒れても遺灰は残る。遺灰は弔具・仮面・祭壇に変わる。</p><h3 class="section-label">連祷</h3><p class="help-copy">4.5秒のうちに葬りつづけるかぎり、連祷は途切れない。5体ごとに得点が伸び、最大2倍。生命を削られれば終わる。結界で受けたなら、まだ続く。</p><h3 class="section-label">パッドとスマホ</h3><p class="help-copy">左スティックで移動、A/×で跳躍、B/○で回避、X/□で大奇跡、STARTで休息。右スティックを倒しているあいだだけ手動照準。<br>スマホは横持ち専用。画面をなぞって移動、軽く叩いて跳躍、素早く横へ払って回避。照準と射撃は自動。</p><p class="minor">当たり判定の輪、背景の暗さ、演出の濃さは設定から。残りは禁書に記されている。</p><div class="panel-actions">'+(!run?'<button class="primary" data-action="training">操作を試す</button>':'')+'<button data-action="close">わかった</button></div>',true);
+    show('help',header('HOW TO SURVIVE','生き残るために','')+'<div class="help-grid"><p><kbd>A</kbd><kbd>D</kbd> / ← →<br>左右へ滑るように移動</p><p><kbd>SPACE</kbd> / W / ↑<br>二段跳躍。空中でもう一度</p><p><kbd>SHIFT</kbd> / 右クリック<br>短い無敵回避。移動方向へ</p><p><kbd>E</kbd><br>撃破で溜まる大奇跡。敵弾を一掃</p><p><kbd>ESC</kbd><br>一時停止 / ビルド確認</p><p>マウスで照準、長押し射撃<br>自動照準・射撃は設定で切替</p></div><h3 class="section-label">葬送の流れ</h3><p class="help-copy">橙色の弾が敵の攻撃。足元の輪が、自分の当たり判定。<br>波の敵を絶やすと、強化をひとつ刻む。同じ強化が重なり、禁書の条件を満たせば「禁忌進化」が目を開く。<br>8波ごとに、聖堂の主。第32波で神を葬れば、帰るか、さらに深く降りるかを選べる。<br>倒れても遺灰は残る。遺灰は弔具・仮面・祭壇に変わる。</p><h3 class="section-label">連祷</h3><p class="help-copy">4.5秒のうちに葬りつづけるかぎり、連祷は途切れない。5体ごとに得点が伸び、最大2倍。生命を削られれば終わる。結界で受けたなら、まだ続く。</p><h3 class="section-label">パッドとスマホ</h3><p class="help-copy">左スティックで移動、A/×で跳躍、B/○で回避、X/□で大奇跡、STARTで休息。右スティックを倒しているあいだだけ手動照準。<br>スマホは横持ち専用。画面をなぞって移動、右下のボタンで跳躍と回避。画面を軽く叩いても跳べる。照準と射撃は自動。</p><p class="minor">当たり判定の輪、背景の暗さ、演出の濃さは設定から。残りは禁書に記されている。</p><div class="panel-actions">'+(!run?'<button class="primary" data-action="training">操作を試す</button>':'')+'<button data-action="close">わかった</button></div>',true);
   }
   function startTraining(){training=new window.BCTraining.Training();run=training.run;openRun();trainingHud();}
   function trainingHud(){
@@ -377,7 +386,7 @@
   function dropTouch(id){points.delete(id);if(id===stickId)retakeStick();}
   function touchDown(e){
     const now=performance.now();
-    points.set(e.pointerId,{id:e.pointerId,x:e.clientX,anchor:e.clientX,from:e.clientX,at:now,slip:0,dashAt:-1e4,trail:[[e.clientX,now]]});
+    points.set(e.pointerId,{id:e.pointerId,x:e.clientX,anchor:e.clientX,from:e.clientX,at:now,slip:0});
     if(stickId===null)stickId=e.pointerId;
   }
   function touchDrag(e){
@@ -385,18 +394,7 @@
     p.x=e.clientX;p.slip=Math.max(p.slip,Math.abs(p.x-p.from));
     // 指を戻したときに素直に追従するよう、支点を引き寄せる。
     const dx=p.x-p.anchor;if(Math.abs(dx)>TOUCH.span)p.anchor=p.x-Math.sign(dx)*TOUCH.span;
-    p.trail.push([p.x,now]);while(p.trail.length>2&&now-p.trail[0][1]>TOUCH.trailMs)p.trail.shift();
     if(p.id===stickId)touchAxis=stickAxis(p);
-    // 直前より明らかに速く走った指だけを「払い」とみなす。
-    // ずっと同じ速さで滑らせているのは移動なので、回避にはしない。
-    let a=p.trail[0][0],b=p.trail[0][0];
-    for(const[x,t]of p.trail){if(t<=now-TOUCH.flickMs)a=x;if(t<=now-TOUCH.priorMs)b=x;}
-    const burst=p.x-a,prior=a-b;
-    if(Math.abs(burst)>=TOUCH.flick&&(Math.abs(prior)<TOUCH.priorMax||Math.sign(prior)!==Math.sign(burst))&&now-p.dashAt>TOUCH.flickRest){
-      p.dashAt=now;p.trail=[[p.x,now]];
-      if(p.id===stickId)touchAxis=Math.sign(burst);
-      input.dash=true;
-    }
   }
   function touchUp(e){
     const p=points.get(e.pointerId);if(!p)return;
@@ -411,16 +409,29 @@
     clearTimeout(hintTimer);hintTimer=setTimeout(()=>h.classList.remove('show'),5200);
   }
   function pointAim(e){const r=$('#game').getBoundingClientRect();input.aimX=(e.clientX-r.left)/r.width*960;input.aimY=(e.clientY-r.top)/r.height*540;mouseInside=e.pointerType!=='touch'&&input.aimX>=0&&input.aimX<=960&&input.aimY>=0&&input.aimY<=540;}
-  $('#game').addEventListener('pointermove',e=>{if(e.pointerType==='touch'){if(live())touchDrag(e);return;}pointAim(e);});
+  const surface=()=>$('#play-screen');
+  surface().addEventListener('pointermove',e=>{if(e.pointerType==='touch'){if(live())touchDrag(e);return;}pointAim(e);});
   $('#game').addEventListener('pointerleave',()=>{mouseInside=false;});
-  $('#game').addEventListener('pointerdown',e=>{
-    pointAim(e);padUsed=false;audio.unlock();touchMode=e.pointerType==='touch';try{$('#game').setPointerCapture(e.pointerId);}catch{}
-    if(e.pointerType==='touch'){e.preventDefault();if(live())touchDown(e);return;}
+  surface().addEventListener('pointerdown',e=>{
+    // ボタンの上から始まった指は、そのボタンのもの。
+    if(e.target.closest('button,a,select,input'))return;
+    pointAim(e);padUsed=false;audio.unlock();touchMode=e.pointerType==='touch';
+    if(e.pointerType==='touch'){
+      // 捕捉は指だけ。マウスで捕まえると #game へ pointerleave が飛んで照準が切れる。
+      e.preventDefault();try{surface().setPointerCapture(e.pointerId);}catch{}
+      if(live())touchDown(e);return;
+    }
     if(e.button===2)input.dash=true;else mouseDown=true;
   });
   $('#game').addEventListener('contextmenu',e=>e.preventDefault());
   window.addEventListener('pointerup',e=>{mouseDown=false;if(e.pointerType==='touch'){if(live())touchUp(e);else releaseTouch();}});
   window.addEventListener('pointercancel',e=>{mouseDown=false;if(e.pointerType==='touch')dropTouch(e.pointerId);});
+  document.querySelectorAll('#touch-pad [data-touch]').forEach(btn=>{
+    const press=e=>{e.preventDefault();if(!run||paused)return;touchMode=true;audio.unlock();btn.classList.add('pressed');input[btn.dataset.touch]=true;};
+    const release=()=>btn.classList.remove('pressed');
+    btn.addEventListener('pointerdown',press);
+    for(const type of ['pointerup','pointercancel','pointerleave'])btn.addEventListener(type,release);
+  });
   function suspend(){resetInput();if(run&&['playing','clearing'].includes(run.state)&&!paused)pause();audio.suspend();}
   window.addEventListener('blur',suspend);document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend();});
   let last=performance.now(),accumulator=0,hudTime=0;
