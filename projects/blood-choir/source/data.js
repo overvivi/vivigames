@@ -170,6 +170,15 @@
   ];
   const itemArt={"vitality":{"image":"relicA","index":0},"rate":{"image":"relicA","index":1},"lifesteal":{"image":"relicA","index":2},"multishot":{"image":"relicA","index":3},"critical":{"image":"relicA","index":4},"explosion":{"image":"relicA","index":5},"ember":{"image":"relicA","index":6},"sacrifice":{"image":"relicA","index":7},"damage":{"image":"relicB","index":0},"armor":{"image":"relicB","index":1},"critDamage":{"image":"relicB","index":2},"bulletSpeed":{"image":"relicB","index":3},"pierce":{"image":"relicB","index":4},"cleave":{"image":"relicB","index":5},"execution":{"image":"relicB","index":6},"split":{"image":"relicB","index":7},"bounce":{"image":"relicC","index":0},"homing":{"image":"relicC","index":1},"chill":{"image":"relicC","index":2},"familiar":{"image":"relicC","index":3},"echo":{"image":"relicC","index":4},"void":{"image":"relicC","index":5},"gravity":{"image":"relicC","index":6},"dash":{"image":"relicC","index":7},"speed":{"image":"relicD","index":0},"jump":{"image":"relicD","index":1},"regen":{"image":"relicD","index":2},"barrier":{"image":"relicD","index":3},"thorns":{"image":"relicD","index":4},"cooldown":{"image":"relicD","index":5},"magnet":{"image":"relicD","index":6},"fortune":{"image":"relicD","index":7},"plague":{"image":"relicE","index":0},"lightning":{"image":"relicE","index":1},"conduit":{"image":"relicE","index":2},"spore":{"image":"relicE","index":3},"growth":{"image":"relicE","index":4},"rage":{"image":"relicE","index":5},"rebirth":{"image":"relicE","index":6},"harvest":{"image":"relicE","index":7}};
   return{bestiaryProgress,achievementProgress,achievementTarget,practiceWaves,crowns,itemArt,schools,items,evolutions,resonances,weapons,ultimates,masks,meta,enemies,bosses,bossForWave,achievements,covenants,zones,damageSources,version:1,W:960,H:540,FLOOR:428,
-  // 遺灰の出どころ。雑魚は低確率の落とし物、主は確定。
-  ASH:{chance:.03,drop:1,boss:25,medal:.2,life:32}};
+  // 遺灰の落とし物ひとつの量と、床に残る秒数。実績の報酬は額面のこの割合。
+  ASH:{drop:1,medal:.2,life:32},
+  // 遊び方ごとの手応えと実入り。
+  // 葬送：32波で終わる。敵は硬くよく撃ち、冠付きも早く多い。遺灰は四体の主からだけで、深度が深いほど多い。
+  // 無限：底は無い。立ち上がりは穏やかで、32波を越えると主も雑魚も一波ごとに deep 倍ずつ硬くなり、撃つ間隔も詰まりつづける。
+  //       遺灰は低確率の落とし物だけ。
+  // deep は32波より先の一波ごとの硬さの倍率、rapid は射撃の速さの上限。
+  MODES:{
+    stage:{hp:1.25,grow:.09,bossHp:1.2,deep:1.035,rapid:2.2,fire:.8,hit:1.2,crownFrom:4,crownEvery:2,crownStep:13,bossAsh:25,depthAsh:.25,drop:0},
+    endless:{hp:1,grow:.075,bossHp:1,deep:1.08,rapid:3.5,fire:1,hit:1,crownFrom:9,crownEvery:3,crownStep:16,bossAsh:0,depthAsh:0,drop:.02}
+  }};
 });

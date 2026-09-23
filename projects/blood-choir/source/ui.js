@@ -112,14 +112,15 @@
   function title(){
     run=null;paused=false;lastState='';hidePanel();resetInput();$('#title-screen').hidden=false;$('#play-screen').hidden=true;
     $('#title-buttons').innerHTML=(checkpoint&&!profile.settled.includes(checkpoint.id)?'<button class="primary" data-action="continue">葬列を続ける <small>第'+checkpoint.wave+'波</small></button><button data-action="start">新たな葬送</button>':'<button class="primary" data-action="start">葬送を始める</button>')+'<button data-action="endlessRun">無限の葬送</button>';
-    $('#title-stats').textContent='最深 '+profile.best+' 波　 ·　遺灰 '+fmt(profile.ashes)+'　 ·　禁忌 '+profile.evolutions.length+'/8';titleGoal();audio.set(profile.settings,false);
+    $('#title-stats').textContent='最深 '+profile.abyss+' 波　 ·　遺灰 '+fmt(profile.ashes)+'　 ·　禁忌 '+profile.evolutions.length+'/8';titleGoal();audio.set(profile.settings,false);
   }
+  const medal=d=>Math.ceil(d.reward*D.ASH.medal);
   function achievementArt(id){return'<canvas data-achievement="'+id+'" width="128" height="128" aria-hidden="true"></canvas>';}
   function achievementMeter(d){const p=D.achievementProgress(profile,d.id);return'<div class="achievement-meter" role="progressbar" aria-label="'+d.name+'の進行" aria-valuemin="0" aria-valuemax="'+p.target+'" aria-valuenow="'+p.current+'"><i style="width:'+p.ratio*100+'%"></i></div><div class="achievement-count"><span>'+fmt(p.current)+' / '+fmt(p.target)+' '+p.unit+'</span><small>'+(profile.achievements.includes(d.id)?'達成済み':p.remaining?'あと '+fmt(p.remaining)+' '+p.unit:'帰還時に記録')+'</small></div>';}
   function titleGoal(){
     const root=$('#title-goal'),d=D.achievementTarget(profile);if(!root)return;
     if(!d){root.innerHTML='<p class="all-achievements">すべての祈りを、刻んだ。<br><small>実績 '+D.achievements.length+' / '+D.achievements.length+'</small></p>';return;}
-    const earned=profile.achievements.includes(d.id);root.innerHTML='<button data-action="achievementDetail" data-id="'+d.id+'" class="title-goal-button">'+achievementArt(d.id)+'<span><small>'+(earned?'祈りは、刻まれた':profile.achievementGoal?'狙っている実績':'次の祈り')+'</small><strong>'+d.name+'</strong><span class="goal-desc">'+d.desc+'</span>'+achievementMeter(d)+'<em>'+(earned?'次の目標を選ぶ ›':'達成報酬 '+d.reward+' 遺灰　›')+'</em></span></button>';paintPortraits(root);
+    const earned=profile.achievements.includes(d.id);root.innerHTML='<button data-action="achievementDetail" data-id="'+d.id+'" class="title-goal-button">'+achievementArt(d.id)+'<span><small>'+(earned?'祈りは、刻まれた':profile.achievementGoal?'狙っている実績':'次の祈り')+'</small><strong>'+d.name+'</strong><span class="goal-desc">'+d.desc+'</span>'+achievementMeter(d)+'<em>'+(earned?'次の目標を選ぶ ›':'達成報酬 '+medal(d)+' 遺灰　›')+'</em></span></button>';paintPortraits(root);
   }
   function pinAchievement(id){
     const d=D.achievements.find(a=>a.id===id);if(!d||profile.achievements.includes(id)||profile.achievementGoal===id)return;
@@ -143,9 +144,7 @@
     const w=D.weapons.find(w=>w.id===profile.weapon),m=D.masks.find(m=>m.id===profile.mask);
     selectionDifficulty=C.clamp(selectionDifficulty,0,Math.min(4,profile.clearedDifficulty+1));
     let content=header(endless?'NO END BELOW':'DESCENT INTO THE CHOIR',endless?'無限の葬送':'葬送の支度',endless?'底は無い。どこまで潜れるか、それだけ。':'神は死ななかった。ただ、地下で腐り始めた。');
-    if(endless)content+='<p class="help-copy">第32波で終わらない。敵は増えつづけ、硬くなりつづける。</p>';
-    content+='<div class="codex-row">'+art(w)+'<canvas class="setup-costume" data-mask="'+m.id+'" width="120" height="120" aria-hidden="true"></canvas>'+'<p class="help-copy">'+w.name+' × '+m.name+'<br><button data-action="loadout">装備を変える</button></p></div><div class="setup-options"><div><label class="minor" for="difficulty">深度</label><select id="difficulty" class="option-select">'+['I — 地下聖堂','II — 異端の夜','III — 血の巡礼','IV — 神の臓腑','V — 最後の告解'].map((x,i)=>'<option value="'+i+'" '+(i>profile.clearedDifficulty+1?'disabled':'')+(i===selectionDifficulty?' selected':'')+'>'+x+(i>profile.clearedDifficulty+1?'（前の深度クリアで解放）':'')+'</option>').join('')+'</select></div>';
-    content+='</div>';
+    content+='<div class="codex-row">'+art(w)+'<canvas class="setup-costume" data-mask="'+m.id+'" width="120" height="120" aria-hidden="true"></canvas>'+'<p class="help-copy">'+w.name+' × '+m.name+'<br><button data-action="loadout">装備を変える</button></p></div>'+(endless?'':'<div class="setup-options"><div><label class="minor" for="difficulty">深度</label><select id="difficulty" class="option-select">'+['I — 地下聖堂','II — 異端の夜','III — 血の巡礼','IV — 神の臓腑','V — 最後の告解'].map((x,i)=>'<option value="'+i+'" '+(i>profile.clearedDifficulty+1?'disabled':'')+(i===selectionDifficulty?' selected':'')+'>'+x+(i>profile.clearedDifficulty+1?'（前の深度クリアで解放）':'')+'</option>').join('')+'</select></div></div>');
 
     content+=ritualCard(w.id);
     if(checkpoint)content+='<p class="minor">新たに始めれば、中断中の葬送は終わる。遺灰は持ち帰る。</p>';
@@ -255,7 +254,7 @@
     }
     if(codexTab==='achievements'){
       html+='<div class="achievement-guide"><p>帰還して刻んだ足跡。ひとつ選べば、扉に飾れる。</p>'+(profile.achievementGoal?'<button data-action="clearAchievementGoal">目標を自動で選ぶ</button>':'')+'</div>';
-      html+=D.achievements.map(d=>{const earned=profile.achievements.includes(d.id),pinned=profile.achievementGoal===d.id;return'<div id="achievement-'+d.id+'" class="item-tile achievement-tile '+(earned?'selected':'')+(pinned?' pinned':'')+'"><div class="codex-row">'+achievementArt(d.id)+'<div><small>'+(pinned?'狙っている実績':earned?'記録済みの祈り':'まだ刻まれぬ祈り')+'</small><h3>'+d.name+'</h3></div></div><p>'+d.desc+'</p>'+achievementMeter(d)+'<div class="achievement-actions"><small>'+(earned?'報酬獲得済み':d.reward+' 遺灰')+'</small>'+(!earned?'<button data-action="achievementGoal" data-id="'+d.id+'" aria-pressed="'+pinned+'">'+(pinned?'目標に設定済み':'目標にする')+'</button>':'')+'</div></div>';}).join('');
+      html+=D.achievements.map(d=>{const earned=profile.achievements.includes(d.id),pinned=profile.achievementGoal===d.id;return'<div id="achievement-'+d.id+'" class="item-tile achievement-tile '+(earned?'selected':'')+(pinned?' pinned':'')+'"><div class="codex-row">'+achievementArt(d.id)+'<div><small>'+(pinned?'狙っている実績':earned?'記録済みの祈り':'まだ刻まれぬ祈り')+'</small><h3>'+d.name+'</h3></div></div><p>'+d.desc+'</p>'+achievementMeter(d)+'<div class="achievement-actions"><small>'+(earned?'報酬獲得済み':medal(d)+' 遺灰')+'</small>'+(!earned?'<button data-action="achievementGoal" data-id="'+d.id+'" aria-pressed="'+pinned+'">'+(pinned?'目標に設定済み':'目標にする')+'</button>':'')+'</div></div>';}).join('');
     }
     show('codex',html+'</div>');
   }
@@ -279,9 +278,9 @@
     const match=/^(\d+)$/.exec(String(key));return match?profile.records[Number(match[1])]:null;
   }
   function records(){
-    let html=header('EPITAPHS','墓碑銘','この端末に眠る、過去の葬送。')+'<div class="result-stats"><div><strong>'+profile.best+'</strong><small>最深ウェーブ</small></div><div><strong>'+fmt(profile.kills)+'</strong><small>総撃破</small></div><div><strong>'+profile.runs+'</strong><small>挑戦</small></div><div><strong>'+profile.dailyBest+'</strong><small>日替わり最深</small></div></div>';
+    let html=header('EPITAPHS','墓碑銘','この端末に眠る、過去の葬送。')+'<div class="result-stats"><div><strong>'+profile.abyss+'</strong><small>無限の最深</small></div><div><strong>'+fmt(profile.kills)+'</strong><small>総撃破</small></div><div><strong>'+profile.runs+'</strong><small>挑戦</small></div><div><strong>'+(profile.clearedDifficulty<0?'—':'深度 '+(profile.clearedDifficulty+1))+'</strong><small>葬送の踏破</small></div></div>';
     if(!profile.records.length)html+='<p class="empty-state">まだ墓碑に名はない。<br>最初の葬送を始めよう。</p>';
-    else html+='<div class="record-scroll"><table class="record-table"><thead><tr><th>NO.</th><th>到達</th><th>弔具</th><th>刻印</th></tr></thead><tbody>'+profile.records.map((r,i)=>'<tr><td>'+String(i+1).padStart(2,'0')+'</td><td>'+r.wave+' 波</td><td>'+D.weapons.find(w=>w.id===r.weapon).name+'</td><td>'+'深度 '+(r.difficulty+1)+(r.won?' · 神殺し':'')+'</td></tr>').join('')+'</tbody></table></div><p class="minor">到達の深い順に30件。</p>';
+    else html+='<div class="record-scroll"><table class="record-table"><thead><tr><th>NO.</th><th>到達</th><th>弔具</th><th>刻印</th></tr></thead><tbody>'+profile.records.map((r,i)=>'<tr><td>'+String(i+1).padStart(2,'0')+'</td><td>'+r.wave+' 波</td><td>'+D.weapons.find(w=>w.id===r.weapon).name+'</td><td>'+(r.endless?'無限':'深度 '+(r.difficulty+1)+(r.won?' · 神殺し':''))+'</td></tr>').join('')+'</tbody></table></div><p class="minor">到達の深い順に30件。</p>';
     html+=weaponLedger();show('records',html);
   }
   function epitaph(r){
@@ -305,14 +304,14 @@
     if(!data||data.app!=='BLOOD CHOIR'||data.version!==1||!data.profile||data.profile.version!==1){toast('BLOOD CHOIRの記録ファイルではありません。');return;}
     const restored=data.checkpoint?C.Run.restore(data.checkpoint):null;if(data.checkpoint&&!restored){toast('中断記録が壊れているため、読み込みを中止しました。');return;}
     const next=C.normalizeProfile(data.profile);pendingImport={profile:next,checkpoint:restored&&!next.settled.includes(restored.id)?restored.checkpoint():null};
-    show('import',header('BRING THE DEAD HOME','この記録へ、戻る。','現在の記録は、読み込み前の控えとして残します。',false)+'<div class="result-stats"><div><strong>'+next.best+'</strong><small>最深ウェーブ（現在 '+profile.best+'）</small></div><div><strong>'+fmt(next.ashes)+'</strong><small>遺灰（現在 '+fmt(profile.ashes)+'）</small></div><div><strong>'+next.runs+'</strong><small>挑戦回数</small></div><div><strong>'+next.evolutions.length+'/8</strong><small>発見した進化</small></div></div><p class="progress-line">中断した葬送：'+(pendingImport.checkpoint?'第'+pendingImport.checkpoint.wave+'波':'なし')+'</p><div class="panel-actions"><button class="primary" data-action="confirmImport">この記録へ切り替える</button><button data-action="settings">取り消す</button></div>');
+    show('import',header('BRING THE DEAD HOME','この記録へ、戻る。','現在の記録は、読み込み前の控えとして残します。',false)+'<div class="result-stats"><div><strong>'+next.abyss+'</strong><small>無限の最深（現在 '+profile.abyss+'）</small></div><div><strong>'+fmt(next.ashes)+'</strong><small>遺灰（現在 '+fmt(profile.ashes)+'）</small></div><div><strong>'+next.runs+'</strong><small>挑戦回数</small></div><div><strong>'+next.evolutions.length+'/8</strong><small>発見した進化</small></div></div><p class="progress-line">中断した葬送：'+(pendingImport.checkpoint?'第'+pendingImport.checkpoint.wave+'波':'なし')+'</p><div class="panel-actions"><button class="primary" data-action="confirmImport">この記録へ切り替える</button><button data-action="settings">取り消す</button></div>');
   }
   function victory(){
     const image='<div class="victory-art"><img src="assets/runtime/ending.webp" onerror="this.onerror=null;this.src=\'assets/ending.png\'" alt="鼓動を止めた神の心臓に、地上から淡い光が差し込む"><span>AND AT LAST, THERE WAS SILENCE.</span></div>';
     const summary='<div class="victory-summary"><div class="result-stats"><div><strong>32</strong><small>突破</small></div><div><strong>'+fmt(run.kills)+'</strong><small>葬った異形</small></div><div><strong>'+run.evolved.length+'</strong><small>禁忌進化</small></div><div><strong>'+fmt(run.souls)+'</strong><small>遺灰</small></div></div><p class="progress-line">葬送時間 '+minutes(run.time)+'</p></div>';
-    show('victory','<h2 id="panel-title" class="result-title victory-title">THE GOD IS SILENT</h2><div class="victory-scene">'+image+summary+'</div><div class="panel-actions"><button class="primary" data-action="endless">さらに深く</button><button data-action="finish">帰還する</button></div>');
+    show('victory','<h2 id="panel-title" class="result-title victory-title">THE GOD IS SILENT</h2><div class="victory-scene">'+image+summary+'</div><div class="panel-actions"><button class="primary" data-action="finish">帰還する</button></div>');
   }
-  function finish(){if(!run)return;run.outcome=run.completed>=32?'victory':'retired';settlement=settleRun(run);run.state='dead';lastState='dead';results();}
+  function finish(){if(!run)return;run.outcome=!run.endless&&run.completed>=32?'victory':'retired';settlement=settleRun(run);run.state='dead';lastState='dead';results();}
   function results(){
     const won=run.completed>=32;let html='<div class="eyebrow" style="text-align:center">'+(won?'THE REQUIEM IS COMPLETE':'THE CHOIR REMEMBERS')+'</div><h2 id="panel-title" class="result-title">'+(won?'GOD SLAIN':'YOU ARE REMEMBERED')+'</h2><p class="result-sub">'+(won?'神を葬った者':'またひとつ、歌声が増えた。')+'</p>';
     html+='<div class="result-stats"><div><strong>'+run.completed+'</strong><small>突破ウェーブ</small></div><div><strong>'+fmt(run.kills)+'</strong><small>撃破</small></div><div><strong>+'+fmt(run.souls)+'</strong><small>持ち帰った遺灰</small></div></div><div class="result-build">'+Object.keys(run.stacks).map(id=>'<span title="'+C.lookup[id].name+' '+run.count(id)+'">'+art(C.lookup[id])+'</span>').join('')+'</div>';
@@ -322,7 +321,7 @@
     if(run.secretKills)html+='<p class="progress-line">忘却の弔鐘を葬った回数 '+run.secretKills+'</p>';
     html+=resonanceSection(run.evolved);
     html+=medalGains();
-    if(settlement.length)html+='<div class="achievements-earned">'+settlement.map(a=>'実績「'+a.name+'」　+'+a.reward+' 遺灰').join('<br>')+'</div>';
+    if(settlement.length)html+='<div class="achievements-earned">'+settlement.map(a=>'実績「'+a.name+'」　+'+medal(a)+' 遺灰').join('<br>')+'</div>';
     html+='<div class="panel-actions"><button class="primary" data-action="retry">もう一度、葬送へ</button><button data-action="title">扉へ戻る</button></div>';
     show('results',html);
   }
@@ -359,7 +358,7 @@
     if(a==='importSave'&&!run)$('#import-save').click();
     if(a==='restoreBackup'&&!run)previewImport(read(KEY+'.backup'));
     if(a==='confirmImport'&&!run&&pendingImport){const next={app:'BLOOD CHOIR',version:1,profile:pendingImport.profile,checkpoint:pendingImport.checkpoint};if(!saves.importBundle(next,saveBundle())){toast('読み込みを完了できませんでした。元の記録を保ち、切り替えを中止しています。');return;}Object.assign(profile,pendingImport.profile);checkpoint=pendingImport.checkpoint;pendingImport=null;profilePending=false;title();toast('記録を読み込みました。');}
-    if(a==='endless'&&run.continueEndless()){saveRun();upgrade();}if(a==='soundTest')audio.play('clear');
+    if(a==='soundTest')audio.play('clear');
     if(qa&&a.startsWith('qa'))qaAction(a);
   });
   document.addEventListener('input',e=>{const key=e.target.dataset.setting;if(!key)return;profile.settings[key]=e.target.type==='checkbox'?e.target.checked:key==='damageNumbers'?e.target.value:Number(e.target.value);saveProfile();audio.set(profile.settings,!!run&&!paused);});
@@ -457,7 +456,7 @@
     if(a==='qaAsh'){profile.ashes+=500;saveProfile();toast('検証用遺灰 +500');}
     if(a==='qaStress'){for(const d of D.items)run.stacks[d.id]=d.max;run.evolved=D.evolutions.map(d=>d.id);run.stats=run.computeStats();run.beginWave(96);run.intro=0;run.spawnLeft=0;run.bossSpawned=true;for(let i=0;i<64;i++){const e=run.spawn(i%8,false,40+(i%16)*58,70+Math.floor(i/16)*65);e.hp=e.maxHp=1e9;}qaGod=true;resume();hud(true);toast('最大能力・64体の負荷検証');}
   }
-  if(qa){$('#qa-tools').hidden=false;$('#qa-tools').innerHTML='<span>QA · 通常保存は使いません</span><button data-action="qaStart">検証開始</button><select id="qa-wave" aria-label="検証ウェーブ">'+[1,8,9,16,24,32,48,64,96].map(n=>'<option>'+n+'</option>').join('')+'</select><button data-action="qaWave">波へ移動</button><button data-action="qaGod">無敵</button><button data-action="qaClear">殲滅</button><button data-action="qaBuild">進化準備</button><button data-action="qaPhase">第二段階</button><button data-action="qaDie">死亡</button><button data-action="qaAsh">遺灰</button><button data-action="qaStress">負荷</button>';}
+  if(qa){$('#qa-tools').hidden=false;$('#qa-tools').innerHTML='<span>QA · 通常保存は使いません</span><button data-action="qaStart">検証開始</button><select id="qa-wave" aria-label="検証ウェーブ">'+[1,4,8,10,16,24,32,48,64,96].map(n=>'<option>'+n+'</option>').join('')+'</select><button data-action="qaWave">波へ移動</button><button data-action="qaGod">無敵</button><button data-action="qaClear">殲滅</button><button data-action="qaBuild">進化準備</button><button data-action="qaPhase">第二段階</button><button data-action="qaDie">死亡</button><button data-action="qaAsh">遺灰</button><button data-action="qaStress">負荷</button>';}
   $('#loading-retry').addEventListener('click',()=>location.reload());
   renderer.load(false,(done,total)=>{if(!$('#loading-retry').hidden)return;document.querySelector('#loading-text').textContent='聖堂の扉を開いています… '+Math.round(done/total*100)+'%';document.querySelector('#loading-progress').value=done/total;}).then(()=>{for(const key of ['cover','icons','frame','evolutions','resonances'])document.documentElement.style.setProperty('--'+key+'-image','url("'+renderer.assets[key].src+'")');$('#loading').hidden=true;title();requestAnimationFrame(frame);}).catch(err=>{$('#loading-text').textContent='絵の読み込みが途中で止まりました。もう一度お試しください。';$('#loading-progress').hidden=true;$('#loading-retry').hidden=false;console.error(err);});
 })();
