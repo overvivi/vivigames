@@ -24,6 +24,7 @@ const PRIORITY = ['damage', 'rate', 'vitality', 'multishot', 'critical', 'regen'
 
 function playWave(r) {
   const startHp = r.p.hp;
+  const startSouls = r.souls;
   const startTime = r.time;
   let shots = 0;
   let firstShot = Infinity;
@@ -56,7 +57,7 @@ function playWave(r) {
     r.events = [];
     frames++;
   }
-  return { shots, firstShot, hurt: Math.max(0, startHp - r.p.hp), seconds: r.time - startTime };
+  return { shots, firstShot, hurt: Math.max(0, startHp - r.p.hp), ash: r.souls - startSouls, seconds: r.time - startTime };
 }
 
 const rows = [];
@@ -87,7 +88,7 @@ for (const row of rows) {
   by.get(k).push(row);
 }
 console.log('深度 ' + (depth + 1) + ' / seed ' + SEEDS.join(',') + ' / 祭壇 ' + ({none:'なし',mid:'半分',full:'最大'})[metaMode]);
-console.log('波   出現   初弾   敵弾   被弾    秒   残生命');
+console.log('波   出現   初弾   敵弾   被弾   遺灰    秒   残生命');
 for (const [wave, list] of [...by.entries()].sort((a, b) => a[0] - b[0])) {
   const avg = f => list.reduce((s, x) => s + f(x), 0) / list.length;
   const first = list.map(x => x.firstShot).filter(Number.isFinite);
@@ -97,9 +98,11 @@ for (const [wave, list] of [...by.entries()].sort((a, b) => a[0] - b[0])) {
     (first.length ? fmt(first.reduce((s, x) => s + x, 0) / first.length) : '  ∞ ') + '  ' +
     avg(x => x.shots).toFixed(0).padStart(5) + '  ' +
     avg(x => x.hurt).toFixed(0).padStart(5) + '  ' +
+    avg(x => x.ash).toFixed(1).padStart(5) + '  ' +
     avg(x => x.seconds).toFixed(1).padStart(5) + '  ' +
     avg(x => x.hp).toFixed(0).padStart(5)
   );
 }
 const dead = rows.filter(r => r.state === 'dead').length;
-console.log('\n倒れた回数: ' + dead + ' / ' + SEEDS.length);
+const ashTotal = rows.reduce((s, r) => s + r.ash, 0) / SEEDS.length;
+console.log('\n倒れた回数: ' + dead + ' / ' + SEEDS.length + ' / 遺灰の合計 ' + ashTotal.toFixed(0));

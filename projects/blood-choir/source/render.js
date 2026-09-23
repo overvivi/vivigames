@@ -49,6 +49,7 @@
       if(e.type==='jump'||e.type==='dash')add('dust',.4,{x:e.x,y:e.y+15,dash:e.type==='dash'});
       if(e.type==='ultimate'){this.shake=9;const d=D.ultimates?.[e.weapon||'lantern'];add('sprite',1.05,{x:e.weapon==='needle'?480:e.x,y:e.weapon==='needle'?160:e.weapon==='scythe'?e.y:e.y-65,size:e.weapon==='scythe'?570:440,row:d?.row??3,image:d?.image||'skillfx',rows:d?3:4});}
       if(e.type==='ritualStrike')add('sprite',.38,{x:e.x,y:e.y,size:115,row:0,image:'ultimateB',rows:3});
+      if(e.type==='ash')this.addNumber({id:'ash',x:e.x,y:e.y-25,n:e.n,color:'#e0d2b6',heal:true});
       if(e.type==='heal')this.addNumber({id:'heal',x:e.x,y:e.y-25,n:e.n,color:'#bddf9b',heal:true});
       if(e.type==='revive')add('nova',1.2,{x:480,y:350});
       if(e.type==='evolve')add('nova',1.3,{x:480,y:270});
@@ -134,9 +135,10 @@
           const kind=b.sprite??(run.has('ossuary')?1:['lantern','needle','censer','bell','book','scythe'].indexOf(run.weapon.id));
           c.save();c.translate(Math.round(b.x),Math.round(b.y));c.rotate(Math.atan2(b.vy,b.vx));this.sprite('projectiles',kind,6,2,0,0,b.r*6.4,b.r*6.4,false,.98*fx);c.restore();
         }
-        for(const v of run.pickups){const bob=Math.sin(t*4+v.x)*1.4,fade=v.life<3?.5+Math.sin(t*10)*.3:1;
-          if(v.souls)this.sprite('ash',0,1,1,v.x,v.y+bob,26,26,false,fade);
-          else this.sprite('projectiles',10,6,2,v.x,v.y+bob,28,28,false,fade);}
+        for(const v of run.pickups){const fade=v.life<3?.5+Math.sin(t*10)*.3:1;
+          // 壺は地面に据わっているので揺らさず、底が床の線に合う高さへ置く。
+          if(v.souls)this.sprite('ash',0,1,1,v.x,v.y-2,26,26,false,fade);
+          else this.sprite('projectiles',10,6,2,v.x,v.y+Math.sin(t*4+v.x)*1.4,28,28,false,fade);}
         this.drawPlayer(run,dt);
         if(run.intro>0&&!run.training){c.save();c.globalAlpha=Math.min(1,run.intro*2);c.fillStyle='rgba(10,8,11,.86)';c.textAlign='center';
           if(run.wave%8===0){const boss=D.bossForWave(run.wave);c.fillRect(170,175,620,142);c.strokeStyle='#a3556355';c.strokeRect(170,175,620,142);c.fillStyle='#ba9870';c.font='11px Georgia';c.fillText('REQUIEM '+Math.ceil(run.wave/8)+' · '+boss.subtitle,480,202);c.fillStyle='#ecded0';c.font='bold 27px sans-serif';c.fillText(boss.name,480,249);c.fillStyle='#c5ada6';c.font='13px sans-serif';c.fillText(boss.tactic,480,287);}
