@@ -1,5 +1,7 @@
 # BLOOD CHOIR — 血の聖歌
 
+- 2026-09-23 回転の対象を #play-screen から #app へ広げ、タイトル・禁書・祭壇・墓碑まで全画面を横向きに。寸法は --vw/--vh 変数に通し、回転時だけ入れ替える。回転中は画面幅が端末の短辺のままなので、細い画面用の指定37ブロックを body:not(.turned) に限定し、横持ち用6ブロックを body.turned へ複製した。
+- 2026-09-23 不具合修正: 前回 #toast を回転対象に入れたせいで、封印などの通知が画面の半分を占める空の巨大な箱になっていた。#app 方式へ移したことで個別指定ごと解消（実測 160×48 の通常サイズ）。
 - 2026-09-23 縦持ちでも横で遊べるようにした。iOS Safari は screen.orientation.lock も manifest の orientation も効かないため、戦闘中の #play-screen / #overlay / #toast を rotate(90deg) translateY(-100%) で回し、幅100dvh・高さ100dvw で画面へ敷く。回転ロックを外さずに端末を横へ倒すだけで正しい向きになる。指の横移動が画面の縦移動になるので alongX() で軸を入れ替えた。横持ち用の詰め指定は @media(pointer:coarse) へ広げた（回転後も max-width:600px の縦向け指定が当たり、強化の札が808pxに伸びていた）。縦持ちを塞いでいた #rotate-gate は不要になったので撤去。
 - 2026-09-23 稽古（チュートリアル）を撤去。source/training.js、startTraining/trainingHud/trainingResults、#training-hint、支度と遊び方の入口、関連CSSとspec 2件を削除。ビルド 301.0→292.5KB、スクリプト9→8本。
 - 2026-09-23 手元のボタンを一段小さくし、地面との余裕を4px→12〜13pxへ（高さ47〜54px）。休息ボタンがHUDの遺灰と重なっていたので .score-block に右余白を入れて避けた。

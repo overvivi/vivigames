@@ -19,6 +19,9 @@
   const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15};
   // 縦持ちのときは盤面ごと90度回して描くので、指の「横」は画面の「縦」になる。
   const turned=matchMedia('(pointer:coarse) and (orientation:portrait)');
+  // 回している間は、細い画面用のレイアウトではなく横持ちの指定を当てる。
+  const markTurn=()=>document.body.classList.toggle('turned',turned.matches);
+  markTurn();turned.addEventListener('change',markTurn);
   const alongX=e=>turned.matches?e.clientY:e.clientX;
   const points=new Map();let stickId=null,touchAxis=0,hintTimer=0,tapTimer=0;
   const keys=new Set(),input={move:0,aimX:480,aimY:140,fire:false,autoAim:true,jump:false,dash:false,ultimate:false};let mouseDown=false,mouseInside=false;

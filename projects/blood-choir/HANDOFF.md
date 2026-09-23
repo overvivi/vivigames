@@ -106,9 +106,13 @@ for (const e of ready.slice(0, Math.max(1, this.stats.choices - 1))) choices.pus
 
 ### 2.6 スマホ操作
 
-- **縦持ちのままでも横で遊べる。** 戦闘中は `#play-screen` / `#overlay` / `#toast` を
-  `transform:rotate(90deg) translateY(-100%)` で回し、幅に `100dvh`・高さに `100dvw` を当てて画面いっぱいに敷く。
+- **タイトルから図鑑まで、縦持ちの端末では画面ごと横向きに描く。** `#app` を
+  `transform:rotate(90deg) translateY(-100%)` で回し、幅に `100dvh`・高さに `100dvw` を当てる。
   端末の回転ロックを外さなくても、スマホを横に倒せば正しい向きで読める
+- 寸法は `--vw` / `--vh` の変数に通してあり、回転時だけ中身を入れ替える。CSSで `100dvh` や `100vw` を直接書かないこと
+- 回転中は画面幅が端末の短辺のままなので、`max-width:600px` 等の細い画面用は `body:not(.turned)` に限定し、
+  横持ちの端末用（`max-height:560px and orientation:landscape`）を `body.turned` へ複製してある。
+  レイアウト指定を足すときは、この二本立てを崩さないこと
 - **iOS Safari は向きの固定に対応しない。** `screen.orientation.lock()` は未実装で、
   manifest の `orientation:landscape` も無視される。だから中身を回す以外に手が無い
 - 回転中は指の横移動が画面の縦移動になるので、`ui.js` の `alongX()` が `clientX`/`clientY` を切り替える
