@@ -154,7 +154,9 @@
     damageValue(){return this.stats.damage*(1+clamp(1-this.p.hp/this.stats.hp,0,1)*this.stats.rage);}
     
     beginWave(wave){
-      this.wave=wave;this.state='playing';this.waveTime=0;this.clearElapsed=0;this.waveDamage=0;this.intro=1.4;this.spawnTimer=.2;this.bossSpawned=false;this.enemies=[];this.bullets=[];this.hostile=[];this.fields=[];this.pickups=[];this.hazards=[];this.rituals=[];this.choices=[];
+      this.wave=wave;this.state='playing';this.waveTime=0;this.clearElapsed=0;this.waveDamage=0;this.intro=1.4;this.spawnTimer=.2;this.bossSpawned=false;this.enemies=[];this.bullets=[];this.hostile=[];this.fields=[];this.hazards=[];this.rituals=[];this.choices=[];
+      // 遺灰だけは波をまたいで床に残り、自前の寿命で朽ちる。回復片は結果画面で回収済み。
+      this.pickups=(this.pickups||[]).filter(v=>v.life>0&&v.souls>0);
       this.spawnLeft=wave%8===0?Math.min(10,3+Math.floor(wave/8)):Math.min(56,7+Math.floor(wave*1.5));
       if(this.practice)this.spawnLeft=0;this.spawnIndex=0;this.combo=0;this.comboTime=0;
       this.p.x=480;this.p.y=D.FLOOR-22;this.p.vx=this.p.vy=0;this.p.grounded=true;this.p.jumps=this.p.jumpBuffer=0;this.p.invuln=1;this.p.dashTime=this.p.dashCD=this.p.shotCD=0;this.timers={lightning:2,void:3,cleave:2,familiar:.7,barrier:8,sanguine:0};this.emit('wave',{wave});
@@ -224,7 +226,7 @@
     completeWave(){
       if(this.practice){
         if(['practiceRest','practiceDone','dead'].includes(this.state))return;
-        this.completed=this.wave;this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=[];this.rituals=[];
+        this.completed=this.wave;this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=(this.pickups||[]).filter(v=>v.life>0&&v.souls>0);this.rituals=[];
         if(this.gauntlet){const g=this.gauntlet;g.history.push({wave:this.wave,time:this.time-g.stageStart,damage:this.waveDamage,hp:this.p.hp,revives:this.revivesUsed-g.stageRevives,boon:null});g.cleared++;this.state=g.cleared<g.waves.length?'practiceRest':'practiceDone';}
         else this.state='practiceDone';this.emit('clear',{wave:this.wave});return;
       }
@@ -234,7 +236,7 @@
       this.growth+=this.count('growth')*.02;this.stats=this.computeStats();this.p.hp=Math.min(this.stats.hp,this.p.hp+leftoverHeal+6+(this.meta.mercy||0)*2+(this.wave%8===0?this.stats.hp*.18:0));
       this.waveReport={souls:this.souls-beforeSouls,heal:Math.round(this.p.hp-beforeHp),flawless:this.waveDamage===0};
       if(this.wave%8===0&&this.has('phoenix'))this.rebirths++;
-      this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=[];this.emit(this.wave===32?'victory':'clear',{wave:this.wave,flawless:this.waveDamage===0});
+      this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=(this.pickups||[]).filter(v=>v.life>0&&v.souls>0);this.emit(this.wave===32?'victory':'clear',{wave:this.wave,flawless:this.waveDamage===0});
       this.covenantChoices=[];
       if(this.wave%8===0){const pool=D.covenants.filter(d=>!this.covenants.includes(d.id));while(pool.length&&this.covenantChoices.length<3)this.covenantChoices.push(pool.splice(Math.floor(this.offerRandom()*pool.length),1)[0].id);}
       if(this.wave===32&&!this.endless){this.state='victory';return;}this.state='upgrade';this.choices=this.drawChoices();
@@ -330,7 +332,7 @@
     kill(e){
       if(e.dead)return;e.dead=true;this.kills++;if(enemyIds.has(e.kind))this.enemyKills[e.kind]=(this.enemyKills[e.kind]||0)+1;if(e.crown){const d=D.crowns.find(d=>d.id===e.crown);this.crownKills++;this.souls+=d.reward;this.emit('crownDeath',{x:e.x,y:e.y,reward:d.reward});}if(e.kind==='oblivion')this.secretKills++;if(e.kind==='reliquary')this.reliquaryKills++;this.charge=Math.min(this.stats.ultimate,this.charge+(e.boss?10:1));
       if(e.boss)this.souls+=Math.ceil(D.ASH.boss*this.stats.harvest);
-      else if(this.random()<D.ASH.chance)this.pickups.push({x:e.x,y:e.y,vy:-60,life:16,heal:0,souls:Math.ceil(D.ASH.drop*this.stats.harvest)});
+      else if(this.random()<D.ASH.chance)this.pickups.push({x:e.x,y:e.y,vy:-60,life:D.ASH.life,heal:0,souls:Math.ceil(D.ASH.drop*this.stats.harvest)});
       
       if(this.covenants.includes('hunger')&&this.p.hp>0)this.p.hp=Math.min(this.stats.hp,this.p.hp+1);
       this.emit('death',{x:e.x,y:e.y,boss:e.boss,sprite:e.sprite,enemyKind:e.kind,size:e.r*(e.boss?3.05:3.25),flip:e.facing<0,pose:{boss:e.boss,sprite:e.sprite,kind:e.kind,age:e.age,arrival:e.arrival,arrivalDuration:e.arrivalDuration,cast:e.cast,shoot:e.shoot,gap:e.gap?{...e.gap}:null}});
