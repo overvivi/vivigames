@@ -102,6 +102,8 @@ for (const e of ready.slice(0, Math.max(1, this.stats.choices - 1))) choices.pus
 - 盤面の右上に休息ボタン `❙❙`（`#pause-frame`）。上バーの `#pause-top` は撤去済み
 - 勝利画面は `THE GOD IS SILENT` を大見出し（最大58px）。日本語見出しと詩と末尾の説明を削除
 - **遺灰が減る購入にだけ確認を挟む**（`confirmBuy` → `commitBuy`）。持っている装備の付け替えは無料なので素通し
+- **封印にも確認を挟む**（`confirmBanish` → `commitBanish`）。カードの下端は指の置き場で誤タップしやすいため。
+  封印は `遺灰の祭壇` の「封印の祭壇」（最大3段階）で1挑戦あたり最大4回まで増やせる
 - PC（`pointer:fine` かつ 900px以上）で盤面1860px、HUDを `clamp` で拡大
 
 ### 2.6 スマホ操作

@@ -178,6 +178,12 @@
     if(id==='gravity'&&!s.void)html+='<span class="evolution-hint">虚ろな聖痕を得ると効果を発揮</span>';
     return html;
   }
+  function confirmBanish(id){
+    const d=C.lookup[id];if(!d||!run||run.banishes<=0)return;
+    show('confirmBanish',header('CAST IT FROM THE RITE','封印する。',d.name,false)
+      +'<div class="buy-confirm">'+art(d)+'<div><p>'+d.desc+'</p><p class="buy-price">この挑戦のあいだ、二度と候補に出ない<small>封印できるのは、あと '+run.banishes+' 回</small></p></div></div>'
+      +'<div class="panel-actions"><button class="primary" data-action="commitBanish" data-id="'+id+'">封印する</button><button data-action="backToRun">やめる</button></div>',true);
+  }
   function upgrade(){
     let html=header('A GIFT FROM BELOW','何を、捧げる。','第'+run.completed+'波 突破。'+(run.waveReport?' 遺灰 +'+run.waveReport.souls+' · 回復 +'+run.waveReport.heal+(run.waveReport.flawless?' · 無傷達成':''):'ひとつ選び、身体に刻む。'),false);
     if(run.completed%64===0&&run.secretKills)html+='<p class="intro-quote">忘却の弔鐘は、鳴り止んだ。<br>その静けさを、あなたは覚えている。</p>';
@@ -335,7 +341,7 @@
     if(a==='loadout')loadout();if(a==='altar')altar();if(a==='codex')codex();if(a==='records')records();if(a==='settings')settings();if(a==='help')help();if(a==='build')build();if(a==='pause')pause();
         if(a==='paths'){build();$('#path-heading').scrollIntoView({block:'start'});}
     
-    if(a==='choose')choose(id);if(a==='reroll'&&run.reroll()){saveRun();upgrade();audio.play('select');}if(a==='banish'&&run.banish(id)){saveRun();upgrade();toast(C.lookup[id].name+'を封印した');}
+    if(a==='choose')choose(id);if(a==='reroll'&&run.reroll()){saveRun();upgrade();audio.play('select');}if(a==='banish')confirmBanish(id);if(a==='commitBanish'&&run.banish(id)){saveRun();upgrade();guardTaps();toast(C.lookup[id].name+'を封印した');}
     if(a==='covenant')covenant();if(a==='swear'&&run.swear(id)){saveRun();upgrade();hud(true);audio.play('evolve');toast('血の誓約を刻んだ');}
     if(a==='equipmentTab'){loadoutTab=id;loadout();}if(a==='codexTab'){codexTab=id;codex();}
     if(a==='achievementGoal')pinAchievement(id);if(a==='achievementDetail'){codexTab='achievements';codex();const target=$('#achievement-'+id);target?.scrollIntoView({block:'center'});target?.querySelector('button')?.focus({preventScroll:true});}if(a==='clearAchievementGoal'){profile.achievementGoal=null;saveProfile();codex();titleGoal();}
