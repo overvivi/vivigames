@@ -4,7 +4,7 @@
   class Renderer{
     constructor(canvas,{alpha=false}={}){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha});this.assets={};this.effects=[];this.motes=[];this.stains=[];this.numbers=[];this.shake=0;this.flash=0;this.time=0;this.walk=0;this.lastX=480;this.lastWave=0;this.settings={shake:true,gore:true};this.ready=false;}
     async load(inspection=false,onProgress=()=>{}){
-      const files={bg:'cathedral',surgery:'surgery',choir:'choir',heart:'heart',icons:'relics',fx:'effects',costumes:'costumes',enemies:'enemy-animation',bosses:'boss-animation',secretboss:'secret-boss',ultimateA:'ultimate-a',ultimateB:'ultimate-b',arrival:'arrival',weapons:'weapons',covenants:'covenants',altars:'altars',effigy:'effigy',achievements:'achievements',bestiary:'bestiary',aim:'aim',executioner:'executioner',reliquary:'reliquary',beam:'reliquary-beam',crowns:'crowns',relicA:'relics-blood',relicB:'relics-bone',relicC:'relics-spectral',relicD:'relics-rites',relicE:'relics-forbidden',projectiles:'projectiles',skillfx:'skillfx-clean',elites:'elites',combatfx:'combatfx',pillars:'pillars',evolutions:'evolutions',resonances:'resonances',resonancefx:'resonance-fx',cover:'cover',frame:'card-frame'};
+      const files={bg:'cathedral',surgery:'surgery',choir:'choir',heart:'heart',icons:'relics',fx:'effects',costumes:'costumes',enemies:'enemy-animation',bosses:'boss-animation',secretboss:'secret-boss',ultimateA:'ultimate-a',ultimateB:'ultimate-b',arrival:'arrival',weapons:'weapons',covenants:'covenants',altars:'altars',effigy:'effigy',achievements:'achievements',bestiary:'bestiary',aim:'aim',executioner:'executioner',reliquary:'reliquary',beam:'reliquary-beam',crowns:'crowns',relicA:'relics-blood',relicB:'relics-bone',relicC:'relics-spectral',relicD:'relics-rites',relicE:'relics-forbidden',projectiles:'projectiles',ash:'ash-orb',skillfx:'skillfx-clean',elites:'elites',combatfx:'combatfx',pillars:'pillars',evolutions:'evolutions',resonances:'resonances',resonancefx:'resonance-fx',cover:'cover',frame:'card-frame'};
       if(inspection)files.player='wraith';let loaded=0;const total=Object.keys(files).length;
       await Promise.all(Object.entries(files).map(([id,name])=>new Promise((resolve,reject)=>{const im=new Image();let original=name==='wraith';im.onload=()=>{this.assets[id]=im;onProgress(++loaded,total);resolve();};im.onerror=()=>{if(!original){original=true;im.src='assets/'+name+'.png';}else reject(new Error(name));};const extension=['cathedral','surgery','choir','heart','cover'].includes(name)?'.webp':'.png';im.src=original?'assets/'+name+'.png':'assets/runtime/'+name+extension;})));this.ready=true;
     }
@@ -19,6 +19,10 @@
     }
     event(e){
       const add=(kind,life,data)=>{if(this.effects.length<80)this.effects.push({kind,life,max:life,...data});};
+      // 弾が弾を砕いた合図。小さな火花だけで、弾幕の読みを邪魔しない。
+      if(e.type==='clash'){
+        if(this.settings.effectOpacity!==0)for(let i=0;i<3;i++)if(this.motes.length<220)this.motes.push({x:e.x,y:e.y,vx:(Math.random()-.5)*150,vy:-Math.random()*110,life:.22+Math.random()*.2,size:1+Math.random()*2,color:i?'#e8d3ad':'#ffb26a'});
+      }
       if(e.type==='hit'){
         if(this.effects.length<55)add('sprite',.2,{x:e.x,y:e.y,size:e.crit?60:40,row:0,image:'combatfx'});
         if(this.settings.damageNumbers!=='none'&&(this.settings.damageNumbers!=='critical'||e.crit))this.addNumber({id:e.id,x:e.x,y:e.y-20,n:e.n,color:e.crit?'#ffe4a8':'#eadbce',crit:e.crit});
@@ -130,7 +134,9 @@
           const kind=b.sprite??(run.has('ossuary')?1:['lantern','needle','censer','bell','book','scythe'].indexOf(run.weapon.id));
           c.save();c.translate(Math.round(b.x),Math.round(b.y));c.rotate(Math.atan2(b.vy,b.vx));this.sprite('projectiles',kind,6,2,0,0,b.r*6.4,b.r*6.4,false,.98*fx);c.restore();
         }
-        for(const v of run.pickups)this.sprite('projectiles',10,6,2,v.x,v.y+Math.sin(t*4+v.x)*1.4,28,28,false,v.life<3?.5+Math.sin(t*10)*.3:1);
+        for(const v of run.pickups){const bob=Math.sin(t*4+v.x)*1.4,fade=v.life<3?.5+Math.sin(t*10)*.3:1;
+          if(v.souls)this.sprite('ash',0,1,1,v.x,v.y+bob,26,26,false,fade);
+          else this.sprite('projectiles',10,6,2,v.x,v.y+bob,28,28,false,fade);}
         this.drawPlayer(run,dt);
         if(run.intro>0&&!run.training){c.save();c.globalAlpha=Math.min(1,run.intro*2);c.fillStyle='rgba(10,8,11,.86)';c.textAlign='center';
           if(run.wave%8===0){const boss=D.bossForWave(run.wave);c.fillRect(170,175,620,142);c.strokeStyle='#a3556355';c.strokeRect(170,175,620,142);c.fillStyle='#ba9870';c.font='11px Georgia';c.fillText('REQUIEM '+Math.ceil(run.wave/8)+' · '+boss.subtitle,480,202);c.fillStyle='#ecded0';c.font='bold 27px sans-serif';c.fillText(boss.name,480,249);c.fillStyle='#c5ada6';c.font='13px sans-serif';c.fillText(boss.tactic,480,287);}

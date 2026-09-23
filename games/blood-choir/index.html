@@ -723,10 +723,37 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
       if(id==='blood')this.p.hp+=boon.value;if(id==='ember')this.charge+=boon.value;if(id==='bone')this.p.shield+=boon.value;
       Object.assign(g.history.at(-1),{boon:id,recovered:boon.value});g.stageStart=this.time;g.stageRevives=this.revivesUsed;this.beginWave(g.waves[g.cleared]);return true;
     }
+    // 自弾と敵弾は互いを削り合う。耐久が尽きた方が消える。
+    // 総当たりだと最大39万組になるので、64pxの格子で近いものだけを見る。
+    collideBullets(){
+      if(!this.hostile.length||!this.bullets.length)return;
+      const CELL=64,grid=new Map();
+      for(const h of this.hostile){
+        if(h.life<=0)continue;
+        const k=((h.x/CELL)|0)*1024+((h.y/CELL)|0);
+        const list=grid.get(k);if(list)list.push(h);else grid.set(k,[h]);
+      }
+      for(const b of this.bullets){
+        if(b.life<=0||!(b.guard>0))continue;
+        const cx=(b.x/CELL)|0,cy=(b.y/CELL)|0;
+        for(let gx=cx-1;gx<=cx+1&&b.life>0;gx++)for(let gy=cy-1;gy<=cy+1&&b.life>0;gy++){
+          const list=grid.get(gx*1024+gy);if(!list)continue;
+          for(const h of list){
+            if(h.life<=0)continue;
+            const reach=b.r+h.r+2,dx=b.x-h.x,dy=b.y-h.y;
+            if(dx*dx+dy*dy>reach*reach)continue;
+            // 耐久の低い方が砕ける。勝った側も一つ削れる。
+            this.emit('clash',{x:(b.x+h.x)/2,y:(b.y+h.y)/2});
+            if(b.guard>=h.guard){h.life=0;if(--b.guard<0){b.life=0;break;}}
+            else{b.life=0;h.guard--;break;}
+          }
+        }
+      }
+    }
     shoot(x,y,angle,damage,extra={}){
       if(this.bullets.length>=600)return;
       const speed=extra.speed||this.stats.bulletSpeed;
-      this.bullets.push({id:this.uid++,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4*this.stats.size,damage,life:2.8,pierce:this.stats.pierce,bounce:this.stats.bounce,homing:this.stats.homing,hitIds:new Set(),color:this.weapon.color,main:true,...extra});
+      this.bullets.push({id:this.uid++,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4*this.stats.size,damage,life:2.8,guard:1+Math.min(4,this.stats.pierce),pierce:this.stats.pierce,bounce:this.stats.bounce,homing:this.stats.homing,hitIds:new Set(),color:this.weapon.color,main:true,...extra});
     }
     playerPose(){
       const p=this.p,angle=clamp(p.vx/2500,-.11,.11),x=p.x,y=p.y-22+Math.sin((this.time+this.clearElapsed)*3.2)*1.6;
@@ -752,7 +779,7 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
       const dx=point[0]*size*(e.facing||1),dy=point[1]*size,angle=(e.facing<0?-1:1)*(e.hit||0)*.55;
       return{x:e.x+Math.cos(angle)*dx-Math.sin(angle)*dy,y:e.y+Math.sin(angle)*dx+Math.cos(angle)*dy};
     }
-    enemyShot(e,angle,speed=110,extra={}){if(this.hostile.length>=650)return;const from=this.enemyMuzzle(e);this.hostile.push({x:from.x,y:from.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:5,life:8,damage:10+this.wave*.45+this.difficulty*3,color:'#ffb26a',enemy:e.kind,sprite:['nun','seraph','bishop','butcher'].includes(e.kind)?7:['cantor','choir','oblivion'].includes(e.kind)?8:['eye','god'].includes(e.kind)?9:6,...extra});}
+    enemyShot(e,angle,speed=110,extra={}){if(this.hostile.length>=650)return;const from=this.enemyMuzzle(e);this.hostile.push({x:from.x,y:from.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:5,life:8,guard:1+Math.floor(this.wave/12)+(e.boss?2:0),damage:10+this.wave*.45+this.difficulty*3,color:'#ffb26a',enemy:e.kind,sprite:['nun','seraph','bishop','butcher'].includes(e.kind)?7:['cantor','choir','oblivion'].includes(e.kind)?8:['eye','god'].includes(e.kind)?9:6,...extra});}
     ring(e,n,speed=90,offset=0){for(let i=0;i<n;i++)this.enemyShot(e,offset+i*Math.PI*2/n,speed);}
     fan(e,n=3,speed=115,spread=.25){const from=this.enemyMuzzle(e),a=Math.atan2(this.p.y-from.y,this.p.x-from.x);for(let i=0;i<n;i++)this.enemyShot(e,a+(i-(n-1)/2)*spread,speed);}
     hurtEnemy(e,amount,kind='main',source=kind){
@@ -1001,6 +1028,7 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
       }
       for(const h of this.hazards){h.delay-=dt;h.life-=dt;if(h.life<=0)continue;const sweep=h.kind==='sweep',wasActive=h.active;h.active=h.delay<=0&&(!sweep||h.delay>-h.duration);if(h.active&&!wasActive)this.emit(sweep?'sweepErupt':'pillarErupt',{x:h.x,y:sweep?h.y:D.FLOOR});if(h.active&&(sweep?Math.abs(p.y-h.y):Math.abs(p.x-h.x))<h.r+p.r){this.hurtPlayer(sweep?24+this.wave*.3:22+this.wave*.6,{kind:sweep?'beam':'pillar',enemy:h.enemy});if(this.state==='dead')return;}}
       for(const v of this.pickups){v.life-=dt;if(v.life<=0)continue;v.vy+=200*dt;v.y=Math.min(D.FLOOR-8,v.y+v.vy*dt);const d=distance(v,p);if(d<s.magnet&&p.hp<s.hp){v.x+=(p.x-v.x)*dt*8;v.y+=(p.y-v.y)*dt*8;}if(d<22&&p.hp<s.hp){const healed=Math.min(s.hp-p.hp,v.heal);p.hp+=healed;v.life=0;this.emit('heal',{x:p.x,y:p.y,n:Math.round(healed)});}}
+      this.collideBullets();
       this.bullets=this.bullets.filter(b=>b.life>0&&b.x>-40&&b.x<1000&&b.y>-40&&b.y<560);this.hostile=this.hostile.filter(b=>b.life>0&&b.x>-60&&b.x<1020&&b.y>-60&&b.y<570);this.enemies=this.enemies.filter(e=>!e.dead);this.fields=this.fields.filter(f=>f.life>0);this.hazards=this.hazards.filter(h=>h.life>0);this.pickups=this.pickups.filter(p=>p.life>0);
       if(this.state==='playing'&&this.spawnLeft===0&&this.enemies.length===0&&(this.wave%8!==0||this.bossSpawned)){this.state='clearing';this.clearElapsed=0;this.clearTimer=this.wave%8===0?1.6:.75;this.hostile=[];this.hazards=[];}
     }
@@ -1172,7 +1200,7 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
   class Renderer{
     constructor(canvas,{alpha=false}={}){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha});this.assets={};this.effects=[];this.motes=[];this.stains=[];this.numbers=[];this.shake=0;this.flash=0;this.time=0;this.walk=0;this.lastX=480;this.lastWave=0;this.settings={shake:true,gore:true};this.ready=false;}
     async load(inspection=false,onProgress=()=>{}){
-      const files={bg:'cathedral',surgery:'surgery',choir:'choir',heart:'heart',icons:'relics',fx:'effects',costumes:'costumes',enemies:'enemy-animation',bosses:'boss-animation',secretboss:'secret-boss',ultimateA:'ultimate-a',ultimateB:'ultimate-b',arrival:'arrival',weapons:'weapons',covenants:'covenants',altars:'altars',effigy:'effigy',achievements:'achievements',bestiary:'bestiary',aim:'aim',executioner:'executioner',reliquary:'reliquary',beam:'reliquary-beam',crowns:'crowns',relicA:'relics-blood',relicB:'relics-bone',relicC:'relics-spectral',relicD:'relics-rites',relicE:'relics-forbidden',projectiles:'projectiles',skillfx:'skillfx-clean',elites:'elites',combatfx:'combatfx',pillars:'pillars',evolutions:'evolutions',resonances:'resonances',resonancefx:'resonance-fx',cover:'cover',frame:'card-frame'};
+      const files={bg:'cathedral',surgery:'surgery',choir:'choir',heart:'heart',icons:'relics',fx:'effects',costumes:'costumes',enemies:'enemy-animation',bosses:'boss-animation',secretboss:'secret-boss',ultimateA:'ultimate-a',ultimateB:'ultimate-b',arrival:'arrival',weapons:'weapons',covenants:'covenants',altars:'altars',effigy:'effigy',achievements:'achievements',bestiary:'bestiary',aim:'aim',executioner:'executioner',reliquary:'reliquary',beam:'reliquary-beam',crowns:'crowns',relicA:'relics-blood',relicB:'relics-bone',relicC:'relics-spectral',relicD:'relics-rites',relicE:'relics-forbidden',projectiles:'projectiles',ash:'ash-orb',skillfx:'skillfx-clean',elites:'elites',combatfx:'combatfx',pillars:'pillars',evolutions:'evolutions',resonances:'resonances',resonancefx:'resonance-fx',cover:'cover',frame:'card-frame'};
       if(inspection)files.player='wraith';let loaded=0;const total=Object.keys(files).length;
       await Promise.all(Object.entries(files).map(([id,name])=>new Promise((resolve,reject)=>{const im=new Image();let original=name==='wraith';im.onload=()=>{this.assets[id]=im;onProgress(++loaded,total);resolve();};im.onerror=()=>{if(!original){original=true;im.src='assets/'+name+'.png';}else reject(new Error(name));};const extension=['cathedral','surgery','choir','heart','cover'].includes(name)?'.webp':'.png';im.src=original?'assets/'+name+'.png':'assets/runtime/'+name+extension;})));this.ready=true;
     }
@@ -1187,6 +1215,10 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
     }
     event(e){
       const add=(kind,life,data)=>{if(this.effects.length<80)this.effects.push({kind,life,max:life,...data});};
+      // 弾が弾を砕いた合図。小さな火花だけで、弾幕の読みを邪魔しない。
+      if(e.type==='clash'){
+        if(this.settings.effectOpacity!==0)for(let i=0;i<3;i++)if(this.motes.length<220)this.motes.push({x:e.x,y:e.y,vx:(Math.random()-.5)*150,vy:-Math.random()*110,life:.22+Math.random()*.2,size:1+Math.random()*2,color:i?'#e8d3ad':'#ffb26a'});
+      }
       if(e.type==='hit'){
         if(this.effects.length<55)add('sprite',.2,{x:e.x,y:e.y,size:e.crit?60:40,row:0,image:'combatfx'});
         if(this.settings.damageNumbers!=='none'&&(this.settings.damageNumbers!=='critical'||e.crit))this.addNumber({id:e.id,x:e.x,y:e.y-20,n:e.n,color:e.crit?'#ffe4a8':'#eadbce',crit:e.crit});
@@ -1298,7 +1330,9 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
           const kind=b.sprite??(run.has('ossuary')?1:['lantern','needle','censer','bell','book','scythe'].indexOf(run.weapon.id));
           c.save();c.translate(Math.round(b.x),Math.round(b.y));c.rotate(Math.atan2(b.vy,b.vx));this.sprite('projectiles',kind,6,2,0,0,b.r*6.4,b.r*6.4,false,.98*fx);c.restore();
         }
-        for(const v of run.pickups)this.sprite('projectiles',10,6,2,v.x,v.y+Math.sin(t*4+v.x)*1.4,28,28,false,v.life<3?.5+Math.sin(t*10)*.3:1);
+        for(const v of run.pickups){const bob=Math.sin(t*4+v.x)*1.4,fade=v.life<3?.5+Math.sin(t*10)*.3:1;
+          if(v.souls)this.sprite('ash',0,1,1,v.x,v.y+bob,26,26,false,fade);
+          else this.sprite('projectiles',10,6,2,v.x,v.y+bob,28,28,false,fade);}
         this.drawPlayer(run,dt);
         if(run.intro>0&&!run.training){c.save();c.globalAlpha=Math.min(1,run.intro*2);c.fillStyle='rgba(10,8,11,.86)';c.textAlign='center';
           if(run.wave%8===0){const boss=D.bossForWave(run.wave);c.fillRect(170,175,620,142);c.strokeStyle='#a3556355';c.strokeRect(170,175,620,142);c.fillStyle='#ba9870';c.font='11px Georgia';c.fillText('REQUIEM '+Math.ceil(run.wave/8)+' · '+boss.subtitle,480,202);c.fillStyle='#ecded0';c.font='bold 27px sans-serif';c.fillText(boss.name,480,249);c.fillStyle='#c5ada6';c.font='13px sans-serif';c.fillText(boss.tactic,480,287);}

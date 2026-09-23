@@ -252,10 +252,37 @@
       if(id==='blood')this.p.hp+=boon.value;if(id==='ember')this.charge+=boon.value;if(id==='bone')this.p.shield+=boon.value;
       Object.assign(g.history.at(-1),{boon:id,recovered:boon.value});g.stageStart=this.time;g.stageRevives=this.revivesUsed;this.beginWave(g.waves[g.cleared]);return true;
     }
+    // 自弾と敵弾は互いを削り合う。耐久が尽きた方が消える。
+    // 総当たりだと最大39万組になるので、64pxの格子で近いものだけを見る。
+    collideBullets(){
+      if(!this.hostile.length||!this.bullets.length)return;
+      const CELL=64,grid=new Map();
+      for(const h of this.hostile){
+        if(h.life<=0)continue;
+        const k=((h.x/CELL)|0)*1024+((h.y/CELL)|0);
+        const list=grid.get(k);if(list)list.push(h);else grid.set(k,[h]);
+      }
+      for(const b of this.bullets){
+        if(b.life<=0||!(b.guard>0))continue;
+        const cx=(b.x/CELL)|0,cy=(b.y/CELL)|0;
+        for(let gx=cx-1;gx<=cx+1&&b.life>0;gx++)for(let gy=cy-1;gy<=cy+1&&b.life>0;gy++){
+          const list=grid.get(gx*1024+gy);if(!list)continue;
+          for(const h of list){
+            if(h.life<=0)continue;
+            const reach=b.r+h.r+2,dx=b.x-h.x,dy=b.y-h.y;
+            if(dx*dx+dy*dy>reach*reach)continue;
+            // 耐久の低い方が砕ける。勝った側も一つ削れる。
+            this.emit('clash',{x:(b.x+h.x)/2,y:(b.y+h.y)/2});
+            if(b.guard>=h.guard){h.life=0;if(--b.guard<0){b.life=0;break;}}
+            else{b.life=0;h.guard--;break;}
+          }
+        }
+      }
+    }
     shoot(x,y,angle,damage,extra={}){
       if(this.bullets.length>=600)return;
       const speed=extra.speed||this.stats.bulletSpeed;
-      this.bullets.push({id:this.uid++,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4*this.stats.size,damage,life:2.8,pierce:this.stats.pierce,bounce:this.stats.bounce,homing:this.stats.homing,hitIds:new Set(),color:this.weapon.color,main:true,...extra});
+      this.bullets.push({id:this.uid++,x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4*this.stats.size,damage,life:2.8,guard:1+Math.min(4,this.stats.pierce),pierce:this.stats.pierce,bounce:this.stats.bounce,homing:this.stats.homing,hitIds:new Set(),color:this.weapon.color,main:true,...extra});
     }
     playerPose(){
       const p=this.p,angle=clamp(p.vx/2500,-.11,.11),x=p.x,y=p.y-22+Math.sin((this.time+this.clearElapsed)*3.2)*1.6;
@@ -281,7 +308,7 @@
       const dx=point[0]*size*(e.facing||1),dy=point[1]*size,angle=(e.facing<0?-1:1)*(e.hit||0)*.55;
       return{x:e.x+Math.cos(angle)*dx-Math.sin(angle)*dy,y:e.y+Math.sin(angle)*dx+Math.cos(angle)*dy};
     }
-    enemyShot(e,angle,speed=110,extra={}){if(this.hostile.length>=650)return;const from=this.enemyMuzzle(e);this.hostile.push({x:from.x,y:from.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:5,life:8,damage:10+this.wave*.45+this.difficulty*3,color:'#ffb26a',enemy:e.kind,sprite:['nun','seraph','bishop','butcher'].includes(e.kind)?7:['cantor','choir','oblivion'].includes(e.kind)?8:['eye','god'].includes(e.kind)?9:6,...extra});}
+    enemyShot(e,angle,speed=110,extra={}){if(this.hostile.length>=650)return;const from=this.enemyMuzzle(e);this.hostile.push({x:from.x,y:from.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:5,life:8,guard:1+Math.floor(this.wave/12)+(e.boss?2:0),damage:10+this.wave*.45+this.difficulty*3,color:'#ffb26a',enemy:e.kind,sprite:['nun','seraph','bishop','butcher'].includes(e.kind)?7:['cantor','choir','oblivion'].includes(e.kind)?8:['eye','god'].includes(e.kind)?9:6,...extra});}
     ring(e,n,speed=90,offset=0){for(let i=0;i<n;i++)this.enemyShot(e,offset+i*Math.PI*2/n,speed);}
     fan(e,n=3,speed=115,spread=.25){const from=this.enemyMuzzle(e),a=Math.atan2(this.p.y-from.y,this.p.x-from.x);for(let i=0;i<n;i++)this.enemyShot(e,a+(i-(n-1)/2)*spread,speed);}
     hurtEnemy(e,amount,kind='main',source=kind){
@@ -530,6 +557,7 @@
       }
       for(const h of this.hazards){h.delay-=dt;h.life-=dt;if(h.life<=0)continue;const sweep=h.kind==='sweep',wasActive=h.active;h.active=h.delay<=0&&(!sweep||h.delay>-h.duration);if(h.active&&!wasActive)this.emit(sweep?'sweepErupt':'pillarErupt',{x:h.x,y:sweep?h.y:D.FLOOR});if(h.active&&(sweep?Math.abs(p.y-h.y):Math.abs(p.x-h.x))<h.r+p.r){this.hurtPlayer(sweep?24+this.wave*.3:22+this.wave*.6,{kind:sweep?'beam':'pillar',enemy:h.enemy});if(this.state==='dead')return;}}
       for(const v of this.pickups){v.life-=dt;if(v.life<=0)continue;v.vy+=200*dt;v.y=Math.min(D.FLOOR-8,v.y+v.vy*dt);const d=distance(v,p);if(d<s.magnet&&p.hp<s.hp){v.x+=(p.x-v.x)*dt*8;v.y+=(p.y-v.y)*dt*8;}if(d<22&&p.hp<s.hp){const healed=Math.min(s.hp-p.hp,v.heal);p.hp+=healed;v.life=0;this.emit('heal',{x:p.x,y:p.y,n:Math.round(healed)});}}
+      this.collideBullets();
       this.bullets=this.bullets.filter(b=>b.life>0&&b.x>-40&&b.x<1000&&b.y>-40&&b.y<560);this.hostile=this.hostile.filter(b=>b.life>0&&b.x>-60&&b.x<1020&&b.y>-60&&b.y<570);this.enemies=this.enemies.filter(e=>!e.dead);this.fields=this.fields.filter(f=>f.life>0);this.hazards=this.hazards.filter(h=>h.life>0);this.pickups=this.pickups.filter(p=>p.life>0);
       if(this.state==='playing'&&this.spawnLeft===0&&this.enemies.length===0&&(this.wave%8!==0||this.bossSpawned)){this.state='clearing';this.clearElapsed=0;this.clearTimer=this.wave%8===0?1.6:.75;this.hostile=[];this.hazards=[];}
     }
