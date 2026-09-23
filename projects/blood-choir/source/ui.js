@@ -17,6 +17,9 @@
   let touchMode=matchMedia('(pointer:coarse)').matches;
   let pendingImport=null;
   const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15};
+  // 縦持ちのときは盤面ごと90度回して描くので、指の「横」は画面の「縦」になる。
+  const turned=matchMedia('(pointer:coarse) and (orientation:portrait)');
+  const alongX=e=>turned.matches?e.clientY:e.clientX;
   const points=new Map();let stickId=null,touchAxis=0,hintTimer=0,tapTimer=0;
   const keys=new Set(),input={move:0,aimX:480,aimY:140,fire:false,autoAim:true,jump:false,dash:false,ultimate:false};let mouseDown=false,mouseInside=false;
   function saveProfile(){if(!write(KEY,profile))return false;profilePending=false;if(checkpoint&&profile.settled.includes(checkpoint.id)){checkpoint=null;write(RUNKEY,null);}return true;}
@@ -370,12 +373,12 @@
   function dropTouch(id){points.delete(id);if(id===stickId)retakeStick();}
   function touchDown(e){
     const now=performance.now();
-    points.set(e.pointerId,{id:e.pointerId,x:e.clientX,anchor:e.clientX,from:e.clientX,at:now,slip:0});
+    const at=alongX(e);points.set(e.pointerId,{id:e.pointerId,x:at,anchor:at,from:at,at:now,slip:0});
     if(stickId===null)stickId=e.pointerId;
   }
   function touchDrag(e){
     const p=points.get(e.pointerId);if(!p)return;const now=performance.now();
-    p.x=e.clientX;p.slip=Math.max(p.slip,Math.abs(p.x-p.from));
+    p.x=alongX(e);p.slip=Math.max(p.slip,Math.abs(p.x-p.from));
     // 指を戻したときに素直に追従するよう、支点を引き寄せる。
     const dx=p.x-p.anchor;if(Math.abs(dx)>TOUCH.span)p.anchor=p.x-Math.sign(dx)*TOUCH.span;
     if(p.id===stickId)touchAxis=stickAxis(p);

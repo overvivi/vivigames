@@ -172,13 +172,13 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 
 /* ── 操作の案内は、戦いの始めに一度だけ薄く出して引く ─────────────── */
 .touch-hint{display:none}
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   .touch-hint{display:block;position:absolute;left:0;right:0;bottom:104px;z-index:6;margin:0;padding:7px 16px;text-align:center;font-size:11px;letter-spacing:.06em;color:#d7c4ab;background:#0a080bcc;opacity:0;transition:opacity .6s ease;pointer-events:none}
   .touch-hint.show{opacity:1}
 }
 
 /* ── 横持ちでは盤面を広く取り、手元のボタンを押しやすく ─────────────── */
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #play-screen{padding-bottom:0}
   #game-frame{width:min(100vw,calc((100dvh - 42px)*1.77778))}
   body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 76px)*1.77778))}
@@ -187,15 +187,6 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
   #build-button{padding:7px 12px;font-size:9px}
 }
 
-/* ── 縦持ちでは戦わせない ───────────────────────────────── */
-#rotate-gate{display:none}
-@media(pointer:coarse) and (orientation:portrait){
-  #play-screen:not([hidden])+#rotate-gate{display:flex;position:fixed;inset:46px 0 0;z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:34px;text-align:center;background:#0a080bfa}
-  #rotate-gate .rotate-mark{font-size:54px;font-style:normal;color:#a33246;animation:rotate-hint 2.6s ease-in-out infinite}
-  #rotate-gate strong{font:22px Georgia,"Yu Mincho",serif;letter-spacing:.16em;color:#d8ccba}
-  #rotate-gate span{font-size:12px;line-height:2;color:#9c9086}
-}
-@keyframes rotate-hint{0%,100%{transform:rotate(-14deg)}55%{transform:rotate(76deg)}}
 
 /* ── 強化の選択：出た瞬間は受け付けず、指から遠い上側へ寄せる ────────── */
 @media(pointer:coarse){
@@ -204,7 +195,7 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 }
 
 /* ── 横持ちの強化選択：見出しと札を詰めて、指の届く下側を空ける ─────── */
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"],#panel[data-mode="covenant"]{padding:7px 14px 10px}
   #panel[data-mode="upgrade"] .panel-header,#panel[data-mode="covenant"] .panel-header{margin-bottom:2px}
   #panel[data-mode="upgrade"] .eyebrow,#panel[data-mode="covenant"] .eyebrow{display:none}
@@ -220,11 +211,11 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
   #panel[data-mode="upgrade"] .upgrade-card .banish{padding:4px;font-size:9px;margin:0 6px 3px}
   #panel[data-mode="upgrade"] .panel-actions{margin-top:8px}
 }
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"] .selection-grid,#panel[data-mode="covenant"] .selection-grid{align-items:start}
   #panel[data-mode="upgrade"] .upgrade-card .choose,#panel[data-mode="covenant"] .upgrade-card .choose{flex:0 0 auto}
 }
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"] .upgrade-card .school-label,#panel[data-mode="covenant"] .upgrade-card .school-label{margin:0 0 2px}
   #panel[data-mode="upgrade"] .upgrade-card p,#panel[data-mode="covenant"] .upgrade-card p{margin:0 0 4px}
   #panel[data-mode="upgrade"] .upgrade-card .upgrade-delta,#panel[data-mode="covenant"] .upgrade-card .upgrade-delta{margin:2px 0;padding:3px 0 0}
@@ -300,13 +291,47 @@ html,body{overscroll-behavior:none}
 #hud .score-block{padding-right:52px}
 @media(pointer:fine) and (min-width:900px){#hud .score-block{padding-right:64px}}
 @media(pointer:coarse){#hud .score-block{padding-right:56px}}
+
+/* ── 縦のままでも横で遊べるよう、盤面ごと90度回して描く ─────────────
+   iOS Safari は向きの固定に対応しないので、端末を回さず中身を回す。
+   回転ロックを外さなくても、スマホを横に倒せば正しい向きで見える。 */
+
+@media(pointer:coarse) and (orientation:portrait){
+  #app:has(#play-screen:not([hidden])) #play-screen,
+  #app:has(#play-screen:not([hidden])) #overlay,
+  #app:has(#play-screen:not([hidden]))~#toast,
+  #app:has(#play-screen:not([hidden])) #toast{
+    position:fixed;inset:auto;top:0;left:0;width:100dvh;height:100dvw;
+    transform:rotate(90deg) translateY(-100%);transform-origin:top left;margin:0;padding:0;z-index:30}
+  /* 回した中では、縦横の意味が入れ替わる。 */
+  #app:has(#play-screen:not([hidden])) #game-frame{width:min(100dvh,calc((100dvw - 42px)*1.77778))}
+  body.qa-mode #app:has(#play-screen:not([hidden])) #game-frame{width:min(100dvh,calc((100dvw - 76px)*1.77778))}
+  #app:has(#play-screen:not([hidden])) #topbar{display:none}
+  #touch-pad{right:18px}
+}
+
+/* ── 回転して描くぶん、画面幅ではなく盤面の形に合わせて札を三枚並べる ── */
+@media(pointer:coarse){
+  #panel[data-mode="upgrade"] .selection-grid,
+  #panel[data-mode="covenant"] .selection-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  #panel[data-mode="upgrade"] .upgrade-card .choose,
+  #panel[data-mode="covenant"] .upgrade-card .choose{display:flex;flex-direction:column;grid-template-columns:none}
+  #panel[data-mode="upgrade"] .upgrade-card .relic-icon,
+  #panel[data-mode="covenant"] .upgrade-card .relic-icon{grid-column:auto;grid-row:auto;margin:2px auto}
+  #panel[data-mode="upgrade"] .upgrade-card h3,
+  #panel[data-mode="covenant"] .upgrade-card h3{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card p,
+  #panel[data-mode="covenant"] .upgrade-card p{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card .school-label{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card .level-dots{grid-column:auto;text-align:center}
+}
 </style></head>
 <body>
 <div id="app" data-build="0.1.0-test.1">
   <header id="topbar"><a href="../../index.html" id="arcade-link">‹ ゲームセンター</a><span class="wordmark">BLOOD CHOIR</span><div class="top-actions"><button data-action="help" aria-label="遊び方">?</button><button data-action="fullscreen" id="fullscreen-button" aria-label="全画面">⛶</button><button data-action="settings" aria-label="設定">設定</button></div></header>
   <main id="title-screen"><div class="cover-art"></div><div class="title-content"><h1>BLOOD<br><span>CHOIR</span></h1><div class="title-rule"></div><p class="tagline">祈りは、もう届かない。</p><div id="title-buttons"></div><nav class="title-nav" aria-label="メニュー"><button data-action="loadout">弔具と仮面</button><button data-action="altar">遺灰の祭壇</button><button data-action="codex">禁書</button><button data-action="records">墓碑銘</button></nav><section id="title-goal" aria-label="狙う実績"></section></div><div class="title-bottom"><span>Ver 0.1.0</span><div id="title-stats"></div><small>血と異形の表現を含みます</small></div></main>
   <section id="play-screen" hidden aria-label="戦闘画面"><div id="game-frame"><canvas id="game" width="960" height="540" tabindex="0" aria-label="左右移動と二段ジャンプで敵弾を避ける戦闘画面"></canvas><div id="hud"><div class="life-block"><div class="hud-label"><span class="life-title">生命</span> <span id="hp-label"></span></div><div class="health-track"><div id="hp-fill"></div></div><div class="hud-mobility"><span class="hud-sub" id="shield-label"></span><span class="hud-sub" id="jump-label" title="着地すると跳躍の回数が戻ります"></span></div></div><div class="wave-block"><span id="zone-label"></span><strong id="wave-label"></strong><small id="enemy-label"></small></div><div class="score-block"><span class="hud-label">遺灰 <b id="soul-label">0</b></span></div></div><div id="boss-hud" hidden><span id="boss-name"></span><div class="boss-track"><i id="boss-fill"></i></div></div><div id="run-bottom"><button id="build-button" data-action="build" aria-label="現在のビルドを確認"></button><button id="ultimate-button" data-action="ultimate"><span id="ultimate-name">葬送の大奇跡</span><i><b id="charge-fill"></b></i><small id="charge-label">E</small></button></div><button id="pause-frame" data-action="pause" aria-label="一時停止" title="一時停止">❙❙</button><div id="combat-toast" aria-live="polite"></div><div id="touch-pad" aria-hidden="false"><button data-touch="dash" aria-label="回避">回避</button><button data-touch="jump" aria-label="跳躍">跳躍</button></div><p class="touch-hint">なぞって移動 · 右下のボタンで跳躍と回避</p></div></section>
-  <div id="rotate-gate"><i class="rotate-mark" aria-hidden="true">⟳</i><strong>横に、構えよ。</strong><span>聖堂は横に長い。端末を回すと、視界が開ける。</span></div>
+  
   <div id="overlay" hidden><section id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" tabindex="-1"></section></div>
   <div id="toast" role="status"></div><div id="save-warning" role="status" hidden><span>記録を保存できなかった。設定から書き出して残せる。</span><button data-action="retrySave">保存をやり直す</button></div>
   <button id="sound-unlock" data-action="enableAudio" hidden>画面を一度押して、音を出す</button>
@@ -1351,6 +1376,9 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
   let touchMode=matchMedia('(pointer:coarse)').matches;
   let pendingImport=null;
   const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15};
+  // 縦持ちのときは盤面ごと90度回して描くので、指の「横」は画面の「縦」になる。
+  const turned=matchMedia('(pointer:coarse) and (orientation:portrait)');
+  const alongX=e=>turned.matches?e.clientY:e.clientX;
   const points=new Map();let stickId=null,touchAxis=0,hintTimer=0,tapTimer=0;
   const keys=new Set(),input={move:0,aimX:480,aimY:140,fire:false,autoAim:true,jump:false,dash:false,ultimate:false};let mouseDown=false,mouseInside=false;
   function saveProfile(){if(!write(KEY,profile))return false;profilePending=false;if(checkpoint&&profile.settled.includes(checkpoint.id)){checkpoint=null;write(RUNKEY,null);}return true;}
@@ -1704,12 +1732,12 @@ window.BCAtlas={"enemies":[{"sx":0,"sy":0,"sw":323,"sh":311,"referenceWidth":307
   function dropTouch(id){points.delete(id);if(id===stickId)retakeStick();}
   function touchDown(e){
     const now=performance.now();
-    points.set(e.pointerId,{id:e.pointerId,x:e.clientX,anchor:e.clientX,from:e.clientX,at:now,slip:0});
+    const at=alongX(e);points.set(e.pointerId,{id:e.pointerId,x:at,anchor:at,from:at,at:now,slip:0});
     if(stickId===null)stickId=e.pointerId;
   }
   function touchDrag(e){
     const p=points.get(e.pointerId);if(!p)return;const now=performance.now();
-    p.x=e.clientX;p.slip=Math.max(p.slip,Math.abs(p.x-p.from));
+    p.x=alongX(e);p.slip=Math.max(p.slip,Math.abs(p.x-p.from));
     // 指を戻したときに素直に追従するよう、支点を引き寄せる。
     const dx=p.x-p.anchor;if(Math.abs(dx)>TOUCH.span)p.anchor=p.x-Math.sign(dx)*TOUCH.span;
     if(p.id===stickId)touchAxis=stickAxis(p);

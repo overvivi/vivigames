@@ -169,13 +169,13 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 
 /* ── 操作の案内は、戦いの始めに一度だけ薄く出して引く ─────────────── */
 .touch-hint{display:none}
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   .touch-hint{display:block;position:absolute;left:0;right:0;bottom:104px;z-index:6;margin:0;padding:7px 16px;text-align:center;font-size:11px;letter-spacing:.06em;color:#d7c4ab;background:#0a080bcc;opacity:0;transition:opacity .6s ease;pointer-events:none}
   .touch-hint.show{opacity:1}
 }
 
 /* ── 横持ちでは盤面を広く取り、手元のボタンを押しやすく ─────────────── */
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #play-screen{padding-bottom:0}
   #game-frame{width:min(100vw,calc((100dvh - 42px)*1.77778))}
   body.qa-mode #game-frame{width:min(100vw,calc((100dvh - 76px)*1.77778))}
@@ -184,15 +184,6 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
   #build-button{padding:7px 12px;font-size:9px}
 }
 
-/* ── 縦持ちでは戦わせない ───────────────────────────────── */
-#rotate-gate{display:none}
-@media(pointer:coarse) and (orientation:portrait){
-  #play-screen:not([hidden])+#rotate-gate{display:flex;position:fixed;inset:46px 0 0;z-index:60;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:34px;text-align:center;background:#0a080bfa}
-  #rotate-gate .rotate-mark{font-size:54px;font-style:normal;color:#a33246;animation:rotate-hint 2.6s ease-in-out infinite}
-  #rotate-gate strong{font:22px Georgia,"Yu Mincho",serif;letter-spacing:.16em;color:#d8ccba}
-  #rotate-gate span{font-size:12px;line-height:2;color:#9c9086}
-}
-@keyframes rotate-hint{0%,100%{transform:rotate(-14deg)}55%{transform:rotate(76deg)}}
 
 /* ── 強化の選択：出た瞬間は受け付けず、指から遠い上側へ寄せる ────────── */
 @media(pointer:coarse){
@@ -201,7 +192,7 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
 }
 
 /* ── 横持ちの強化選択：見出しと札を詰めて、指の届く下側を空ける ─────── */
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"],#panel[data-mode="covenant"]{padding:7px 14px 10px}
   #panel[data-mode="upgrade"] .panel-header,#panel[data-mode="covenant"] .panel-header{margin-bottom:2px}
   #panel[data-mode="upgrade"] .eyebrow,#panel[data-mode="covenant"] .eyebrow{display:none}
@@ -217,11 +208,11 @@ canvas.item-art{background-image:none;image-rendering:pixelated;flex-shrink:0}
   #panel[data-mode="upgrade"] .upgrade-card .banish{padding:4px;font-size:9px;margin:0 6px 3px}
   #panel[data-mode="upgrade"] .panel-actions{margin-top:8px}
 }
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"] .selection-grid,#panel[data-mode="covenant"] .selection-grid{align-items:start}
   #panel[data-mode="upgrade"] .upgrade-card .choose,#panel[data-mode="covenant"] .upgrade-card .choose{flex:0 0 auto}
 }
-@media(pointer:coarse) and (orientation:landscape){
+@media(pointer:coarse){
   #panel[data-mode="upgrade"] .upgrade-card .school-label,#panel[data-mode="covenant"] .upgrade-card .school-label{margin:0 0 2px}
   #panel[data-mode="upgrade"] .upgrade-card p,#panel[data-mode="covenant"] .upgrade-card p{margin:0 0 4px}
   #panel[data-mode="upgrade"] .upgrade-card .upgrade-delta,#panel[data-mode="covenant"] .upgrade-card .upgrade-delta{margin:2px 0;padding:3px 0 0}
@@ -297,3 +288,37 @@ html,body{overscroll-behavior:none}
 #hud .score-block{padding-right:52px}
 @media(pointer:fine) and (min-width:900px){#hud .score-block{padding-right:64px}}
 @media(pointer:coarse){#hud .score-block{padding-right:56px}}
+
+/* ── 縦のままでも横で遊べるよう、盤面ごと90度回して描く ─────────────
+   iOS Safari は向きの固定に対応しないので、端末を回さず中身を回す。
+   回転ロックを外さなくても、スマホを横に倒せば正しい向きで見える。 */
+
+@media(pointer:coarse) and (orientation:portrait){
+  #app:has(#play-screen:not([hidden])) #play-screen,
+  #app:has(#play-screen:not([hidden])) #overlay,
+  #app:has(#play-screen:not([hidden]))~#toast,
+  #app:has(#play-screen:not([hidden])) #toast{
+    position:fixed;inset:auto;top:0;left:0;width:100dvh;height:100dvw;
+    transform:rotate(90deg) translateY(-100%);transform-origin:top left;margin:0;padding:0;z-index:30}
+  /* 回した中では、縦横の意味が入れ替わる。 */
+  #app:has(#play-screen:not([hidden])) #game-frame{width:min(100dvh,calc((100dvw - 42px)*1.77778))}
+  body.qa-mode #app:has(#play-screen:not([hidden])) #game-frame{width:min(100dvh,calc((100dvw - 76px)*1.77778))}
+  #app:has(#play-screen:not([hidden])) #topbar{display:none}
+  #touch-pad{right:18px}
+}
+
+/* ── 回転して描くぶん、画面幅ではなく盤面の形に合わせて札を三枚並べる ── */
+@media(pointer:coarse){
+  #panel[data-mode="upgrade"] .selection-grid,
+  #panel[data-mode="covenant"] .selection-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  #panel[data-mode="upgrade"] .upgrade-card .choose,
+  #panel[data-mode="covenant"] .upgrade-card .choose{display:flex;flex-direction:column;grid-template-columns:none}
+  #panel[data-mode="upgrade"] .upgrade-card .relic-icon,
+  #panel[data-mode="covenant"] .upgrade-card .relic-icon{grid-column:auto;grid-row:auto;margin:2px auto}
+  #panel[data-mode="upgrade"] .upgrade-card h3,
+  #panel[data-mode="covenant"] .upgrade-card h3{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card p,
+  #panel[data-mode="covenant"] .upgrade-card p{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card .school-label{grid-column:auto;text-align:center}
+  #panel[data-mode="upgrade"] .upgrade-card .level-dots{grid-column:auto;text-align:center}
+}

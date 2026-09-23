@@ -106,8 +106,14 @@ for (const e of ready.slice(0, Math.max(1, this.stats.choices - 1))) choices.pus
 
 ### 2.6 スマホ操作
 
-- **横持ち専用。** 縦にすると `#rotate-gate`（横に、構えよ。）が出る。自動停止はしない（作者の指示）
-- iOS Safari は向きの固定に対応しないため、全画面時に `screen.orientation.lock('landscape')` を試すだけ（Androidでは効く）。確実に横へ固定したい場合は `manifest.webmanifest`（`orientation:landscape`）があるので、ホーム画面へ追加して起動する
+- **縦持ちのままでも横で遊べる。** 戦闘中は `#play-screen` / `#overlay` / `#toast` を
+  `transform:rotate(90deg) translateY(-100%)` で回し、幅に `100dvh`・高さに `100dvw` を当てて画面いっぱいに敷く。
+  端末の回転ロックを外さなくても、スマホを横に倒せば正しい向きで読める
+- **iOS Safari は向きの固定に対応しない。** `screen.orientation.lock()` は未実装で、
+  manifest の `orientation:landscape` も無視される。だから中身を回す以外に手が無い
+- 回転中は指の横移動が画面の縦移動になるので、`ui.js` の `alongX()` が `clientX`/`clientY` を切り替える
+- 盤面は常に横長になるため、横持ち用に書いていた詰め指定は `@media(pointer:coarse)` へ広げてある
+  （`max-width:600px` の縦向けレイアウトが回転後にも当たってしまうため）
 - **なぞって移動**: 触れた点が支点。不感帯9px、74pxで最大速のアナログ。指を戻すと支点が追従
 - **なぞる面は盤面ではなく戦闘画面全体**。横の余白で滑らせても端のスワイプ戻りが起きない
 - **叩いて跳躍**: 230ms以内・ずれ15px以内

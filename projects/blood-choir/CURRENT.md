@@ -1,5 +1,6 @@
 # BLOOD CHOIR — 血の聖歌
 
+- 2026-09-23 縦持ちでも横で遊べるようにした。iOS Safari は screen.orientation.lock も manifest の orientation も効かないため、戦闘中の #play-screen / #overlay / #toast を rotate(90deg) translateY(-100%) で回し、幅100dvh・高さ100dvw で画面へ敷く。回転ロックを外さずに端末を横へ倒すだけで正しい向きになる。指の横移動が画面の縦移動になるので alongX() で軸を入れ替えた。横持ち用の詰め指定は @media(pointer:coarse) へ広げた（回転後も max-width:600px の縦向け指定が当たり、強化の札が808pxに伸びていた）。縦持ちを塞いでいた #rotate-gate は不要になったので撤去。
 - 2026-09-23 稽古（チュートリアル）を撤去。source/training.js、startTraining/trainingHud/trainingResults、#training-hint、支度と遊び方の入口、関連CSSとspec 2件を削除。ビルド 301.0→292.5KB、スクリプト9→8本。
 - 2026-09-23 手元のボタンを一段小さくし、地面との余裕を4px→12〜13pxへ（高さ47〜54px）。休息ボタンがHUDの遺灰と重なっていたので .score-block に右余白を入れて避けた。
 - 2026-09-23 手元のボタンが地面より上にはみ出していたので、盤面の下20.7%（world 428/540 より下）の帯に収める形へ。実測で全機種とも上端が地面より4px下、ボタン高57〜72px。
