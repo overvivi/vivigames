@@ -51,14 +51,13 @@ body.qa-mode .title-bottom{bottom:34px}
 #panel[data-mode="setup"]>.panel-actions{position:sticky;bottom:-28px;z-index:2;margin-bottom:-12px;padding:18px 0 12px;background:linear-gradient(transparent,#140e12 28%);box-shadow:0 14px 0 #140e12}@media(max-width:600px){#panel[data-mode="setup"]>.panel-actions{bottom:-22px}}
 
 /* 稽古の案内を戦場から外し、跳躍中の身体や敵を隠さない。 */
-#training-hint{flex:none;position:relative;width:min(960px,calc(100% - 24px));padding:12px 20px;margin:0 0 10px;background:linear-gradient(150deg,#191317,#130e12);border:1px solid #8b7052aa;box-shadow:0 8px 24px #0006;color:#e7d8c1;pointer-events:none;display:grid;grid-template-columns:260px 1fr;column-gap:20px}
-.training-heading{display:flex;align-items:center;gap:13px;grid-row:1/4}.training-heading .relic-icon{width:45px;height:45px;flex:none}.training-heading h2{font-family:serif;font-size:20px;margin:5px 0;font-weight:500}
-#training-hint small{font-size:10px;color:#b59f85}#training-hint>small{grid-column:2}#training-hint p{font-size:12px;line-height:1.8;margin:0 0 4px}#training-input{font-size:12px;color:#e3be7c;display:block}.training-track{height:2px;background:#4c3637;margin:8px 0 6px}.training-track i{display:block;height:100%;background:#c6dfce;width:0;transition:width .1s linear}.training-finished{text-align:center}.training-finished .relic-icon{width:110px;height:110px;margin:12px auto;display:block}
-#play-screen.training-mode #game-frame{width:min(100vw,calc((100dvh - 215px)*1.77778))}body.qa-mode #play-screen.training-mode #game-frame{width:min(100vw,calc((100dvh - 249px)*1.77778))}.training-mode #aim-toggle,.training-mode #fire-toggle{display:none}
-@media(max-width:600px) and (orientation:portrait){#play-screen.training-mode{justify-content:flex-start;padding-top:14px}#training-hint{display:block;width:calc(100% - 24px);padding:10px 14px;margin:0 0 12px}#training-hint p{margin:5px 0}.training-heading h2{font-size:18px}#play-screen.training-mode #game-frame,body.qa-mode #play-screen.training-mode #game-frame{width:100vw}#play-screen.training-mode .touch-hint{padding:4px 16px}}
-@media(orientation:landscape) and (max-height:560px){#training-hint{position:absolute;top:52px;right:12px;width:225px;display:block;padding:9px 12px}.training-heading h2{font-size:15px}.training-heading .relic-icon{width:30px;height:30px}#training-hint p{font-size:10px;margin:5px 0}#training-input{font-size:10px}.training-track{margin:6px 0}#play-screen.training-mode #game-frame{margin-right:240px;width:min(calc(100vw - 250px),calc((100dvh - 112px)*1.77778))}body.qa-mode #play-screen.training-mode #game-frame{width:min(calc(100vw - 250px),calc((100dvh - 145px)*1.77778))}.training-mode .control-legend{display:none}}
 
-.life-title,#hp-label{white-space:nowrap}@media(pointer:coarse){.life-title{font-size:0}.life-title:after{content:"生命";font-size:9px;letter-spacing:.05em}.training-mode .life-block .hud-label{font-size:9px}.training-mode #hp-label{font-size:9px}}
+.training-heading{display:flex;align-items:center;gap:13px;grid-row:1/4}.training-heading .relic-icon{width:45px;height:45px;flex:none}.training-heading h2{font-family:serif;font-size:20px;margin:5px 0;font-weight:500}
+#training-input{font-size:12px;color:#e3be7c;display:block}.training-track{height:2px;background:#4c3637;margin:8px 0 6px}.training-track i{display:block;height:100%;background:#c6dfce;width:0;transition:width .1s linear}.training-finished{text-align:center}.training-finished .relic-icon{width:110px;height:110px;margin:12px auto;display:block}
+@media(max-width:600px) and (orientation:portrait){.training-heading h2{font-size:18px}}
+@media(orientation:landscape) and (max-height:560px){.training-heading h2{font-size:15px}.training-heading .relic-icon{width:30px;height:30px}#training-input{font-size:10px}.training-track{margin:6px 0}}
+
+.life-title,#hp-label{white-space:nowrap}@media(pointer:coarse){.life-title{font-size:0}.life-title:after{content:"生命";font-size:9px;letter-spacing:.05em}}
 
 .ritual-card{display:flex;align-items:center;gap:15px;border:1px solid #69503988;background:#120d11aa;padding:12px 16px;margin:14px 0 20px}.ritual-card canvas{width:88px;height:88px;flex:none;image-rendering:pixelated}.ritual-card h3{color:#d8bb92;font-family:serif;font-size:18px;margin:5px 0}.ritual-card p{font-size:12px;color:#c7b6a5;line-height:1.8;margin:5px 0}.ritual-card small{font-size:10px;color:#aa927b}.weapon-ritual{border-top:1px solid #71534666;padding-top:9px!important;color:#bba68c!important}@media(max-width:600px){.ritual-card{padding:10px;gap:10px}.ritual-card canvas{width:62px;height:62px}.ritual-card h3{font-size:16px}.ritual-card p{font-size:10px}.ritual-card small{font-size:9px}}
 
@@ -278,7 +277,7 @@ body.qa-mode #app:has(#play-screen:not([hidden])) #play-screen{height:calc(100dv
 #touch-pad{display:none}
 @media(pointer:coarse){
   /* 地面は盤面の上から 428/540 = 79.3%。手元のボタンは必ずその下の帯へ収める。 */
-  #touch-pad{display:flex;align-items:flex-end;gap:10px;position:absolute;right:12px;bottom:4px;height:calc(20.7% - 8px);z-index:7}
+  #touch-pad{display:flex;align-items:flex-end;gap:10px;position:absolute;right:12px;bottom:5px;height:calc(20.7% - 18px);z-index:7}
   #touch-pad button{height:100%;aspect-ratio:1;min-width:0;padding:0;border-radius:50%;font-size:11px;letter-spacing:.06em;
     color:#e2d2bb;background:radial-gradient(circle at 50% 38%,#3a2830cc,#150e13e0);border:1px solid #8d6655aa;
     box-shadow:0 4px 14px #0009;touch-action:none;user-select:none}
@@ -286,10 +285,15 @@ body.qa-mode #app:has(#play-screen:not([hidden])) #play-screen{height:calc(100dv
   #touch-pad [data-touch="jump"]{border-color:#bc8d69aa}
   /* ビルドは指の置き場なので戦闘中は出さない。休息から見る。 */
   #build-button{display:none}
-  #run-bottom{left:0;right:0;justify-content:center;align-items:flex-end;bottom:4px;height:calc(20.7% - 8px)}
+  #run-bottom{left:0;right:0;justify-content:center;align-items:flex-end;bottom:5px;height:calc(20.7% - 18px)}
   #ultimate-button{height:100%;min-width:112px;padding:3px 10px;font-size:8px;gap:2px 8px;align-content:center}
   #ultimate-button i{height:3px}
 }
 /* 端のスワイプで前の画面へ戻らないようにする */
 html,body{overscroll-behavior:none}
 @media(pointer:coarse){#play-screen{touch-action:none;overscroll-behavior:none}}
+
+/* ── 休息ボタンの場所を HUD から空ける（遺灰の表示と重なっていた） ──── */
+#hud .score-block{padding-right:52px}
+@media(pointer:fine) and (min-width:900px){#hud .score-block{padding-right:64px}}
+@media(pointer:coarse){#hud .score-block{padding-right:56px}}

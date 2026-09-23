@@ -1,5 +1,7 @@
 # BLOOD CHOIR — 血の聖歌
 
+- 2026-09-23 稽古（チュートリアル）を撤去。source/training.js、startTraining/trainingHud/trainingResults、#training-hint、支度と遊び方の入口、関連CSSとspec 2件を削除。ビルド 301.0→292.5KB、スクリプト9→8本。
+- 2026-09-23 手元のボタンを一段小さくし、地面との余裕を4px→12〜13pxへ（高さ47〜54px）。休息ボタンがHUDの遺灰と重なっていたので .score-block に右余白を入れて避けた。
 - 2026-09-23 手元のボタンが地面より上にはみ出していたので、盤面の下20.7%（world 428/540 より下）の帯に収める形へ。実測で全機種とも上端が地面より4px下、ボタン高57〜72px。
 - 2026-09-23 死んだ配線を全部掃除。daily/journey/wounds/keptRecords/score/combo/bestCombo/guidance/gauntlet とそれらの関数・記録項目・到達できない実績（23→22件）を削除。practice は稽古が使っていたため training へ寄せた。engine.js 63.6→54.7KB、ビルド 310.6→301.0KB。稽古（チュートリアル）は残してある。
 - 2026-09-23 実機の指摘を反映。(1) 右から左へ折り返すと回避が暴発 → 方向転換を払いとみなす条件が原因だったため払い判定を撤去し、跳躍と回避は右下のボタンへ（左が回避、右が跳躍）。(2) 左下のビルドは指の置き場で誤タップするため戦闘中は非表示（休息から見る）。(3) 大奇跡を中央下へ。(4) なぞる面を盤面から戦闘画面全体へ広げ、横の余白でのスワイプ戻りを防止（overscroll-behavior:none も追加）。(5) 全画面時に screen.orientation.lock を試し、ホーム画面追加用に orientation:landscape の manifest を用意。マウスの照準が切れる不具合（#play-screen でポインタ捕捉すると #game へ pointerleave が飛ぶ）も修正し、捕捉は指だけに限定。

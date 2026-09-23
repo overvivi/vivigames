@@ -15,7 +15,7 @@
   const renderer=new window.BCRenderer($('#game')),audio=new window.BCAudio.Audio();
   const controller=new window.BCController.Controller();let padUsed=false,padState={connected:false,move:0};
   let touchMode=matchMedia('(pointer:coarse)').matches;
-  let pendingImport=null,training=null;
+  let pendingImport=null;
   const TOUCH={dead:9,span:74,tapMs:230,tapSlip:15};
   const points=new Map();let stickId=null,touchAxis=0,hintTimer=0,tapTimer=0;
   const keys=new Set(),input={move:0,aimX:480,aimY:140,fire:false,autoAim:true,jump:false,dash:false,ultimate:false};let mouseDown=false,mouseInside=false;
@@ -45,7 +45,7 @@
       +'<div class="buy-confirm">'+art(info.d)+'<div><p>'+info.d.desc+'</p><p class="buy-price"><b>'+fmt(info.cost)+'</b> の遺灰を捧げる<small>手元に '+fmt(profile.ashes)+'</small></p></div></div>'
       +'<div class="panel-actions"><button class="primary" data-action="commitBuy" data-type="'+type+'" data-id="'+id+'">捧げる</button><button data-action="'+(type==='meta'?'altar':'loadout')+'">やめる</button></div>',true);
   }
-  function saveRun(){if(run&&!run.training&&['playing','upgrade','victory'].includes(run.state)){checkpoint=run.checkpoint();write(RUNKEY,checkpoint);}}
+  function saveRun(){if(run&&['playing','upgrade','victory'].includes(run.state)){checkpoint=run.checkpoint();write(RUNKEY,checkpoint);}}
   function icon(n,extra=''){return'<span aria-hidden="true" class="relic-icon '+extra+'" style="background-position:'+(n%6*20)+'% '+(Math.floor(n/6)*100/3)+'%"></span>';}
   function art(d,extra=''){const devotion=D.weapons.includes(d)?'weapons':D.covenants.includes(d)?'covenants':D.meta.includes(d)?'altars':null;if(devotion)return'<canvas aria-hidden="true" data-devotion="'+devotion+'" data-id="'+d.id+'" class="relic-icon devotion-art '+extra+'" width="256" height="256"></canvas>';if(D.itemArt[d.id])return'<canvas aria-hidden="true" data-item-art="'+d.id+'" class="relic-icon item-art '+extra+'" width="256" height="256"></canvas>';if(d.pair){const i=D.resonances.findIndex(r=>r.id===d.id);return'<span aria-hidden="true" class="relic-icon resonance-art '+extra+'" style="background-position:'+(i%2*100)+'% '+(Math.floor(i/2)*100)+'%"></span>';}const n=D.evolutions.findIndex(e=>e.id===d.id);return d.needs&&n>=0?'<span aria-hidden="true" class="relic-icon evolution-art '+extra+'" style="background-position:'+(n%4*100/3)+'% '+(Math.floor(n/4)*100)+'%"></span>':icon(d.icon,extra);}
   function ritualCard(weapon){const d=D.ultimates[weapon];return'<div class="ritual-card"><canvas data-ritual="'+weapon+'" width="120" height="120" aria-hidden="true"></canvas><div><small>この弔具の大奇跡</small><h3>'+d.name+'</h3><p>'+d.desc+'</p><small>共通：敵弾と柱を消す · 1.2秒の無敵</small></div></div>';}
@@ -104,7 +104,7 @@
   if(!document.fullscreenEnabled)$('#fullscreen-button').hidden=true;
   document.addEventListener('fullscreenchange',()=>$('#fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'全画面を終了':'全画面'));
   function title(){
-    run=null;training=null;$('#training-hint').hidden=true;paused=false;lastState='';hidePanel();resetInput();$('#title-screen').hidden=false;$('#play-screen').hidden=true;
+    run=null;paused=false;lastState='';hidePanel();resetInput();$('#title-screen').hidden=false;$('#play-screen').hidden=true;
     $('#title-buttons').innerHTML=(checkpoint&&!profile.settled.includes(checkpoint.id)?'<button class="primary" data-action="continue">葬列を続ける <small>第'+checkpoint.wave+'波</small></button><button data-action="start">新たな葬送</button>':'<button class="primary" data-action="start">葬送を始める</button>')+'<button data-action="endlessRun">無限の葬送</button>';
     $('#title-stats').textContent='最深 '+profile.best+' 波　 ·　遺灰 '+fmt(profile.ashes)+'　 ·　禁忌 '+profile.evolutions.length+'/8';titleGoal();audio.set(profile.settings,false);
   }
@@ -143,7 +143,7 @@
 
     content+=ritualCard(w.id);
     if(checkpoint)content+='<p class="minor">新たに始めれば、中断中の葬送は終わる。遺灰は持ち帰る。</p>';
-    content+='<p class="help-copy">照準も射撃も、はじめは自動。避けることに集中すればいい。</p><div class="panel-actions"><button class="primary" data-action="begin" data-endless="'+!!endless+'">聖堂へ降りる</button><button data-action="training">操作を試す</button></div>';
+    content+='<p class="help-copy">照準も射撃も、はじめは自動。避けることに集中すればいい。</p><div class="panel-actions"><button class="primary" data-action="begin" data-endless="'+!!endless+'">聖堂へ降りる</button></div>';
     show('setup',content,true);
   }
   function begin(endless){
@@ -152,7 +152,7 @@
     openRun();saveRun();
   }
   function openRun(){
-    $('#play-screen').classList.toggle('training-mode',!!run.training);
+    
     // 再挑戦や試射の計測し直しへ、前の戦闘の数字・閃光・揺れを持ち越さない。
     $('#title-screen').hidden=true;$('#play-screen').hidden=false;flashTouchHint();lastState='';settlement=[];renderer.effects=[];renderer.motes=[];renderer.stains=[];renderer.numbers=[];renderer.flash=0;renderer.shake=0;audio.unlock();resume();hud(true);
     if(run.state==='upgrade')upgrade();else if(run.state==='victory')victory();
@@ -173,20 +173,18 @@
     return html;
   }
   function upgrade(){
-    let html=header(run.training?'THE FIRST MARK':'A GIFT FROM BELOW',run.training?'最後に、力をひとつ。':'何を、捧げる。',run.training?'司祭の稽古 6 / 6 · 好きな強化を選んでみよう。':'第'+run.completed+'波 突破。'+(run.waveReport?' 遺灰 +'+run.waveReport.souls+' · 回復 +'+run.waveReport.heal+(run.waveReport.flawless?' · 無傷達成':''):'ひとつ選び、身体に刻む。'),false);
+    let html=header('A GIFT FROM BELOW','何を、捧げる。','第'+run.completed+'波 突破。'+(run.waveReport?' 遺灰 +'+run.waveReport.souls+' · 回復 +'+run.waveReport.heal+(run.waveReport.flawless?' · 無傷達成':''):'ひとつ選び、身体に刻む。'),false);
     if(run.completed%64===0&&run.secretKills)html+='<p class="intro-quote">忘却の弔鐘は、鳴り止んだ。<br>その静けさを、あなたは覚えている。</p>';
 
     if(run.wave%8===0&&run.oathWave!==run.wave&&run.covenantChoices.length)html+='<div class="oath-banner"><div><b>主の遺骸が、契約を求めている。</b><p>強さには、代償がある。誓約をひとつ追加するか、そのまま進むか。</p></div><button data-action="covenant">血の誓約を見る</button></div>';
     html+='<div class="selection-grid">'+run.choices.map((id,i)=>{
       if(id==='communion')return'<article class="upgrade-card"><button class="choose" data-action="choose" data-id="communion">'+icon(0)+'<h3>最後の聖餐</h3><p>生命を全回復。威力 +10%、遺灰 +10。</p></button></article>';
-      const d=C.lookup[id],evo=!!d.needs,s=D.schools[d.school];return'<article class="upgrade-card '+(evo?'evolution':'')+'" style="--school:'+s.color+'"><button class="choose" data-action="choose" data-id="'+id+'"><span class="school-label">'+(evo?'禁 忌 進 化':s.name+' · '+(run.count(id)?'深化':'新たな禁忌'))+'　'+(i+1)+'</span>'+art(d)+'<h3>'+d.name+'</h3><p>'+d.desc+'</p>'+upgradePreview(id)+(evo?'<p class="evo-needs">'+needs(d)+'</p>':'<span class="level-dots">'+Array.from({length:d.max},(_,j)=>j<=run.count(id)?'◆':'◇').join('')+'</span>')+'</button>'+(!evo&&!run.training?'<button class="banish" data-action="banish" data-id="'+id+'" '+(run.banishes<=0?'disabled':'')+'>この挑戦から封印する</button>':'')+'</article>';
+      const d=C.lookup[id],evo=!!d.needs,s=D.schools[d.school];return'<article class="upgrade-card '+(evo?'evolution':'')+'" style="--school:'+s.color+'"><button class="choose" data-action="choose" data-id="'+id+'"><span class="school-label">'+(evo?'禁 忌 進 化':s.name+' · '+(run.count(id)?'深化':'新たな禁忌'))+'　'+(i+1)+'</span>'+art(d)+'<h3>'+d.name+'</h3><p>'+d.desc+'</p>'+upgradePreview(id)+(evo?'<p class="evo-needs">'+needs(d)+'</p>':'<span class="level-dots">'+Array.from({length:d.max},(_,j)=>j<=run.count(id)?'◆':'◇').join('')+'</span>')+'</button>'+(!evo?'<button class="banish" data-action="banish" data-id="'+id+'" '+(run.banishes<=0?'disabled':'')+'>この挑戦から封印する</button>':'')+'</article>';
     }).join('')+'</div><div class="panel-actions"><button data-action="reroll" '+(run.rerolls<=0?'disabled':'')+'>選び直す　'+run.rerolls+' 回</button><button data-action="build">現在のビルド</button><button data-action="pause">休息する</button></div><p class="progress-line">封印 残り '+run.banishes+' 回 · 能力を重ねると、新たな禁忌が開く</p>';
-    if(run.training)html=html.slice(0,html.indexOf('<div class="panel-actions">'))+'<p class="progress-line">同じ能力を重ねると、禁忌進化への道が開く。</p>';
-    show('upgrade',html);
+        show('upgrade',html);
   }
   function choose(id){
-    if(run.training&&training?.step===5){if(run.choose(id)){training.finish();audio.play('select');trainingResults();}return;}
-    const d=C.lookup[id],previous=[...run.stats.resonances];if(!run.choose(id))return;const awakened=run.stats.resonances.filter(id=>!previous.includes(id));saveRun();hud(true);audio.play(d?.needs?'evolve':'select');
+        const d=C.lookup[id],previous=[...run.stats.resonances];if(!run.choose(id))return;const awakened=run.stats.resonances.filter(id=>!previous.includes(id));saveRun();hud(true);audio.play(d?.needs?'evolve':'select');
     if(d?.needs)show('evolution',header('FORBIDDEN ASCENSION','禁忌が、目を開く。','',false)+'<div class="evolution-reveal" style="--school:'+D.schools[d.school].color+'">'+art(d,'evolution-splash')+'<h2 class="result-title">'+d.name+'</h2><p class="intro-quote">'+d.desc+'</p></div>'+resonanceSection(run.evolved,awakened)+'<div class="panel-actions"><button class="primary" data-action="resume">異形として進む</button>'+'<button data-action="paths">次の禁忌を選ぶ</button>'+'</div>',true);else resume();
   }
   function covenantAdvice(id){return{glass:'生命の下限は25。傷ついていても、減るのは新しい上限を超えた分だけ。',hunger:'生命が減っている時の撃破で回復。吸血とは別に働く。',vigil:'雷・裂け目・鎌に作用する。通常の射撃と亡霊の間隔は変わらない。',chalice:'大奇跡の必要数は8まで。溜めた力は、新しい必要数まで残る。',marrow:'軽減の上限は72%。歩みは鈍るが、回避の速さは変わらない。',pilgrim:'これから現れる雑魚だけ。主の生命は変わらない。遺灰の倍率には、他の効果も重なる。'}[id]||'';}
@@ -202,8 +200,7 @@
     const html=header('A COVENANT IN BLOOD','遺骸に、誓う。','ボスごとに一度だけ。代償はこの挑戦が終わるまで続く。')+'<p class="covenant-intro">今の装備と能力で、誓った直後の変化を。</p><div class="selection-grid covenant-grid">'+run.covenantChoices.map(id=>{const d=D.covenants.find(d=>d.id===id);return'<article class="upgrade-card"><button class="choose" data-action="swear" data-id="'+id+'"><span class="school-label">血 の 誓 約</span>'+art(d)+'<h3>'+d.name+'</h3><p>'+d.desc+'</p>'+covenantPreview(id)+'</button></article>';}).join('')+'</div><div class="panel-actions"><button data-action="backToRun">今は誓わない</button></div>';show('covenant',html);
   }
   function pause(){
-    if(run?.training){show('pause',header('A MOMENT TO LEARN','稽古を、ひと休み。','操作は自分のペースで。',false)+'<div class="panel-actions"><button class="primary" data-action="backToRun">稽古を続ける</button><button data-action="help">遊び方</button><button data-action="settings">設定</button><button data-action="title">稽古を終える</button></div>',true);return;}
-    if(!run)return;show('pause',header('A MOMENT OF SILENCE','聖堂は、待っている。','第'+run.wave+'波 · '+minutes(run.time),false)+'<div class="panel-actions"><button class="primary" data-action="backToRun">葬送を続ける</button><button data-action="build">ビルドを見る</button><button data-action="settings">設定</button><button data-action="help">遊び方</button></div><div class="panel-actions"><button data-action="saveTitle">中断して扉へ戻る</button><button data-action="abandonConfirm">帰還して遺灰を受け取る</button></div><p class="progress-line">中断すれば、この波の初めから再び。</p>',true);
+        if(!run)return;show('pause',header('A MOMENT OF SILENCE','聖堂は、待っている。','第'+run.wave+'波 · '+minutes(run.time),false)+'<div class="panel-actions"><button class="primary" data-action="backToRun">葬送を続ける</button><button data-action="build">ビルドを見る</button><button data-action="settings">設定</button><button data-action="help">遊び方</button></div><div class="panel-actions"><button data-action="saveTitle">中断して扉へ戻る</button><button data-action="abandonConfirm">帰還して遺灰を受け取る</button></div><p class="progress-line">中断すれば、この波の初めから再び。</p>',true);
   }
   function build(){
     if(!run)return;const s=run.stats;let html=header('YOUR FORBIDDEN SCRIPTURE','刻まれた禁忌',run.weapon.name+' × '+run.mask.name);
@@ -285,17 +282,7 @@
     show('settings',header('RITUAL SETTINGS','儀式の調律','')+[['music','環境音'],['sfx','効果音']].map(([k,n])=>'<label class="settings-row"><span>'+n+'</span><input type="range" data-setting="'+k+'" aria-label="'+n+'" min="0" max="1" step=".05" value="'+profile.settings[k]+'"></label>').join('')+'<label class="settings-row"><span>背景の暗さ<small>異形と弾の明るさは保つ</small></span><input type="range" data-setting="backgroundDim" aria-label="背景の暗さ" min="0" max=".6" step=".05" value="'+profile.settings.backgroundDim+'"></label><label class="settings-row"><span>味方の演出の濃さ<small>敵弾と攻撃予告の濃さは一定</small></span><input type="range" data-setting="effectOpacity" aria-label="味方の演出の濃さ" min=".35" max="1" step=".05" value="'+profile.settings.effectOpacity+'"></label>'+'<label class="settings-row"><span>ダメージの数字<small>回復の数字は常に出る</small></span><select class="option-select" data-setting="damageNumbers" aria-label="ダメージの数字">'+[['all','すべて'],['critical','会心だけ'],['none','表示しない']].map(([id,n])=>'<option value="'+id+'" '+(profile.settings.damageNumbers===id?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+[['hitRing','自分の当たり判定の輪','淡い輪の内側が被弾する範囲。無敵中は青白く'],['autoAim','自動照準','切ると、マウスの位置へ撃つ'],['autoFire','自動射撃','切ると、長押しで撃つ'],['shake','画面の揺れ','被弾と大きな攻撃の振動'],['flashes','被弾・無敵の点滅','切ると、赤い画面と点滅を抑える'],['gore','血飛沫の粒子と血痕','異形の絵そのものは変わらない']].map(([k,n,d])=>'<label class="settings-row"><span>'+n+'<small>'+d+'</small></span><input type="checkbox" data-setting="'+k+'" aria-label="'+n+'" '+(profile.settings[k]?'checked':'')+'></label>').join('')+'<div class="panel-actions"><button data-action="soundTest">効果音を試聴</button><button data-action="close">戻る</button></div>',true);
   }
   function help(){
-    show('help',header('HOW TO SURVIVE','生き残るために','')+'<div class="help-grid"><p><kbd>A</kbd><kbd>D</kbd> / ← →<br>左右へ滑るように移動</p><p><kbd>SPACE</kbd> / W / ↑<br>二段跳躍。空中でもう一度</p><p><kbd>SHIFT</kbd> / 右クリック<br>短い無敵回避。移動方向へ</p><p><kbd>E</kbd><br>撃破で溜まる大奇跡。敵弾を一掃</p><p><kbd>ESC</kbd><br>一時停止 / ビルド確認</p><p>マウスで照準、長押し射撃<br>自動照準・射撃は設定で切替</p></div><h3 class="section-label">葬送の流れ</h3><p class="help-copy">橙色の弾が敵の攻撃。足元の輪が、自分の当たり判定。<br>波の敵を絶やすと、強化をひとつ刻む。同じ強化が重なり、禁書の条件を満たせば「禁忌進化」が目を開く。<br>8波ごとに、聖堂の主。第32波で神を葬れば、帰るか、さらに深く降りるかを選べる。<br>倒れても遺灰は残る。遺灰は弔具・仮面・祭壇に変わる。</p><h3 class="section-label">連祷</h3><p class="help-copy">4.5秒のうちに葬りつづけるかぎり、連祷は途切れない。5体ごとに得点が伸び、最大2倍。生命を削られれば終わる。結界で受けたなら、まだ続く。</p><h3 class="section-label">パッドとスマホ</h3><p class="help-copy">左スティックで移動、A/×で跳躍、B/○で回避、X/□で大奇跡、STARTで休息。右スティックを倒しているあいだだけ手動照準。<br>スマホは横持ち専用。画面をなぞって移動、右下のボタンで跳躍と回避。画面を軽く叩いても跳べる。照準と射撃は自動。</p><p class="minor">当たり判定の輪、背景の暗さ、演出の濃さは設定から。残りは禁書に記されている。</p><div class="panel-actions">'+(!run?'<button class="primary" data-action="training">操作を試す</button>':'')+'<button data-action="close">わかった</button></div>',true);
-  }
-  function startTraining(){training=new window.BCTraining.Training();run=training.run;openRun();trainingHud();}
-  function trainingHud(){
-    const active=run?.training&&training&&!training.finished&&training.step<5;$('#training-hint').hidden=!active;if(!active)return;
-    const lesson=training.lesson,method=padUsed?'pad':touchMode?'touch':'pc';
-    if($('#training-hint').dataset.step!==String(training.step)){$('#training-hint').dataset.step=training.step;$('#training-icon').innerHTML=icon(lesson.icon);$('#training-title').textContent=lesson.title;$('#training-copy').textContent=lesson.text;$('#training-step').textContent='司祭の稽古 '+(training.step+1)+' / 6';}
-    $('#training-input').textContent=lesson[method];$('#training-fill').style.width=training.progress*100+'%';
-  }
-  function trainingResults(){
-    $('#training-hint').hidden=true;show('trainingResults',header('READY FOR THE REQUIEM','葬送の準備は、できた。','',false)+'<div class="training-finished">'+icon(23)+'<p class="intro-quote">動き、かわし、力を刻む。<br>その先で、禁忌が目を覚ます。</p></div><p class="help-copy">葬るほどに、大奇跡は満ちる。倒れても遺灰は残り、次の葬送を支える。</p><p class="minor">稽古は、何も記録に残さない。</p><div class="panel-actions"><button class="primary" data-action="trainingStart">葬送の支度へ</button><button data-action="trainingAgain">もう一度、稽古する</button><button data-action="title">扉へ戻る</button></div>',true);
+    show('help',header('HOW TO SURVIVE','生き残るために','')+'<div class="help-grid"><p><kbd>A</kbd><kbd>D</kbd> / ← →<br>左右へ滑るように移動</p><p><kbd>SPACE</kbd> / W / ↑<br>二段跳躍。空中でもう一度</p><p><kbd>SHIFT</kbd> / 右クリック<br>短い無敵回避。移動方向へ</p><p><kbd>E</kbd><br>撃破で溜まる大奇跡。敵弾を一掃</p><p><kbd>ESC</kbd><br>一時停止 / ビルド確認</p><p>マウスで照準、長押し射撃<br>自動照準・射撃は設定で切替</p></div><h3 class="section-label">葬送の流れ</h3><p class="help-copy">橙色の弾が敵の攻撃。足元の輪が、自分の当たり判定。<br>波の敵を絶やすと、強化をひとつ刻む。同じ強化が重なり、禁書の条件を満たせば「禁忌進化」が目を開く。<br>8波ごとに、聖堂の主。第32波で神を葬れば、帰るか、さらに深く降りるかを選べる。<br>倒れても遺灰は残る。遺灰は弔具・仮面・祭壇に変わる。</p><h3 class="section-label">連祷</h3><p class="help-copy">4.5秒のうちに葬りつづけるかぎり、連祷は途切れない。5体ごとに得点が伸び、最大2倍。生命を削られれば終わる。結界で受けたなら、まだ続く。</p><h3 class="section-label">パッドとスマホ</h3><p class="help-copy">左スティックで移動、A/×で跳躍、B/○で回避、X/□で大奇跡、STARTで休息。右スティックを倒しているあいだだけ手動照準。<br>スマホは横持ち専用。画面をなぞって移動、右下のボタンで跳躍と回避。画面を軽く叩いても跳べる。照準と射撃は自動。</p><p class="minor">当たり判定の輪、背景の暗さ、演出の濃さは設定から。残りは禁書に記されている。</p><div class="panel-actions">'+'<button data-action="close">わかった</button></div>',true);
   }
   function saveBundle(){return{app:'BLOOD CHOIR',version:1,date:new Date().toISOString(),profile,checkpoint};}
   function mountSaveTools(){
@@ -328,7 +315,7 @@
     show('results',html);
   }
   function hud(full=false){
-    if(!run)return;trainingHud();const p=run.p,s=run.stats;$('#hp-label').textContent=Math.ceil(p.hp)+' / '+s.hp;$('#hp-fill').style.width=(p.hp/s.hp*100)+'%';$('#shield-label').textContent=(p.shield?'結界 '+Math.ceil(p.shield)+'　':'')+'回避 '+(p.dashCD>0?p.dashCD.toFixed(1)+'s':'READY');$('#jump-label').textContent='跳躍 '+Math.max(0,s.jumps-p.jumps)+' / '+s.jumps;$('#wave-label').textContent=(run.training?'稽古 ':'WAVE ')+String(run.wave).padStart(2,'0');$('#zone-label').textContent=run.wave>32?'終わらない葬列':D.zones[Math.min(3,Math.floor((run.wave-1)/8))];$('#enemy-label').textContent='残り '+(run.enemies.length+run.spawnLeft)+' 体';$('#soul-label').textContent=fmt(run.souls);$('#charge-fill').style.width=run.charge/s.ultimate*100+'%';$('#charge-label').textContent=run.charge>=s.ultimate?(run.intro>0?'まもなく':'E · READY'):Math.floor(run.charge)+' / '+s.ultimate;$('#ultimate-button').classList.toggle('ready',run.charge>=s.ultimate&&run.intro<=0);$('#ultimate-button').disabled=run.charge<s.ultimate||run.intro>0;$('#ultimate-name').textContent=D.ultimates[run.weapon.id].name;$('#ultimate-button').title=D.ultimates[run.weapon.id].desc;$('#ultimate-button').setAttribute('aria-label','葬送の大奇跡 '+$('#charge-label').textContent);
+    if(!run)return;const p=run.p,s=run.stats;$('#hp-label').textContent=Math.ceil(p.hp)+' / '+s.hp;$('#hp-fill').style.width=(p.hp/s.hp*100)+'%';$('#shield-label').textContent=(p.shield?'結界 '+Math.ceil(p.shield)+'　':'')+'回避 '+(p.dashCD>0?p.dashCD.toFixed(1)+'s':'READY');$('#jump-label').textContent='跳躍 '+Math.max(0,s.jumps-p.jumps)+' / '+s.jumps;$('#wave-label').textContent=('WAVE ')+String(run.wave).padStart(2,'0');$('#zone-label').textContent=run.wave>32?'終わらない葬列':D.zones[Math.min(3,Math.floor((run.wave-1)/8))];$('#enemy-label').textContent='残り '+(run.enemies.length+run.spawnLeft)+' 体';$('#soul-label').textContent=fmt(run.souls);$('#charge-fill').style.width=run.charge/s.ultimate*100+'%';$('#charge-label').textContent=run.charge>=s.ultimate?(run.intro>0?'まもなく':'E · READY'):Math.floor(run.charge)+' / '+s.ultimate;$('#ultimate-button').classList.toggle('ready',run.charge>=s.ultimate&&run.intro<=0);$('#ultimate-button').disabled=run.charge<s.ultimate||run.intro>0;$('#ultimate-name').textContent=D.ultimates[run.weapon.id].name;$('#ultimate-button').title=D.ultimates[run.weapon.id].desc;$('#ultimate-button').setAttribute('aria-label','葬送の大奇跡 '+$('#charge-label').textContent);
     const boss=run.enemies.find(e=>e.boss);$('#boss-hud').hidden=!boss;if(boss){$('#boss-name').textContent=boss.name;$('#boss-fill').style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';}
     
     
@@ -338,8 +325,7 @@
     const b=e.target.closest('[data-action]');if(!b||b.disabled)return;const a=b.dataset.action,id=b.dataset.id;audio.unlock();
     if(a==='start')setup(false);if(a==='endlessRun')setup(true);if(a==='begin')begin(b.dataset.endless==='true');if(a==='continue')continueRun();if(a==='close')close();if(a==='resume')resume();
     if(a==='retrySave')retrySave();
-    if(a==='training')startTraining();if(a==='trainingStart'){title();setup(false);}if(a==='trainingAgain')startTraining();
-    if(a==='backToRun'){if(run.state==='upgrade')upgrade();else if(run.state==='victory')victory();else if(run.state==='dead')results();else resume();}
+        if(a==='backToRun'){if(run.state==='upgrade')upgrade();else if(run.state==='victory')victory();else if(run.state==='dead')results();else resume();}
     if(a==='loadout')loadout();if(a==='altar')altar();if(a==='codex')codex();if(a==='records')records();if(a==='settings')settings();if(a==='help')help();if(a==='build')build();if(a==='pause')pause();
         if(a==='paths'){build();$('#path-heading').scrollIntoView({block:'start'});}
     
@@ -440,7 +426,7 @@
       if(!paused&&(run.state==='playing'||run.state==='clearing')){
         accumulator+=dt;input.move=((keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0))||touchAxis;input.fire=touchMode||profile.settings.autoFire||mouseDown;input.autoAim=touchMode||profile.settings.autoAim;
         if(padUsed&&padState.connected){input.move=padState.move;input.fire=true;input.autoAim=!padState.aim;if(padState.aim){input.aimX=run.p.x+padState.aim.x*500;input.aimY=run.p.y+padState.aim.y*500;}}
-        while(accumulator>=1/60){if(qaGod){run.p.invuln=1;run.p.hp=run.stats.hp;}if(training?.run===run)training.update(1/60,input);else run.update(1/60,input);input.jump=input.dash=input.ultimate=false;accumulator-=1/60;if(!['playing','clearing'].includes(run.state))break;}
+        while(accumulator>=1/60){if(qaGod){run.p.invuln=1;run.p.hp=run.stats.hp;}run.update(1/60,input);input.jump=input.dash=input.ultimate=false;accumulator-=1/60;if(!['playing','clearing'].includes(run.state))break;}
       }else accumulator=0;
       const events=run.events.splice(0);for(const e of events){renderer.event(e);audio.play(e.type,e.weapon);if(e.type==='boss')combat(e.name);if(e.type==='crowned')combat(D.crowns.find(d=>d.id===e.id).name+'の'+e.name+' · 撃破で追加遺灰',true);if(e.type==='bossPhase')combat(e.name+' — 祈りが、悲鳴に変わる');if(e.type==='revive')combat('不死の胎が、もう一度脈打つ');}
       if(run.state!==lastState){lastState=run.state;if(run.state==='upgrade'){saveRun();upgrade();}if(run.state==='victory'){saveRun();victory();}if(run.state==='dead'){settlement=settleRun(run);results();}if(!$('#overlay').hidden)guardTaps();}
