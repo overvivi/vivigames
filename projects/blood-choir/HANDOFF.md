@@ -184,11 +184,19 @@ for (const e of ready.slice(0, Math.max(1, this.stats.choices - 1))) choices.pus
 
 作者の希望: **スコアではなく到達階層で競う。** 無限モードでどこまで潜れたか。
 
-### 4.4 掃除
+### 4.4 掃除 — 完了（2026-09-23）
 
-エンジン側に死んだ配線が約70箇所残っている（動作に害は無いが保存形式にも残る）:
+死んだ配線を全部落とした。`practice` は稽古が使っていたので `training` へ寄せた。
 
-`practice` / `gauntlet` / `journey` / `wounds` / `keptRecords` / `daily` / `dailyRecords` / `score` / `combo` / `bestCombo` / `guidance`
+消したもの: `daily` / `dailyRecords` / `dailyBest` / `dailyLoadout` / `journey` / `wounds` /
+`keptRecords` / `rememberRecord` / `practiceFromRecord` / `gauntletFromRecord` / `gauntletBoon` /
+`advanceGauntlet` / `score` / `combo` / `bestCombo` / `guidance` / `guidanceTargets` /
+敵の `score:` 値 / 到達できない日替わりの実績（実績は23→22件）
+
+記録の項目も整理:
+`wave,kills,time,weapon,mask,difficulty,date,won,outcome,stacks,meta,evolved,covenants,lastHit,reliquaryKills,secretKills,crownKills,growth,damageTally,enemyKills`
+
+engine.js 63.6KB→54.7KB、ビルド 310.6KB→301.0KB。
 
 ### 4.5 判断が要るもの
 

@@ -252,7 +252,6 @@
   }
   function paintPortraits(root=$('#panel')){
     root.querySelectorAll('canvas[data-mask],canvas[data-enemy],canvas[data-ritual],canvas[data-item-art],canvas[data-crown],canvas[data-achievement],canvas[data-devotion],canvas[data-bestiary]').forEach(canvas=>{
-      if(canvas.closest('details.journey-log:not([open])'))return;
       const view=new window.BCRenderer(canvas,{alpha:true});view.assets=renderer.assets;view.ctx.imageSmoothingEnabled=false;view.ctx.clearRect(0,0,canvas.width,canvas.height);
       if(canvas.hasAttribute('data-bestiary'))view.sprite('bestiary',Number(canvas.dataset.bestiary),3,1,64,64,122,122);
       else if(canvas.dataset.devotion){const kind=canvas.dataset.devotion,list=kind==='covenants'?D.covenants:kind==='weapons'?D.weapons:D.meta;view.sprite(kind,list.findIndex(d=>d.id===canvas.dataset.id),kind==='altars'?4:3,2,128,128,244,244);}
@@ -279,7 +278,7 @@
   function epitaph(r){
     if(r.outcome!=='slain')return r.outcome==='victory'?'神を葬り、生還した。':'遺灰を携え、聖堂を後にした。';
     const hit=r.lastHit,enemy=[...D.enemies,...D.bosses].find(d=>d.id===hit?.enemy),attack={bullet:'の弾',contact:'との接触',pillar:'の血柱',beam:'の血光'}[hit?.kind];
-    const wound=r.wounds?.at(-1),loss=wound&&wound.hp===0&&wound.enemy===hit?.enemy&&wound.kind===hit?.kind?'生命 −'+Number(wound.damage.toFixed(1)):fmt(hit?.amount||0)+' ダメージ';
+    const loss=fmt(hit?.amount||0)+' ダメージ';
     return enemy&&attack?'最期：'+enemy.name+attack+' · '+loss:'聖堂の深みで、歌声のひとつとなった。';
   }
   function settings(){
@@ -311,7 +310,7 @@
   }
   function victory(){
     const image='<div class="victory-art"><img src="assets/runtime/ending.webp" onerror="this.onerror=null;this.src=\'assets/ending.png\'" alt="鼓動を止めた神の心臓に、地上から淡い光が差し込む"><span>AND AT LAST, THERE WAS SILENCE.</span></div>';
-    const summary='<div class="victory-summary"><div class="result-stats"><div><strong>32</strong><small>突破</small></div><div><strong>'+fmt(run.kills)+'</strong><small>葬った異形</small></div><div><strong>'+run.evolved.length+'</strong><small>禁忌進化</small></div><div><strong>'+fmt(run.souls)+'</strong><small>遺灰</small></div></div><p class="progress-line">葬送時間 '+minutes(run.time)+' · 最長連祷 '+run.bestCombo+' 体</p></div>';
+    const summary='<div class="victory-summary"><div class="result-stats"><div><strong>32</strong><small>突破</small></div><div><strong>'+fmt(run.kills)+'</strong><small>葬った異形</small></div><div><strong>'+run.evolved.length+'</strong><small>禁忌進化</small></div><div><strong>'+fmt(run.souls)+'</strong><small>遺灰</small></div></div><p class="progress-line">葬送時間 '+minutes(run.time)+'</p></div>';
     show('victory','<h2 id="panel-title" class="result-title victory-title">THE GOD IS SILENT</h2><div class="victory-scene">'+image+summary+'</div><div class="panel-actions"><button class="primary" data-action="endless">さらに深く</button><button data-action="finish">帰還する</button></div>');
   }
   function finish(){if(!run)return;run.outcome=run.completed>=32?'victory':'retired';settlement=settleRun(run);run.state='dead';lastState='dead';results();}
@@ -329,13 +328,12 @@
     show('results',html);
   }
   function hud(full=false){
-    if(!run)return;trainingHud();const p=run.p,s=run.stats;$('#hp-label').textContent=Math.ceil(p.hp)+' / '+s.hp;$('#hp-fill').style.width=(p.hp/s.hp*100)+'%';$('#shield-label').textContent=(p.shield?'結界 '+Math.ceil(p.shield)+'　':'')+'回避 '+(p.dashCD>0?p.dashCD.toFixed(1)+'s':'READY');$('#jump-label').textContent='跳躍 '+Math.max(0,s.jumps-p.jumps)+' / '+s.jumps;$('#wave-label').textContent=(run.trial?'試射 ':run.training?'稽古 ':run.gauntlet?'連戦 '+Math.min(run.gauntlet.waves.length,run.gauntlet.cleared+1)+'/'+run.gauntlet.waves.length+' · ':run.practice?'追憶 ':'WAVE ')+String(run.wave).padStart(2,'0');$('#zone-label').textContent=run.wave>32?'終わらない葬列':D.zones[Math.min(3,Math.floor((run.wave-1)/8))];$('#enemy-label').textContent='残り '+(run.enemies.length+run.spawnLeft)+' 体';$('#soul-label').textContent=fmt(run.souls);$('#charge-fill').style.width=run.charge/s.ultimate*100+'%';$('#charge-label').textContent=run.charge>=s.ultimate?(run.intro>0?'まもなく':'E · READY'):Math.floor(run.charge)+' / '+s.ultimate;$('#ultimate-button').classList.toggle('ready',run.charge>=s.ultimate&&run.intro<=0);$('#ultimate-button').disabled=run.charge<s.ultimate||run.intro>0;$('#ultimate-name').textContent=D.ultimates[run.weapon.id].name;$('#ultimate-button').title=D.ultimates[run.weapon.id].desc;$('#ultimate-button').setAttribute('aria-label','葬送の大奇跡 '+$('#charge-label').textContent);
+    if(!run)return;trainingHud();const p=run.p,s=run.stats;$('#hp-label').textContent=Math.ceil(p.hp)+' / '+s.hp;$('#hp-fill').style.width=(p.hp/s.hp*100)+'%';$('#shield-label').textContent=(p.shield?'結界 '+Math.ceil(p.shield)+'　':'')+'回避 '+(p.dashCD>0?p.dashCD.toFixed(1)+'s':'READY');$('#jump-label').textContent='跳躍 '+Math.max(0,s.jumps-p.jumps)+' / '+s.jumps;$('#wave-label').textContent=(run.training?'稽古 ':'WAVE ')+String(run.wave).padStart(2,'0');$('#zone-label').textContent=run.wave>32?'終わらない葬列':D.zones[Math.min(3,Math.floor((run.wave-1)/8))];$('#enemy-label').textContent='残り '+(run.enemies.length+run.spawnLeft)+' 体';$('#soul-label').textContent=fmt(run.souls);$('#charge-fill').style.width=run.charge/s.ultimate*100+'%';$('#charge-label').textContent=run.charge>=s.ultimate?(run.intro>0?'まもなく':'E · READY'):Math.floor(run.charge)+' / '+s.ultimate;$('#ultimate-button').classList.toggle('ready',run.charge>=s.ultimate&&run.intro<=0);$('#ultimate-button').disabled=run.charge<s.ultimate||run.intro>0;$('#ultimate-name').textContent=D.ultimates[run.weapon.id].name;$('#ultimate-button').title=D.ultimates[run.weapon.id].desc;$('#ultimate-button').setAttribute('aria-label','葬送の大奇跡 '+$('#charge-label').textContent);
     const boss=run.enemies.find(e=>e.boss);$('#boss-hud').hidden=!boss;if(boss){$('#boss-name').textContent=boss.name;$('#boss-fill').style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';}
     
     
     if(full){$('#build-button').innerHTML=(Object.keys(run.stacks).slice(-10).map(id=>art(C.lookup[id])).join('')||'禁忌はまだ刻まれていない')+(run.stats.resonances.length?'<b class="resonance-count">共鳴 '+run.stats.resonances.length+'</b>':'')+'<span>　書を開く</span>';paintPortraits($('#build-button'));}
   }
-  document.addEventListener('toggle',e=>{if(e.target.matches?.('details.journey-log')&&e.target.open)paintPortraits(e.target);},true);
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-action]');if(!b||b.disabled)return;const a=b.dataset.action,id=b.dataset.id;audio.unlock();
     if(a==='start')setup(false);if(a==='endlessRun')setup(true);if(a==='begin')begin(b.dataset.endless==='true');if(a==='continue')continueRun();if(a==='close')close();if(a==='resume')resume();

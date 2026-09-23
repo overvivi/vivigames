@@ -29,48 +29,23 @@
   const lookup=Object.fromEntries([...D.items,...D.evolutions].map(i=>[i.id,i]));
   const damageIds=new Set(D.damageSources.map(d=>d.id)),enemyIds=new Set([...D.enemies,...D.bosses].map(d=>d.id));
   function normalizeEnemyKills(raw){const tally={};for(const id of enemyIds){const n=clamp(Math.floor(finite(raw?.[id])),0,1e9);if(n)tally[id]=n;}return tally;}
-  function normalizeJourney(raw,omitted=0,maxWave=1e6){
-    const journey=(Array.isArray(raw)?raw:[]).filter(v=>v&&Number.isInteger(v.wave)&&v.wave>=1&&v.wave<=maxWave&&((v.type==='item'&&D.items.some(d=>d.id===v.id))||(v.type==='evolution'&&D.evolutions.some(d=>d.id===v.id))||(v.type==='covenant'&&D.covenants.some(d=>d.id===v.id))||(v.type==='communion'&&v.id==='communion'))).map(v=>({wave:v.wave,type:v.type,id:v.id,level:v.type==='item'?clamp(Math.floor(finite(v.level,1)),1,lookup[v.id].max):1})).sort((a,b)=>a.wave-b.wave);
-    const skipped=Math.max(0,journey.length-256);if(skipped)journey.splice(64,skipped);
-    return{journey,journeyOmitted:journey.length>=64?clamp(Math.floor(finite(omitted))+skipped,0,1e9):0};
-  }
   const validDate=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
-  function dailyLoadout(date){
-    // 日付だけで36通りを巡る。未解放の装備も試練の中だけで使える。
-    const day=validDate(date)?Math.floor(Date.parse(date+'T00:00:00Z')/86400000):0,index=((day%36)+36)%36;
-    return{weapon:D.weapons[index%6].id,mask:D.masks[Math.floor(index/6)].id,guidance:['bloodrain','ossuary','pestilence','tempest','choir','butcher'][index%6]};
-  }
-  function normalizeDailyRecords(records){
-    const best=new Map();for(const v of Array.isArray(records)?records:[]){
-      const date=v?.dailyDate||v?.date;if(!v||!validDate(date)||!Number.isFinite(v.wave)||!Number.isFinite(v.score))continue;
-      const record={date,format:v.format===2||v.dailyFormat===2?2:1,wave:clamp(Math.floor(v.wave),0,1e6),score:clamp(Math.floor(v.score),0,1e12),time:clamp(finite(v.time),0,1e8),weapon:D.weapons.some(d=>d.id===v.weapon)?v.weapon:'lantern',mask:D.masks.some(d=>d.id===v.mask)?v.mask:'mourner'};
-      const key=date+'-'+record.format,old=best.get(key);if(!old||record.wave>old.wave||record.wave===old.wave&&(record.score>old.score||record.score===old.score&&record.time<old.time))best.set(key,record);
-    }
-    return[...best.values()].sort((a,b)=>b.date.localeCompare(a.date)||b.format-a.format).slice(0,30);
-  }
   function normalizeDamage(raw){const tally={};for(const d of D.damageSources){const n=clamp(finite(raw?.[d.id]),0,1e15);if(n)tally[d.id]=n;}return tally;}
-  function normalizeWounds(raw,time=1e12){
-    // 直近の実際の被害だけを残す。外部保存に混ざった文章や未来の時刻は表示へ持ち込まない。
-    return(Array.isArray(raw)?raw:[]).filter(v=>v&&Number.isFinite(v.time)&&v.time>=0&&v.time<=time&&Number.isFinite(v.damage)&&Number.isFinite(v.absorbed)&&v.damage>=0&&v.absorbed>=0&&v.damage+v.absorbed>0).map(v=>({time:v.time,wave:clamp(Math.floor(finite(v.wave,1)),1,1e6),kind:['bullet','contact','pillar','beam'].includes(v.kind)?v.kind:'unknown',enemy:[...D.enemies,...D.bosses].some(d=>d.id===v.enemy)?v.enemy:'',damage:clamp(v.damage,0,1e6),absorbed:clamp(v.absorbed,0,1e6),hp:clamp(finite(v.hp),0,1e6),shield:clamp(finite(v.shield),0,48),revived:v.revived===true})).sort((a,b)=>a.time-b.time).slice(-5);
-  }
   function normalizeRecord(v){
-    if(!v||!Number.isFinite(v.score)||!Number.isFinite(v.wave))return null;
+    if(!v||!Number.isFinite(v.wave))return null;
     const ids=(list,defs)=>Array.isArray(list)?[...new Set(list.filter(id=>defs.some(d=>d.id===id)))]:[];
-    const record={score:clamp(v.score,0,1e12),wave:clamp(v.wave,0,1e6),kills:clamp(finite(v.kills),0,1e8),time:clamp(finite(v.time),0,1e8),weapon:D.weapons.some(w=>w.id===v.weapon)?v.weapon:'lantern',mask:D.masks.some(m=>m.id===v.mask)?v.mask:'mourner',difficulty:clamp(Math.floor(finite(v.difficulty)),0,4),daily:!!v.daily,date:/^\d{4}-\d{2}-\d{2}/.test(v.date||'')?String(v.date).slice(0,10):'',won:!!v.won,seed:finite(v.seed)>>>0,guidance:D.guidanceTargets.some(e=>e.id===v.guidance)?v.guidance:'bloodrain',dailyDate:/^\d{4}-\d{2}-\d{2}$/.test(v.dailyDate||'')?v.dailyDate:'',outcome:['slain','retired','victory'].includes(v.outcome)?v.outcome:'retired',bestCombo:clamp(Math.floor(finite(v.bestCombo)),0,1e6),stacks:{},meta:{},evolved:ids(v.evolved,D.evolutions),covenants:ids(v.covenants,D.covenants)};
+    const record={wave:clamp(v.wave,0,1e6),kills:clamp(finite(v.kills),0,1e8),time:clamp(finite(v.time),0,1e8),weapon:D.weapons.some(w=>w.id===v.weapon)?v.weapon:'lantern',mask:D.masks.some(m=>m.id===v.mask)?v.mask:'mourner',difficulty:clamp(Math.floor(finite(v.difficulty)),0,4),date:/^\d{4}-\d{2}-\d{2}/.test(v.date||'')?String(v.date).slice(0,10):'',won:!!v.won,outcome:['slain','retired','victory'].includes(v.outcome)?v.outcome:'retired',stacks:{},meta:{},evolved:ids(v.evolved,D.evolutions),covenants:ids(v.covenants,D.covenants)};
     for(const d of D.items){const n=clamp(Math.floor(finite(v.stacks?.[d.id])),0,d.max);if(n)record.stacks[d.id]=n;}
     for(const d of D.meta)record.meta[d.id]=clamp(Math.floor(finite(v.meta?.[d.id])),0,d.max);
     if(v.lastHit)record.lastHit={kind:['bullet','contact','pillar','beam'].includes(v.lastHit.kind)?v.lastHit.kind:'unknown',enemy:[...D.enemies,...D.bosses].some(d=>d.id===v.lastHit.enemy)?v.lastHit.enemy:'',amount:clamp(Math.round(finite(v.lastHit.amount)),0,1e6)};
-    record.reliquaryKills=clamp(Math.floor(finite(v.reliquaryKills)),0,1e6);record.dailyFormat=v.dailyFormat===2&&validDate(record.dailyDate)?2:1;record.secretKills=clamp(Math.floor(finite(v.secretKills)),0,1e6);record.crownKills=clamp(Math.floor(finite(v.crownKills)),0,1e6);record.growth=clamp(finite(v.growth),0,1e12);record.damageTally=normalizeDamage(v.damageTally);record.wounds=normalizeWounds(v.wounds,record.time);record.enemyKills=normalizeEnemyKills(v.enemyKills);Object.assign(record,normalizeJourney(v.journey,v.journeyOmitted,record.wave));return record;
+    record.reliquaryKills=clamp(Math.floor(finite(v.reliquaryKills)),0,1e6);record.secretKills=clamp(Math.floor(finite(v.secretKills)),0,1e6);record.crownKills=clamp(Math.floor(finite(v.crownKills)),0,1e6);record.growth=clamp(finite(v.growth),0,1e12);record.damageTally=normalizeDamage(v.damageTally);record.enemyKills=normalizeEnemyKills(v.enemyKills);return record;
   }
   function hash(s){let v=2166136261;for(const c of String(s)){v^=c.charCodeAt(0);v=Math.imul(v,16777619);}return v>>>0;}
   function recordKey(record){const r=normalizeRecord(record);return r?JSON.stringify(r):null;}
-  function rememberedIndex(p,record){const key=recordKey(record);return key===null?-1:p.keptRecords.findIndex(r=>recordKey(r)===key);}
-  function rememberRecord(p,record){const r=normalizeRecord(record);if(!r||p.keptRecords.length>=6||rememberedIndex(p,r)>=0)return false;p.keptRecords.push(r);return true;}
-  function forgetRecord(p,index){if(!Number.isInteger(index)||index<0||index>=p.keptRecords.length)return false;p.keptRecords.splice(index,1);return true;}
-  function freshProfile(){return{version:1,achievementGoal:null,enemyKills:{},weaponBest:Object.fromEntries(D.weapons.map(d=>[d.id,0])),ashes:0,best:0,reliquaryKills:0,crownKills:0,secretKills:0,kills:0,runs:0,dailyBest:0,dailyRecords:[],clearedDifficulty:-1,weapons:['lantern'],masks:['mourner'],weapon:'lantern',mask:'mourner',meta:{},discovered:[],evolutions:[],resonances:[],achievements:[],records:[],keptRecords:[],settled:[],settings:{music:.3,sfx:.5,effectOpacity:1,backgroundDim:.2,damageNumbers:'all',hitRing:true,flashes:true,shake:true,gore:true,autoFire:true,autoAim:true}};}
+  function freshProfile(){return{version:1,achievementGoal:null,enemyKills:{},weaponBest:Object.fromEntries(D.weapons.map(d=>[d.id,0])),ashes:0,best:0,reliquaryKills:0,crownKills:0,secretKills:0,kills:0,runs:0,clearedDifficulty:-1,weapons:['lantern'],masks:['mourner'],weapon:'lantern',mask:'mourner',meta:{},discovered:[],evolutions:[],resonances:[],achievements:[],records:[],settled:[],settings:{music:.3,sfx:.5,effectOpacity:1,backgroundDim:.2,damageNumbers:'all',hitRing:true,flashes:true,shake:true,gore:true,autoFire:true,autoAim:true}};}
   function normalizeProfile(raw){
     const p=freshProfile();if(!raw||typeof raw!=='object')return p;
-    for(const key of ['ashes','best','kills','runs','dailyBest','secretKills','crownKills','reliquaryKills'])p[key]=clamp(Math.floor(finite(raw[key])),0,1e9);
+    for(const key of ['ashes','best','kills','runs','secretKills','crownKills','reliquaryKills'])p[key]=clamp(Math.floor(finite(raw[key])),0,1e9);
     p.enemyKills=normalizeEnemyKills(raw.enemyKills);
     p.achievementGoal=D.achievements.some(a=>a.id===raw.achievementGoal)?raw.achievementGoal:null;
     p.clearedDifficulty=clamp(Math.floor(finite(raw.clearedDifficulty,-1)),-1,4);
@@ -79,11 +54,11 @@
     for(const m of D.meta)p.meta[m.id]=clamp(Math.floor(finite(raw.meta?.[m.id])),0,m.max);
     if(Array.isArray(raw.records))p.records=raw.records.map(normalizeRecord).filter(Boolean).slice(0,30);
     // お気に入りの墓碑は上位30件の入替えから独立させ、能力や報酬を増やさず複製を保存する。
-    for(const r of Array.isArray(raw.keptRecords)?raw.keptRecords:[]){rememberRecord(p,r);if(p.keptRecords.length===6)break;}
-    p.dailyRecords=normalizeDailyRecords([...(Array.isArray(raw.dailyRecords)?raw.dailyRecords:[]),...p.records.filter(r=>r.daily)]);
+    
+    
     for(const d of D.weapons)p.weaponBest[d.id]=clamp(Math.floor(finite(raw.weaponBest?.[d.id])),0,1e6);
     // 古い保存は残っている墓碑・日替わり記録だけから復元し、不明な弔具へ到達を推測しない。
-    for(const r of [...(Array.isArray(raw.records)?raw.records.filter(r=>r&&Number.isFinite(r.score)):[]),...(Array.isArray(raw.dailyRecords)?raw.dailyRecords.filter(r=>r&&validDate(r.dailyDate||r.date)&&Number.isFinite(r.score)):[])])if(r&&D.weapons.some(d=>d.id===r.weapon)&&Number.isFinite(r.wave))p.weaponBest[r.weapon]=Math.max(p.weaponBest[r.weapon],clamp(Math.floor(r.wave),0,1e6));
+    for(const r of (Array.isArray(raw.records)?raw.records.filter(r=>r&&Number.isFinite(r.wave)):[]))if(r&&D.weapons.some(d=>d.id===r.weapon)&&Number.isFinite(r.wave))p.weaponBest[r.weapon]=Math.max(p.weaponBest[r.weapon],clamp(Math.floor(r.wave),0,1e6));
     if(Array.isArray(raw.settled))p.settled=raw.settled.filter(x=>typeof x==='string').slice(-30);
     for(const k of ['music','sfx'])p.settings[k]=clamp(finite(raw.settings?.[k],p.settings[k]),0,1);
     p.settings.effectOpacity=clamp(finite(raw.settings?.effectOpacity,1),.35,1);
@@ -94,15 +69,15 @@
   }
   function awardAchievements(p){const gained=[];for(const a of D.achievements)if(!p.achievements.includes(a.id)&&a.test(p)){p.achievements.push(a.id);p.ashes+=Math.ceil(a.reward*D.ASH.medal);gained.push(a);}return gained;}
   function settle(p,run,date=new Date().toLocaleDateString('sv-SE')){
-    if(run.practice)return[];
+    if(run.training)return[];
     if(p.settled.includes(run.id))return[];
     p.settled.push(run.id);p.settled=p.settled.slice(-30);p.ashes+=Math.floor(run.souls);p.best=Math.max(p.best,run.completed);p.kills+=run.kills;p.secretKills+=run.secretKills;p.reliquaryKills+=run.reliquaryKills;p.crownKills+=run.crownKills;p.runs++;
     run.medalsEarned=[];for(const [id,n]of Object.entries(normalizeEnemyKills(run.enemyKills))){const before=D.bestiaryProgress(id,p.enemyKills[id]);p.enemyKills[id]=Math.min(1e9,(p.enemyKills[id]||0)+n);const after=D.bestiaryProgress(id,p.enemyKills[id]);if(after.tier>before.tier)run.medalsEarned.push({id,tier:after.tier,label:after.label});}
     p.weaponBest[run.weapon.id]=Math.max(p.weaponBest[run.weapon.id]||0,run.completed);
-    if(run.daily){p.dailyBest=Math.max(p.dailyBest,run.completed);p.dailyRecords=normalizeDailyRecords([...p.dailyRecords,{date:run.dailyDate||date,format:run.dailyFormat,wave:run.completed,score:run.score,time:run.time,weapon:run.weapon.id,mask:run.mask.id}]);}
-    if(run.completed>=32&&!run.daily)p.clearedDifficulty=Math.max(p.clearedDifficulty,run.difficulty);
+    
+    if(run.completed>=32)p.clearedDifficulty=Math.max(p.clearedDifficulty,run.difficulty);
     p.discovered=[...new Set([...p.discovered,...Object.keys(run.stacks)])];p.evolutions=[...new Set([...p.evolutions,...run.evolved])];p.resonances=[...new Set([...p.resonances,...run.stats.resonances])];
-    run.finalRecord=normalizeRecord({journey:run.journey,journeyOmitted:run.journeyOmitted,score:Math.floor(run.score),wave:run.completed,kills:run.kills,time:run.time,weapon:run.weapon.id,mask:run.mask.id,difficulty:run.difficulty,daily:run.daily,date,won:run.completed>=32,seed:run.seed,guidance:run.initialGuidance,dailyDate:run.dailyDate,dailyFormat:run.dailyFormat,meta:run.meta,stacks:run.stacks,evolved:run.evolved,covenants:run.covenants,lastHit:run.lastHit,wounds:run.wounds,enemyKills:run.enemyKills,outcome:run.outcome,bestCombo:run.bestCombo,growth:run.growth,damageTally:run.damageTally,secretKills:run.secretKills,crownKills:run.crownKills,reliquaryKills:run.reliquaryKills});p.records.push(run.finalRecord);
+    run.finalRecord=normalizeRecord({wave:run.completed,kills:run.kills,time:run.time,weapon:run.weapon.id,mask:run.mask.id,difficulty:run.difficulty,date,won:run.completed>=32,meta:run.meta,stacks:run.stacks,evolved:run.evolved,covenants:run.covenants,lastHit:run.lastHit,enemyKills:run.enemyKills,outcome:run.outcome,growth:run.growth,damageTally:run.damageTally,secretKills:run.secretKills,crownKills:run.crownKills,reliquaryKills:run.reliquaryKills});p.records.push(run.finalRecord);
     p.records.sort((a,b)=>b.wave-a.wave||a.time-b.time);p.records=p.records.slice(0,30);
     return awardAchievements(p);
   }
@@ -117,15 +92,14 @@
   }
   class Run{
     constructor(options={}){
-      this.seed=(finite(options.seed,Date.now())>>>0)||1;this.rng=this.seed;this.offerRng=hash(this.seed+'-offer');this.daily=!!options.daily;this.endless=!!options.endless;this.dailyDate=validDate(options.dailyDate)?options.dailyDate:'';this.dailyFormat=this.daily&&options.dailyFormat===2&&this.dailyDate?2:1;const dailyGear=this.dailyFormat===2?dailyLoadout(this.dailyDate):{weapon:'lantern',mask:'mourner',guidance:'bloodrain'};
-      this.id=options.id||String(Date.now())+'-'+this.seed;this.difficulty=this.daily?0:clamp(Math.floor(finite(options.difficulty)),0,4);
-      this.weapon=D.weapons.find(w=>w.id===(this.daily?dailyGear.weapon:options.weapon))||D.weapons[0];this.mask=D.masks.find(m=>m.id===(this.daily?dailyGear.mask:options.mask))||D.masks[0];
-      this.guidance='';this.initialGuidance='';
-      this.meta=this.daily?{}:{...options.meta};this.stacks={};this.evolved=[];this.banned=[];this.covenants=[];this.covenantChoices=[];this.oathWave=0;this.rerolls=2+(this.meta.reroll||0)+(this.mask.rerolls||0);this.banishes=1+(this.meta.banish||0);
+      this.seed=(finite(options.seed,Date.now())>>>0)||1;this.rng=this.seed;this.offerRng=hash(this.seed+'-offer');this.endless=!!options.endless;
+      this.id=options.id||String(Date.now())+'-'+this.seed;this.difficulty=clamp(Math.floor(finite(options.difficulty)),0,4);
+      this.weapon=D.weapons.find(w=>w.id===options.weapon)||D.weapons[0];this.mask=D.masks.find(m=>m.id===options.mask)||D.masks[0];
+            this.meta={...options.meta};this.stacks={};this.evolved=[];this.banned=[];this.covenants=[];this.covenantChoices=[];this.oathWave=0;this.rerolls=2+(this.meta.reroll||0)+(this.mask.rerolls||0);this.banishes=1+(this.meta.banish||0);
       // 外部の記録を読み込むときも、永久強化を正規の範囲へ揃える。
-      for(const d of D.meta)this.meta[d.id]=this.daily?0:clamp(Math.floor(finite(this.meta[d.id])),0,d.max);
+      for(const d of D.meta)this.meta[d.id]=clamp(Math.floor(finite(this.meta[d.id])),0,d.max);
       this.rerolls=2+(this.meta.reroll||0)+(this.mask.rerolls||0);this.banishes=1+(this.meta.banish||0);
-      this.time=0;this.kills=0;this.secretKills=0;this.reliquaryKills=0;this.crownKills=0;this.score=0;this.souls=0;this.completed=0;this.growth=0;this.rebirths=0;this.revivesUsed=0;this.flawless=0;this.waveDamage=0;this.charge=0;this.combo=0;this.comboTime=0;this.bestCombo=0;this.damageTally={};this.wounds=[];this.enemyKills={};this.journey=[];this.journeyOmitted=0;
+      this.time=0;this.kills=0;this.secretKills=0;this.reliquaryKills=0;this.crownKills=0;this.souls=0;this.completed=0;this.growth=0;this.rebirths=0;this.revivesUsed=0;this.flawless=0;this.waveDamage=0;this.charge=0;this.damageTally={};this.enemyKills={};
       this.p={x:480,y:D.FLOOR-22,vx:0,vy:0,r:11,hp:100,shield:0,jumps:0,jumpBuffer:0,grounded:true,facing:1,invuln:0,dashTime:0,dashCD:0,shotCD:0};
       this.timers={lightning:2,void:3,cleave:2,familiar:.7,barrier:8,sanguine:0};this.events=[];this.uid=1;this.stats=this.computeStats();this.p.hp=this.stats.hp;this.state='playing';this.beginWave(1);
     }
@@ -134,8 +108,7 @@
     range(a,b){return a+(b-a)*this.random();}
     emit(type,data={}){if(this.events.length<160)this.events.push({type,...data});}
     count(id){return this.stacks[id]||0;}
-    rememberChoice(type,id,level=1){if(this.practice)return;this.journey.push({wave:this.wave,type,id,level});if(this.journey.length>256){this.journey.splice(64,1);this.journeyOmitted++;}}
-    has(id){return this.evolved.includes(id);}
+        has(id){return this.evolved.includes(id);}
     hasResonance(id){return this.stats.resonances.includes(id);}
     computeStats(){
       const w=this.weapon,m=this.mask,n=id=>this.count(id),e=id=>this.has(id),o=id=>this.covenants.includes(id)?1:0;
@@ -158,7 +131,7 @@
       // 遺灰だけは波をまたいで床に残り、自前の寿命で朽ちる。回復片は結果画面で回収済み。
       this.pickups=(this.pickups||[]).filter(v=>v.life>0&&v.souls>0);
       this.spawnLeft=wave%8===0?Math.min(10,3+Math.floor(wave/8)):Math.min(56,7+Math.floor(wave*1.5));
-      if(this.practice)this.spawnLeft=0;this.spawnIndex=0;this.combo=0;this.comboTime=0;
+      if(this.training)this.spawnLeft=0;this.spawnIndex=0;
       this.p.x=480;this.p.y=D.FLOOR-22;this.p.vx=this.p.vy=0;this.p.grounded=true;this.p.jumps=this.p.jumpBuffer=0;this.p.invuln=1;this.p.dashTime=this.p.dashCD=this.p.shotCD=0;this.timers={lightning:2,void:3,cleave:2,familiar:.7,barrier:8,sanguine:0};this.emit('wave',{wave});
     }
     spawn(kind,boss=false,x,y){
@@ -166,11 +139,11 @@
       const def=boss?D.bosses[kind%D.bosses.length]:D.enemies[kind%D.enemies.length];
       const scaling=boss?(1+this.difficulty*.28)*Math.pow(1.55,Math.floor((this.wave-1)/32)):(1+(this.wave-1)*.075)*(1+this.difficulty*.2)*Math.pow(1.035,Math.max(0,this.wave-32))*(this.covenants.includes('pilgrim')?1.15:1);
       const e={...def,kind:def.id,id:this.uid++,boss,x:x??this.range(65,895),y:y??this.range(55,boss?125:210),vx:0,vy:0,hp:def.hp*scaling,maxHp:def.hp*scaling,phase:this.range(0,6.28),age:0,arrival:boss?.95:.5,arrivalDuration:boss?.95:.5,shoot:this.range(.3,.95),hit:0,dot:0,burn:0,poison:0,slow:0,dive:0,dead:false};
-      if(boss){e.x=480;e.y=150;e.shoot=2.2;if(this.practice&&this.practicePhase===2)e.hp=e.maxHp*.44;this.emit('boss',{name:e.name});}e.facing=e.x>this.p.x?-1:1;
+      if(boss){e.x=480;e.y=150;e.shoot=2.2;this.emit('boss',{name:e.name});}e.facing=e.x>this.p.x?-1:1;
       this.enemies.push(e);return e;
     }
     crownEnemy(e,id){
-      const d=D.crowns.find(d=>d.id===id);if(!e||e.dead||e.boss||e.crown||this.practice||!d)return false;
+      const d=D.crowns.find(d=>d.id===id);if(!e||e.dead||e.boss||e.crown||this.training||!d)return false;
       e.crown=id;e.hp*=d.hp;e.maxHp*=d.hp;e.speed*=d.speed;e.shoot*=d.shot;e.curseCD=4.5;e.curseWarn=false;this.emit('crowned',{id,name:e.name});return true;
     }
     spawnWaveEnemy(){
@@ -206,7 +179,7 @@
       if(id==='communion'){this.p.hp=this.stats.hp;this.souls+=10;this.growth+=.1;}
       else if(D.evolutions.some(e=>e.id===id)){if(!this.eligibleEvolutions().some(e=>e.id===id))return false;this.evolved.push(id);this.emit('evolve',{id});}
       else{const def=lookup[id];if(!def||this.count(id)>=def.max)return false;this.stacks[id]=this.count(id)+1;if(id==='rebirth')this.rebirths++;}
-      this.rememberChoice(id==='communion'?'communion':this.has(id)?'evolution':'item',id,this.count(id)||1);
+      
       const old=this.stats.hp;this.stats=this.computeStats();this.p.hp=clamp(this.p.hp+(id==='vitality'?18:Math.max(0,this.stats.hp-old)),1,this.stats.hp);
       this.beginWave(this.wave+1);return true;
     }
@@ -221,14 +194,14 @@
     }
     swear(id){
       if(this.state!=='upgrade'||this.wave%8!==0||this.oathWave===this.wave||!this.covenantChoices.includes(id)||this.covenants.includes(id))return false;
-      this.covenants.push(id);this.rememberChoice('covenant',id);this.oathWave=this.wave;this.stats=this.computeStats();this.p.hp=Math.min(this.p.hp,this.stats.hp);this.charge=Math.min(this.charge,this.stats.ultimate);this.emit('evolve',{id});return true;
+      this.covenants.push(id);this.oathWave=this.wave;this.stats=this.computeStats();this.p.hp=Math.min(this.p.hp,this.stats.hp);this.charge=Math.min(this.charge,this.stats.ultimate);this.emit('evolve',{id});return true;
     }
     completeWave(){
-      if(this.practice){
-        if(['practiceRest','practiceDone','dead'].includes(this.state))return;
-        this.completed=this.wave;this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.pickups=(this.pickups||[]).filter(v=>v.life>0&&v.souls>0);this.rituals=[];
-        if(this.gauntlet){const g=this.gauntlet;g.history.push({wave:this.wave,time:this.time-g.stageStart,damage:this.waveDamage,hp:this.p.hp,revives:this.revivesUsed-g.stageRevives,boon:null});g.cleared++;this.state=g.cleared<g.waves.length?'practiceRest':'practiceDone';}
-        else this.state='practiceDone';this.emit('clear',{wave:this.wave});return;
+      if(this.training){
+        // 稽古は記録も報酬も持たない。波を終えたら強化の選択へ渡すだけ。
+        if(this.state==='dead')return;
+        this.completed=this.wave;this.hostile=[];this.bullets=[];this.hazards=[];this.fields=[];this.rituals=[];
+        this.state='practiceDone';this.emit('clear',{wave:this.wave});return;
       }
       const beforeSouls=this.souls,beforeHp=this.p.hp,leftoverHeal=this.pickups.reduce((sum,p)=>sum+(p.life>0?p.heal:0),0);
       this.completed=this.wave;
@@ -242,18 +215,6 @@
       if(this.wave===32&&!this.endless){this.state='victory';return;}this.state='upgrade';this.choices=this.drawChoices();
     }
     continueEndless(){if(this.state!=='victory')return false;this.state='upgrade';this.choices=this.drawChoices();return true;}
-    gauntletBoon(id){
-      if(!this.gauntlet||this.state!=='practiceRest')return null;
-      if(id==='blood')return{value:Math.max(0,Math.min(this.stats.hp-this.p.hp,this.stats.hp*.2)),label:'生命',item:'vitality'};
-      if(id==='ember')return{value:Math.max(0,Math.min(this.stats.ultimate-this.charge,this.stats.ultimate*.35)),label:'大奇跡',item:'cooldown'};
-      if(id==='bone')return{value:Math.max(0,Math.min(48-this.p.shield,18)),label:'結界',item:'barrier'};return null;
-    }
-    advanceGauntlet(id){
-      const boon=this.gauntletBoon(id);if(!boon)return false;const g=this.gauntlet;
-      // 供物は幕間に一度だけ。通常の進化・報酬・復活補充は挟まない。
-      if(id==='blood')this.p.hp+=boon.value;if(id==='ember')this.charge+=boon.value;if(id==='bone')this.p.shield+=boon.value;
-      Object.assign(g.history.at(-1),{boon:id,recovered:boon.value});g.stageStart=this.time;g.stageRevives=this.revivesUsed;this.beginWave(g.waves[g.cleared]);return true;
-    }
     // 自弾と敵弾は互いを削り合う。耐久が尽きた方が消える。
     // 総当たりだと最大39万組になるので、64pxの格子で近いものだけを見る。
     collideBullets(){
@@ -346,10 +307,9 @@
       const p=this.p;if(p.invuln>0||this.training||this.state!=='playing'||!Number.isFinite(amount)||amount<=0)return;
       const beforeHp=p.hp,beforeRevives=this.revivesUsed;
       amount*=1-this.stats.armor;const absorbed=Math.min(p.shield,amount);p.shield-=absorbed;amount-=absorbed;
-      p.hp-=amount;p.invuln=.8;this.waveDamage+=amount;if(amount>0){this.lastHit={kind:source.kind||'unknown',enemy:source.enemy||'',amount:Math.ceil(amount)};this.combo=this.comboTime=0;}this.emit(amount>0?'hurt':'shield',{x:p.x,y:p.y,n:Math.ceil(amount)});
+      p.hp-=amount;p.invuln=.8;this.waveDamage+=amount;if(amount>0){this.lastHit={kind:source.kind||'unknown',enemy:source.enemy||'',amount:Math.ceil(amount)};}this.emit(amount>0?'hurt':'shield',{x:p.x,y:p.y,n:Math.ceil(amount)});
       if(this.stats.thorns){this.emit('burst',{x:p.x,y:p.y,r:130,row:0});for(const e of this.enemies)if(distance(p,e)<130)this.hurtEnemy(e,this.damageValue()*this.stats.thorns*3,'blast','thorns');}
       if(p.hp<=0){if(this.rebirths>0){this.rebirths--;this.revivesUsed++;p.hp=this.stats.hp*.5;p.invuln=3;this.hostile=[];if(this.hasResonance('sanguine'))this.charge=this.stats.ultimate;this.emit('revive');}else{p.hp=0;this.state='dead';this.outcome='slain';this.emit('dead');}}
-      this.wounds.push({time:this.time,wave:this.wave,kind:source.kind||'unknown',enemy:source.enemy||'',damage:Math.max(0,Math.min(beforeHp,amount)),absorbed,hp:p.hp,shield:p.shield,revived:this.revivesUsed>beforeRevives});if(this.wounds.length>5)this.wounds.shift();
     }
     ultimate(){
       if(this.charge<this.stats.ultimate||this.state!=='playing'||this.intro>0)return false;
@@ -564,31 +524,22 @@
       if(this.state==='playing'&&this.spawnLeft===0&&this.enemies.length===0&&(this.wave%8!==0||this.bossSpawned)){this.state='clearing';this.clearElapsed=0;this.clearTimer=this.wave%8===0?1.6:.75;this.hostile=[];this.hazards=[];}
     }
     checkpoint(){
-      if(this.practice)return null;
+      if(this.training)return null;
       // 波の冒頭と選択画面だけを保存する。飛翔中の弾を復元して不意打ちを作らない。
-      return{journey:this.journey.map(v=>({...v})),journeyOmitted:this.journeyOmitted,enemyKills:{...this.enemyKills},wounds:this.wounds.map(v=>({...v})),lastHit:this.lastHit?{...this.lastHit}:null,reliquaryKills:this.reliquaryKills,secretKills:this.secretKills,crownKills:this.crownKills,damageTally:{...this.damageTally},bestCombo:this.bestCombo,waveReport:this.waveReport?{...this.waveReport}:null,covenants:[...this.covenants],covenantChoices:[...this.covenantChoices],oathWave:this.oathWave,version:1,id:this.id,endless:this.endless,seed:this.seed,rng:this.rng,offerRng:this.offerRng,guidance:this.guidance,initialGuidance:this.initialGuidance,daily:this.daily,dailyDate:this.dailyDate,dailyFormat:this.dailyFormat,difficulty:this.difficulty,weapon:this.weapon.id,mask:this.mask.id,meta:{...this.meta},stacks:{...this.stacks},evolved:[...this.evolved],banned:[...this.banned],rerolls:this.rerolls,banishes:this.banishes,time:this.time,kills:this.kills,score:this.score,souls:this.souls,completed:this.completed,growth:this.growth,rebirths:this.rebirths,revivesUsed:this.revivesUsed,flawless:this.flawless,charge:this.charge,wave:this.wave,state:this.state,choices:[...this.choices],hp:this.p.hp,shield:this.p.shield};
+      return{enemyKills:{...this.enemyKills},lastHit:this.lastHit?{...this.lastHit}:null,reliquaryKills:this.reliquaryKills,secretKills:this.secretKills,crownKills:this.crownKills,damageTally:{...this.damageTally},waveReport:this.waveReport?{...this.waveReport}:null,covenants:[...this.covenants],covenantChoices:[...this.covenantChoices],oathWave:this.oathWave,version:1,id:this.id,endless:this.endless,seed:this.seed,rng:this.rng,offerRng:this.offerRng,difficulty:this.difficulty,weapon:this.weapon.id,mask:this.mask.id,meta:{...this.meta},stacks:{...this.stacks},evolved:[...this.evolved],banned:[...this.banned],rerolls:this.rerolls,banishes:this.banishes,time:this.time,kills:this.kills,souls:this.souls,completed:this.completed,growth:this.growth,rebirths:this.rebirths,revivesUsed:this.revivesUsed,flawless:this.flawless,charge:this.charge,wave:this.wave,state:this.state,choices:[...this.choices],hp:this.p.hp,shield:this.p.shield};
     }
     static restore(c){
-      if(c?.practice||c?.daily&&c?.dailyFormat===2&&!validDate(c.dailyDate))return null;
+      if(c?.training)return null;
       if(!c||c.version!==1||!['playing','upgrade','victory'].includes(c.state)||!Number.isInteger(c.wave)||c.wave<1||c.wave>100000||typeof c.id!=='string')return null;
       if(!D.weapons.some(w=>w.id===c.weapon)||!D.masks.some(m=>m.id===c.mask))return null;
-      const r=new Run(c);Object.assign(r,normalizeJourney(c.journey,c.journeyOmitted,c.wave));r.enemyKills=normalizeEnemyKills(c.enemyKills);r.wounds=normalizeWounds(c.wounds,finite(c.time));r.lastHit=normalizeRecord({score:0,wave:c.wave,lastHit:c.lastHit}).lastHit;r.damageTally=normalizeDamage(c.damageTally);r.stacks={};for(const i of D.items){const n=clamp(Math.floor(finite(c.stacks?.[i.id])),0,i.max);if(n)r.stacks[i.id]=n;}
+      const r=new Run(c);r.enemyKills=normalizeEnemyKills(c.enemyKills);r.lastHit=normalizeRecord({wave:c.wave,lastHit:c.lastHit}).lastHit;r.damageTally=normalizeDamage(c.damageTally);r.stacks={};for(const i of D.items){const n=clamp(Math.floor(finite(c.stacks?.[i.id])),0,i.max);if(n)r.stacks[i.id]=n;}
       r.covenants=Array.isArray(c.covenants)?[...new Set(c.covenants.filter(id=>D.covenants.some(d=>d.id===id)))]:[];r.covenantChoices=Array.isArray(c.covenantChoices)?[...new Set(c.covenantChoices.filter(id=>D.covenants.some(d=>d.id===id)))]:[];r.oathWave=clamp(finite(c.oathWave),0,c.wave);
       r.evolved=Array.isArray(c.evolved)?[...new Set(c.evolved.filter(id=>D.evolutions.some(e=>e.id===id)))]:[];r.banned=Array.isArray(c.banned)?[...new Set(c.banned.filter(id=>D.items.some(i=>i.id===id)))]:[];
-      for(const k of ['rerolls','banishes','time','kills','score','souls','completed','growth','rebirths','revivesUsed','flawless','charge','bestCombo','secretKills','crownKills','reliquaryKills'])r[k]=clamp(finite(c[k]),0,1e12);
+      for(const k of ['rerolls','banishes','time','kills','souls','completed','growth','rebirths','revivesUsed','flawless','charge','secretKills','crownKills','reliquaryKills'])r[k]=clamp(finite(c[k]),0,1e12);
       r.stats=r.computeStats();r.beginWave(c.wave);r.p.hp=clamp(finite(c.hp,r.stats.hp),1,r.stats.hp);r.p.shield=clamp(finite(c.shield),0,48);r.rng=c.rng>>>0;r.offerRng=finite(c.offerRng,r.offerRng)>>>0;r.state=c.state;if(c.waveReport)r.waveReport={souls:Math.max(0,finite(c.waveReport.souls)),heal:Math.max(0,finite(c.waveReport.heal)),flawless:!!c.waveReport.flawless};
       if(c.state==='upgrade'){r.choices=Array.isArray(c.choices)?c.choices.filter(id=>id==='communion'||(lookup[id]&&!r.banned.includes(id))):[];if(!r.choices.length)r.choices=r.drawChoices();}
       return r;
     }
   }
-  function practiceFromRecord(record,wave,phase=1){
-    const data=normalizeRecord(record);if(!data?.seed||!D.practiceWaves.includes(wave))return null;
-    // 墓碑のビルドを複製し、練習では通常の中断・報酬・発見を一切進めない。
-    const r=new Run(data);r.practice=true;r.practicePhase=phase===2?2:1;r.stacks={...data.stacks};r.evolved=[...data.evolved];r.covenants=[...data.covenants];r.growth=data.growth;r.stats=r.computeStats();r.p.hp=r.stats.hp;r.p.shield=r.stats.barrier*6;r.charge=r.stats.ultimate;r.rebirths=r.count('rebirth')+(r.has('phoenix')?1:0);r.beginWave(wave);return r;
-  }
-  function gauntletFromRecord(record,waves){
-    const order=D.practiceWaves;if(!Array.isArray(waves)||waves.length<2||waves.length>order.length||waves.some((w,i)=>w!==order[i]))return null;
-    const r=practiceFromRecord(record,8,1);if(!r)return null;r.gauntlet={waves:[...waves],cleared:0,stageStart:0,stageRevives:0,history:[]};return r;
-  }
-  return{Run,freshProfile,normalizeProfile,normalizeRecord,rememberRecord,forgetRecord,rememberedIndex,settle,purchase,awardAchievements,practiceFromRecord,gauntletFromRecord,hash,clamp,lookup,dailyLoadout};
+  return{Run,freshProfile,normalizeProfile,normalizeRecord,settle,purchase,awardAchievements,hash,clamp,lookup};
 });

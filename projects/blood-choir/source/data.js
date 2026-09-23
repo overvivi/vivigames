@@ -61,8 +61,7 @@
     {id:'rotMoon',name:'腐星蝕',school:'plague',pair:['pestilence','eclipse'],desc:'裂け目の内側を毒が侵す。範囲内の敵へ、0.35秒ごとに毒を1重与える。'},
     {id:'requiem',name:'弔鐘の大合唱',school:'storm',pair:['tempest','choir'],desc:'雷に撃たれた敵へ2秒間の葬印。亡霊が優先して狙い、霊弾の威力が35%上がる。'}
   ];
-  const guidanceTargets=[...evolutions,...resonances];
-  const weapons=[
+    const weapons=[
     {id:'lantern',name:'血灯の杖',icon:2,desc:'均整の取れた血弾。威力16 / 毎秒4発。',cost:0,damage:16,rate:4,color:'#fa828a',speed:530},
     {id:'needle',name:'骨縫いの針',icon:1,desc:'高速の貫通針。威力10 / 毎秒6発 / 貫通1。',cost:65,damage:10,rate:6,color:'#e9ddba',speed:760,pierce:1},
     {id:'censer',name:'腐臭の香炉',icon:9,desc:'毒を撒く三連弾。威力9 / 毎秒2.8回 / 毒1。',cost:110,damage:9,rate:2.8,color:'#a5d48b',speed:400,shots:2,poison:1},
@@ -97,14 +96,14 @@
     {id:'ashes',name:'遺灰の祭壇',icon:5,max:5,cost:30,step:30,desc:'獲得する遺灰 +5% / 段階'}
   ];
   const enemies=[
-    {id:'heart',name:'心喰い',sprite:4,hp:25,speed:42,r:17,score:10,behavior:'float',desc:'左右に揺れ、足元へ血を落とす。'},
-    {id:'nun',name:'口縫いの修道女',sprite:5,hp:36,speed:30,r:19,score:15,behavior:'aim',desc:'射線を合わせ、一発を狙って放つ。'},
-    {id:'eye',name:'肉の監視者',sprite:6,hp:43,speed:45,r:20,score:18,behavior:'fan',desc:'三方向の弾を吐く。隙間を見極めろ。'},
-    {id:'angel',name:'肋の天使',sprite:7,hp:60,speed:55,r:22,score:24,behavior:'dive',desc:'橙の予兆の後、あなたがいた場所へ突進する。'},
-    {id:'leech',name:'血蛭の群れ',sprite:4,hp:17,speed:85,r:12,score:12,behavior:'chase',desc:'小さく速い追跡者。足を止めるな。'},
-    {id:'cantor',name:'泣き歌い',sprite:5,hp:85,speed:26,r:24,score:30,behavior:'ring',desc:'円形の弾幕を歌う。'},
-    {id:'watcher',name:'膿の預言者',sprite:6,hp:105,speed:28,r:25,score:35,behavior:'summon',desc:'心喰いを産み落とす。早めに葬れ。'},
-    {id:'seraph',name:'失敗した救済',sprite:7,hp:130,speed:56,r:28,score:40,behavior:'burst',desc:'連続する扇弾を放つ精鋭。'}
+    {id:'heart',name:'心喰い',sprite:4,hp:25,speed:42,r:17,behavior:'float',desc:'左右に揺れ、足元へ血を落とす。'},
+    {id:'nun',name:'口縫いの修道女',sprite:5,hp:36,speed:30,r:19,behavior:'aim',desc:'射線を合わせ、一発を狙って放つ。'},
+    {id:'eye',name:'肉の監視者',sprite:6,hp:43,speed:45,r:20,behavior:'fan',desc:'三方向の弾を吐く。隙間を見極めろ。'},
+    {id:'angel',name:'肋の天使',sprite:7,hp:60,speed:55,r:22,behavior:'dive',desc:'橙の予兆の後、あなたがいた場所へ突進する。'},
+    {id:'leech',name:'血蛭の群れ',sprite:4,hp:17,speed:85,r:12,behavior:'chase',desc:'小さく速い追跡者。足を止めるな。'},
+    {id:'cantor',name:'泣き歌い',sprite:5,hp:85,speed:26,r:24,behavior:'ring',desc:'円形の弾幕を歌う。'},
+    {id:'watcher',name:'膿の預言者',sprite:6,hp:105,speed:28,r:25,behavior:'summon',desc:'心喰いを産み落とす。早めに葬れ。'},
+    {id:'seraph',name:'失敗した救済',sprite:7,hp:130,speed:56,r:28,behavior:'burst',desc:'連続する扇弾を放つ精鋭。'}
   ];
   const bosses=[
     {id:'bishop',name:'縫い眼の司教',subtitle:'THE BISHOP OF SUTURED EYES',sprite:8,hp:1800,r:65,behavior:'bishop',desc:'瞼を縫い、信徒の内側だけを見るようになった司教。法衣に開いた眼は、彼らが最後に見たもの。',tactic:'狙い扇弾の間へ。三度目の祈りには全方位弾。'},
@@ -130,13 +129,13 @@
     ['hundred','百の墓標','累計100体撃破',p=>p.kills>=100,20],['thousand','千の墓標','累計1,000体撃破',p=>p.kills>=1000,60],['tenk','万人の墓所','累計10,000体撃破',p=>p.kills>=10000,200],
     ['evolve','異端への変貌','進化を1種発見',p=>p.evolutions.length>=1,30],['evolve4','禁忌の探求者','進化を4種発見',p=>p.evolutions.length>=4,80],['evolve8','深淵を知る者','進化を8種発見',p=>p.evolutions.length>=8,180],
     ['relic20','蒐集家','強化を20種発見',p=>p.discovered.length>=20,40],['relic40','禁書の完成','強化を40種発見',p=>p.discovered.length>=40,100],['weapons','六つの弔具','弔具を全て解放',p=>p.weapons.length===6,100],['masks','六つの顔','仮面を全て解放',p=>p.masks.length===6,100],
-    ['altar','深い祈り','祭壇を計20段階強化',p=>Object.values(p.meta).reduce((a,b)=>a+b,0)>=20,70],['ten','繰り返す夜','10回の挑戦を終える',p=>p.runs>=10,50],['daily','同じ月の下で','日替わり試練の第16波を突破',p=>p.dailyBest>=16,80],['abyss','深淵の王','深度Vで神を葬る',p=>p.clearedDifficulty>=4,200]
+    ['altar','深い祈り','祭壇を計20段階強化',p=>Object.values(p.meta).reduce((a,b)=>a+b,0)>=20,70],['ten','繰り返す夜','10回の挑戦を終える',p=>p.runs>=10,50],['abyss','深淵の王','深度Vで神を葬る',p=>p.clearedDifficulty>=4,200]
   ].map(([id,name,desc,test,reward])=>({id,name,desc,test,reward}));
   const achievementTracks={
     crownbreaker:['crownKills',12,'体',1],first:['best',1,'波',0],eight:['best',8,'波',0],sixteen:['best',16,'波',0],twentyfour:['best',24,'波',0],clear:['best',32,'波',0],endless:['best',48,'波',0],
     reliquary:['reliquaryKills',1,'体',0],oblivion:['secretKills',1,'体',0],hundred:['kills',100,'体',1],thousand:['kills',1000,'体',1],tenk:['kills',10000,'体',1],
     evolve:['evolutions',1,'種',2],evolve4:['evolutions',4,'種',2],evolve8:['evolutions',8,'種',2],relic20:['discovered',20,'種',3],relic40:['discovered',40,'種',3],
-    weapons:['weapons',6,'種',4],masks:['masks',6,'種',4],altar:['meta',20,'段階',5],ten:['runs',10,'回',6],daily:['dailyBest',16,'波',7],abyss:['clearedDifficulty',5,'深度',5]
+    weapons:['weapons',6,'種',4],masks:['masks',6,'種',4],altar:['meta',20,'段階',5],ten:['runs',10,'回',6],abyss:['clearedDifficulty',5,'深度',5]
   };
   function achievementProgress(p,id){
     const t=achievementTracks[id];if(!t)return null;const [key,target,unit,art]=t,raw=key==='meta'?Object.values(p.meta).reduce((n,v)=>n+v,0):key==='clearedDifficulty'?p.clearedDifficulty+1:Array.isArray(p[key])?p[key].length:p[key];
@@ -170,7 +169,7 @@
     {id:'ultimate',name:'葬送の大奇跡',color:'#e1b69e'}
   ];
   const itemArt={"vitality":{"image":"relicA","index":0},"rate":{"image":"relicA","index":1},"lifesteal":{"image":"relicA","index":2},"multishot":{"image":"relicA","index":3},"critical":{"image":"relicA","index":4},"explosion":{"image":"relicA","index":5},"ember":{"image":"relicA","index":6},"sacrifice":{"image":"relicA","index":7},"damage":{"image":"relicB","index":0},"armor":{"image":"relicB","index":1},"critDamage":{"image":"relicB","index":2},"bulletSpeed":{"image":"relicB","index":3},"pierce":{"image":"relicB","index":4},"cleave":{"image":"relicB","index":5},"execution":{"image":"relicB","index":6},"split":{"image":"relicB","index":7},"bounce":{"image":"relicC","index":0},"homing":{"image":"relicC","index":1},"chill":{"image":"relicC","index":2},"familiar":{"image":"relicC","index":3},"echo":{"image":"relicC","index":4},"void":{"image":"relicC","index":5},"gravity":{"image":"relicC","index":6},"dash":{"image":"relicC","index":7},"speed":{"image":"relicD","index":0},"jump":{"image":"relicD","index":1},"regen":{"image":"relicD","index":2},"barrier":{"image":"relicD","index":3},"thorns":{"image":"relicD","index":4},"cooldown":{"image":"relicD","index":5},"magnet":{"image":"relicD","index":6},"fortune":{"image":"relicD","index":7},"plague":{"image":"relicE","index":0},"lightning":{"image":"relicE","index":1},"conduit":{"image":"relicE","index":2},"spore":{"image":"relicE","index":3},"growth":{"image":"relicE","index":4},"rage":{"image":"relicE","index":5},"rebirth":{"image":"relicE","index":6},"harvest":{"image":"relicE","index":7}};
-  return{bestiaryProgress,guidanceTargets,achievementProgress,achievementTarget,practiceWaves,crowns,itemArt,schools,items,evolutions,resonances,weapons,ultimates,masks,meta,enemies,bosses,bossForWave,achievements,covenants,zones,damageSources,version:1,W:960,H:540,FLOOR:428,
+  return{bestiaryProgress,achievementProgress,achievementTarget,practiceWaves,crowns,itemArt,schools,items,evolutions,resonances,weapons,ultimates,masks,meta,enemies,bosses,bossForWave,achievements,covenants,zones,damageSources,version:1,W:960,H:540,FLOOR:428,
   // 遺灰の出どころ。雑魚は低確率の落とし物、主は確定。
   ASH:{chance:.03,drop:1,boss:25,medal:.2,life:32}};
 });

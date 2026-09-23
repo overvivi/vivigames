@@ -9,7 +9,7 @@
     {title:'力を、身体に刻む。',text:'ひとつ選ぶ。同じ能力を重ねると、禁忌進化への道が開く。',pc:'クリック または 1 / 2 / 3',pad:'十字キーで選ぶ · 下ボタンで決定',touch:'欲しい能力をタップ',icon:2}
   ];
   class Training{
-    constructor(){this.run=new C.Run({seed:7301});this.run.practice=true;this.run.training=true;this.run.intro=1e6;this.run.spawnLeft=0;this.run.events=[];this.step=0;this.distance=0;this.delay=0;this.finished=false;this.killsAtStart=0;}
+    constructor(){this.run=new C.Run({seed:7301});this.run.training=true;this.run.intro=1e6;this.run.spawnLeft=0;this.run.events=[];this.step=0;this.distance=0;this.delay=0;this.finished=false;this.killsAtStart=0;}
     get lesson(){return lessons[Math.min(5,this.step)];}
     get progress(){return this.step===0?Math.min(1,this.distance/160):this.step===4?Math.min(1,(this.run.kills-this.killsAtStart)/3):this.delay>0?1:0;}
     next(){

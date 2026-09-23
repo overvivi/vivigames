@@ -277,21 +277,18 @@ body.qa-mode #app:has(#play-screen:not([hidden])) #play-screen{height:calc(100dv
 /* ── スマホ：手元のボタン。回避が左、跳躍が右、大奇跡は中央下 ─────── */
 #touch-pad{display:none}
 @media(pointer:coarse){
-  #touch-pad{display:flex;gap:12px;position:absolute;right:14px;bottom:12px;z-index:7}
-  #touch-pad button{min-width:74px;height:74px;padding:0;border-radius:50%;font-size:12px;letter-spacing:.08em;
+  /* 地面は盤面の上から 428/540 = 79.3%。手元のボタンは必ずその下の帯へ収める。 */
+  #touch-pad{display:flex;align-items:flex-end;gap:10px;position:absolute;right:12px;bottom:4px;height:calc(20.7% - 8px);z-index:7}
+  #touch-pad button{height:100%;aspect-ratio:1;min-width:0;padding:0;border-radius:50%;font-size:11px;letter-spacing:.06em;
     color:#e2d2bb;background:radial-gradient(circle at 50% 38%,#3a2830cc,#150e13e0);border:1px solid #8d6655aa;
-    box-shadow:0 4px 18px #0009;touch-action:none;user-select:none}
+    box-shadow:0 4px 14px #0009;touch-action:none;user-select:none}
   #touch-pad button:active,#touch-pad button.pressed{background:#854052cc;border-color:#c89a86}
   #touch-pad [data-touch="jump"]{border-color:#bc8d69aa}
   /* ビルドは指の置き場なので戦闘中は出さない。休息から見る。 */
   #build-button{display:none}
-  #run-bottom{left:0;right:0;justify-content:center;bottom:14px}
-  #ultimate-button{min-width:132px;padding:10px 14px;font-size:9px}
-}
-@media(pointer:coarse) and (orientation:landscape){
-  #touch-pad{right:18px;bottom:14px;gap:14px}
-  #touch-pad button{min-width:80px;height:80px;font-size:13px}
-  #run-bottom{bottom:16px}
+  #run-bottom{left:0;right:0;justify-content:center;align-items:flex-end;bottom:4px;height:calc(20.7% - 8px)}
+  #ultimate-button{height:100%;min-width:112px;padding:3px 10px;font-size:8px;gap:2px 8px;align-content:center}
+  #ultimate-button i{height:3px}
 }
 /* 端のスワイプで前の画面へ戻らないようにする */
 html,body{overscroll-behavior:none}
