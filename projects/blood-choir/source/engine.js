@@ -154,8 +154,8 @@
     damageValue(){return this.stats.damage*(1+clamp(1-this.p.hp/this.stats.hp,0,1)*this.stats.rage);}
     
     beginWave(wave){
-      this.wave=wave;this.state='playing';this.waveTime=0;this.clearElapsed=0;this.waveDamage=0;this.intro=2.2;this.spawnTimer=.25;this.bossSpawned=false;this.enemies=[];this.bullets=[];this.hostile=[];this.fields=[];this.pickups=[];this.hazards=[];this.rituals=[];this.choices=[];
-      this.spawnLeft=wave%8===0?Math.min(10,3+Math.floor(wave/8)):Math.min(52,5+Math.floor(wave*1.65));
+      this.wave=wave;this.state='playing';this.waveTime=0;this.clearElapsed=0;this.waveDamage=0;this.intro=1.4;this.spawnTimer=.2;this.bossSpawned=false;this.enemies=[];this.bullets=[];this.hostile=[];this.fields=[];this.pickups=[];this.hazards=[];this.rituals=[];this.choices=[];
+      this.spawnLeft=wave%8===0?Math.min(10,3+Math.floor(wave/8)):Math.min(56,7+Math.floor(wave*1.5));
       if(this.practice)this.spawnLeft=0;this.spawnIndex=0;this.combo=0;this.comboTime=0;
       this.p.x=480;this.p.y=D.FLOOR-22;this.p.vx=this.p.vy=0;this.p.grounded=true;this.p.jumps=this.p.jumpBuffer=0;this.p.invuln=1;this.p.dashTime=this.p.dashCD=this.p.shotCD=0;this.timers={lightning:2,void:3,cleave:2,familiar:.7,barrier:8,sanguine:0};this.emit('wave',{wave});
     }
@@ -163,7 +163,7 @@
       if(this.enemies.filter(e=>!e.dead).length>=65)return;
       const def=boss?D.bosses[kind%D.bosses.length]:D.enemies[kind%D.enemies.length];
       const scaling=boss?(1+this.difficulty*.28)*Math.pow(1.55,Math.floor((this.wave-1)/32)):(1+(this.wave-1)*.075)*(1+this.difficulty*.2)*Math.pow(1.035,Math.max(0,this.wave-32))*(this.covenants.includes('pilgrim')?1.15:1);
-      const e={...def,kind:def.id,id:this.uid++,boss,x:x??this.range(65,895),y:y??this.range(55,boss?125:210),vx:0,vy:0,hp:def.hp*scaling,maxHp:def.hp*scaling,phase:this.range(0,6.28),age:0,arrival:boss?.95:.65,arrivalDuration:boss?.95:.65,shoot:this.range(1.4,3.2),hit:0,dot:0,burn:0,poison:0,slow:0,dive:0,dead:false};
+      const e={...def,kind:def.id,id:this.uid++,boss,x:x??this.range(65,895),y:y??this.range(55,boss?125:210),vx:0,vy:0,hp:def.hp*scaling,maxHp:def.hp*scaling,phase:this.range(0,6.28),age:0,arrival:boss?.95:.5,arrivalDuration:boss?.95:.5,shoot:this.range(.3,.95),hit:0,dot:0,burn:0,poison:0,slow:0,dive:0,dead:false};
       if(boss){e.x=480;e.y=150;e.shoot=2.2;if(this.practice&&this.practicePhase===2)e.hp=e.maxHp*.44;this.emit('boss',{name:e.name});}e.facing=e.x>this.p.x?-1:1;
       this.enemies.push(e);return e;
     }
@@ -173,7 +173,7 @@
     }
     spawnWaveEnemy(){
       // 波と種子から決め、射撃回数や戦闘乱数で強敵の有無が変わらないようにする。
-      const ordinal=this.spawnIndex++,unlocked=Math.min(8,2+Math.floor((this.wave-1)/3)),e=this.spawn(hash(this.seed+'-'+this.wave+'-'+ordinal)%unlocked);
+      const ordinal=this.spawnIndex++,unlocked=Math.min(8,2+Math.floor((this.wave-1)/2)),e=this.spawn(hash(this.seed+'-'+this.wave+'-'+ordinal)%unlocked);
       if(this.wave>=9&&this.wave%3===0&&this.wave%8!==0&&ordinal===2)this.crownEnemy(e,D.crowns[hash(this.seed+'-crown-'+this.wave)%D.crowns.length].id);return e;
     }
     eligibleEvolutions(){return D.evolutions.filter(e=>!this.has(e.id)&&Object.entries(e.needs).every(([id,n])=>this.count(id)>=n));}
@@ -367,7 +367,7 @@
           else if(e.dive>0){e.dive-=dt*speed;e.x+=e.vx*dt*speed;e.y+=e.vy*dt*speed;e.x=clamp(e.x,25,935);if(e.y>D.FLOOR-30){e.y=D.FLOOR-30;e.dive=0;}}
           else{e.x+=Math.cos(t*.8)*e.speed*speed*dt;e.y+=Math.sin(t*1.5)*13*dt*speed*drift;if(e.y>250)e.y-=45*dt*speed*drift;e.x=clamp(e.x,25,935);e.y=clamp(e.y,35,D.FLOOR-28);}
           if(e.shoot<=0){
-            e.shoot=this.range(2.6,4.2)/Math.min(1.9,1+this.wave*.018)*(e.crown==='blood'?.82:1);e.cast=.28;
+            e.shoot=this.range(1.4,2.4)/Math.min(2.2,1+this.wave*.03)*(e.crown==='blood'?.82:1);e.cast=.28;
             if(e.behavior==='float')this.enemyShot(e,Math.PI/2,95);
             if(e.behavior==='aim'||e.behavior==='chase')this.fan(e,1,125);
             if(e.behavior==='fan')this.fan(e,3,110);
@@ -502,7 +502,7 @@
       if(aim&&Math.abs(aim.x-p.x)>16)p.facing=aim.x>p.x?1:-1;else if(!aim&&move)p.facing=move>0?1:-1;
       if(this.intro>0)return;
       this.spawnTimer-=dt;
-      if(this.spawnLeft>0&&this.spawnTimer<=0){this.spawnWaveEnemy();this.spawnLeft--;this.spawnTimer=Math.max(.3,.9-this.wave*.01);}
+      if(this.spawnLeft>0&&this.spawnTimer<=0){this.spawnWaveEnemy();this.spawnLeft--;this.spawnTimer=Math.max(.22,.62-this.wave*.012);}
       if(this.wave%8===0&&!this.bossSpawned){this.bossSpawned=true;this.spawn(D.bosses.indexOf(D.bossForWave(this.wave)),true);}
       if(input.fire&&p.shotCD<=0&&this.fire(input))p.shotCD=1/s.rate;
       this.updateSkills(dt);for(const e of this.enemies){e.collisionX=e.x;e.collisionY=e.y;}this.updateEnemies(dt);if(this.state==='dead')return;
