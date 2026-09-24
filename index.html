@@ -230,7 +230,7 @@
 <body>
 <header class="hero" id="entrance">
   <div class="topbar"><div class="shell topbar-inner"><a class="mini-brand pixel" href="#entrance">VIVI GAME BASE</a><nav class="nav pixel" aria-label="メインメニュー"><a href="#cartridges">CARTRIDGES</a><a href="#information">INFORMATION</a><a href="#credits" data-dialog="credits-dialog">CREDITS</a></nav></div></div>
-  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>13</strong></span><span>LAST UPDATE <strong>2026.09.22</strong></span></div></div>
+  <div class="shell hero-copy"><div class="brand-frame"><h1 class="pixel"><span class="lead-line">V<span class="neon-flicker">I</span>VI GAM<span class="neon-flicker late">E</span></span> <span class="main-line">BASE</span></h1><p class="tagline pixel">SELECT YOUR GAME</p></div><div class="arcade-status"><span>NOW PLAYING <strong>14</strong></span><span>LAST UPDATE <strong>2026.09.24</strong></span></div></div>
 </header>
 <main>
   <section class="shell" id="cartridges" aria-labelledby="cartridges-title">
@@ -273,6 +273,8 @@
 <footer><div class="shell footer-inner"><span>© 2026 VIVI</span><span><a href="https://github.com/overvivi/vivigames" target="_blank" rel="noopener">GITHUB</a> · <a href="#credits">CREDITS</a> · SITE VERSION 0.1</span></div></footer>
 <dialog id="news-dialog" aria-labelledby="news-title"><div class="dialog-head"><h2 class="pixel" id="news-title">NEWS</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body"><h3>本日の最強決定戦リマスター 登場</h3><p>7人の戦士で三すくみの読み合いを楽しもう。NPC戦と、部屋コードを共有して遊ぶフレンド戦に対応。PC・スマホのどちらからでも遊べます。</p><div class="patch-entry"><strong>2026.09.07</strong><ul><li>リマスター専用カセットを追加</li><li>CPU BATTLE ／ FRIEND BATTLEの2モードで提供</li><li>遊べるゲームは9本になりました</li></ul></div><h3>HEXAMINE 稼働開始</h3><div class="patch-entry"><strong>2026.08.20</strong><ul><li>HEXAMINE 稼働開始（デイリーランキングあり）</li><li>ゲーム置き場をゲーム機＋カセット方式へ刷新</li><li>読み込みを軽くしました（HELL RUNNER 6.2MB→1.8MB、討伐2048 7.2MB→3.2MB）</li></ul></div></div></dialog>
 <dialog id="patch-dialog" aria-labelledby="patch-title"><div class="dialog-head"><h2 class="pixel" id="patch-title">PATCH NOTES</h2><button class="dialog-close" type="button" aria-label="閉じる">×</button></div><div class="dialog-body">
+  <h3>こもれびのカード村</h3>
+  <details class="patch-entry" open><summary><strong>β版 0.1 / 2026.09.24</strong><span>カードを重ねて育てる村、ベータ公開</span></summary><ul><li>「こもれびのカード村」をゲームセンターに追加しました。カードを重ねて採集・製作・建築を進め、探索や戦闘を楽しむ村づくりゲームです。</li><li>PC・スマホで遊べます。進行は遊んでいるブラウザに自動保存されます。</li><li>効果音・演出は仮のものを含みます。ご要望があれば、効果音などをさらに作り込んでいきます。</li><li>遊んで気づいた操作しづらさや不具合は、Discordでお知らせください。報告をもとに修正していきます。</li><li>遊ぶ：<a href="games/card-grove.html">https://overvivi.github.io/vivigames/games/card-grove.html</a></li></ul></details>
   <h3>VIVI GAME BASE</h3>
   <details class="patch-entry" open><summary><strong>アプリアイコン / 2026.09.22</strong></summary><ul><li>秘密基地のカセットをモチーフにした専用アイコンを追加</li><li>iPhone・iPadのホーム画面、Android、ブラウザのタブ用アイコンに対応</li></ul></details>
   <h3>BLOOD CHOIR</h3>
@@ -396,6 +398,9 @@
     { id:'blood-choir', name:'BLOOD CHOIR', desc:'血と骨の聖堂で禁忌を重ね、脈打つ神を葬れ', href:'games/blood-choir/index.html',
       color:'#b84d64', art:'games/blood-choir/assets/cover.png',
       tags:['ホラーSTG','ビルド構築','スマホ対応','テスト版'] },
+    { id:'card-grove', name:'こもれびのカード村', desc:'カードを重ね、小さな村から冒険へ。ベータ版公開中', href:'games/card-grove.html',
+      color:'#a6c978', art:'images/portal/cart-label-card-grove.webp',
+      tags:['ベータ版','カード村づくり','探索・戦闘','スマホ対応'] },
     { id:'next', name:'COMING SOON', desc:'次のゲームは準備中', href:null, blank:true }
   ];
 
@@ -543,7 +548,7 @@
 
   // 最初は一番新しいゲームを挿しておく
   // 並び順を変えても新作の初期選択が別ゲームへずれないよう、IDで選ぶ。
-  var featuredIndex = GAMES.findIndex(function(g){ return g.id === 'blood-choir'; });
+  var featuredIndex = GAMES.findIndex(function(g){ return g.id === 'card-grove'; });
   insert(GAMES[featuredIndex], buttons[featuredIndex]);
   refreshNav();
 })();

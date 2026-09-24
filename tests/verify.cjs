@@ -17,6 +17,7 @@ const vm = require('vm');
 
 const FILES = [
   'index.html',
+  'games/card-grove.html',
   'games/amber-bow.html',
   'games/comic-coast-racer.html',
   'games/blood-choir/index.html',
