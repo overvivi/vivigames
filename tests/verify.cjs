@@ -18,6 +18,7 @@ const vm = require('vm');
 const FILES = [
   'index.html',
   'games/card-grove.html',
+  'games/heppoko-hero/beta.html',
   'games/amber-bow.html',
   'games/comic-coast-racer.html',
   'games/blood-choir/index.html',
@@ -40,7 +41,7 @@ const FILES = [
 // 引用符か括弧に挟まれた「拡張子付きのパス」を対象にする。
 // バッククォートも含めるのは、HELL RUNNER 2 が `.../icons/${def.icon}` のような
 // テンプレートリテラルで素材を組み立てているため。
-const ASSET_RE = /['"`(]([^'"`()\s]+\.(?:png|jpe?g|webp|gif|svg|ogg|mp3|wav|ico))['"`)]/gi;
+const ASSET_RE = /['"`(]([^'"`()\s]+\.(?:png|jpe?g|webp|gif|svg|ogg|mp3|wav|ico|woff2))['"`)]/gi;
 
 // リポジトリ内の全ファイルを basename で引けるようにしておく。
 // 素材名だけを配列に持ち、表示時にディレクトリと連結する書き方（HELL RUNNER 2 の能力アイコン）は
@@ -89,6 +90,14 @@ for(const file of FILES){
 
   // ---- 3. 素材の実在 ----
   const dir = path.dirname(file);
+  // へっぽこ勇者の敵データは原画名と配信用URLを持つ。対応先が存在する原画名だけを除外する。
+  const bundledNames = new Set();
+  if(file === 'games/heppoko-hero/beta.html'){
+    for(const m of html.matchAll(/\{[^{}]*"image":"([^"\n]+)"[^{}]*"url":"(\.\/assets\/[^"\n]+)"[^{}]*\}/g)){
+      const originalName = path.basename(m[2]).replace(/\.[a-f0-9]{12}(?=\.webp$)/, '');
+      if(originalName === m[1] && fs.existsSync(path.resolve(dir, m[2]))) bundledNames.add(m[1]);
+    }
+  }
   const refs = new Set();
   for(const m of html.matchAll(ASSET_RE)){
     const ref = m[1];
@@ -120,7 +129,7 @@ for(const file of FILES){
 
     // ディレクトリを含まない素材名は、コード側で連結される前提の断片。名前の実在だけを見る。
     if(!target.includes('/')){
-      if(!fileNames.has(target)) problems.push(`${file}: その名前の素材がリポジトリに無い — ${ref}`);
+      if(!fileNames.has(target) && !bundledNames.has(target)) problems.push(`${file}: その名前の素材がリポジトリに無い — ${ref}`);
       continue;
     }
 

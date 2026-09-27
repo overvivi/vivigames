@@ -8,22 +8,22 @@ test('カセットが並び、選んだものが本体に挿さる', async ({ pa
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
 
-  // ベータ版を含む遊べる14本 + COMING SOON。COMING SOON は常に最後
-  await expect(page.locator('.cart')).toHaveCount(15);
-  await expect(page.locator('.arcade-status')).toContainText('NOW PLAYING 14');
+  // ベータ版を含む遊べる15本 + COMING SOON。COMING SOON は常に最後
+  await expect(page.locator('.cart')).toHaveCount(16);
+  await expect(page.locator('.arcade-status')).toContainText('NOW PLAYING 15');
   await expect(page.locator('.cart .cname')).toHaveText([
     'HELL RUNNER', '討伐2048', 'HEXAMINE', 'HELL RUNNER 2', '本日の最強決定戦', '本日の最強決定戦リマスター', 'STILL',
-    'SOLITAIRE', 'IMMUNE DEFENSE', 'よるのリズム便', 'AMBER BOW', '珍走！ラーメン海道', 'BLOOD CHOIR', 'こもれびのカード村', 'COMING SOON'
+    'SOLITAIRE', 'IMMUNE DEFENSE', 'よるのリズム便', 'AMBER BOW', '珍走！ラーメン海道', 'BLOOD CHOIR', 'こもれびのカード村', 'へっぽこ勇者', 'COMING SOON'
   ]);
 
   // 最初から一番新しいものが挿さっていて、すぐ遊べる
   await expect(page.locator('#deck')).toHaveClass(/on/);
-  await expect(page.locator('#capTitle')).toHaveText('こもれびのカード村');
-  await expect(page.locator('#screenArt')).toHaveCSS('background-image', /cart-label-card-grove\.webp/);
-  await expect(page.locator('#playLink')).toHaveAttribute('href','games/card-grove.html');
+  await expect(page.locator('#capTitle')).toHaveText('へっぽこ勇者');
+  await expect(page.locator('#screenArt')).toHaveCSS('background-image', /cart-label-heppoko-hero\.webp/);
+  await expect(page.locator('#playLink')).toHaveAttribute('href','games/heppoko-hero/beta.html');
   await expect(page.locator('#deckTags')).toContainText('ベータ版');
-  await expect(page.locator('#deckTags')).toContainText('スマホ対応');
-  await expect(page.locator('#deckTags')).toContainText('カード村づくり');
+  await expect(page.locator('#deckTags')).toContainText('PC・スマホ横');
+  await expect(page.locator('#deckTags')).toContainText('放置RPG');
 
   // 別のカセットを選ぶと、本体の中身が入れ替わる
   await page.locator('.cart').first().click();
@@ -134,7 +134,7 @@ test('カセットが増えても1列のまま横へ流れる', async ({ page })
 test('掴んで動かしただけではゲームが切り替わらない', async ({ page })=>{
   await page.setViewportSize({ width:1280, height:900 });
   await page.goto('/index.html');
-  await expect(page.locator('#capTitle')).toHaveText('こもれびのカード村');
+  await expect(page.locator('#capTitle')).toHaveText('へっぽこ勇者');
   await overflowRack(page);
 
   const box = await page.locator('#rack').boundingBox();
@@ -147,7 +147,7 @@ test('掴んで動かしただけではゲームが切り替わらない', async
   const moved = await page.evaluate(()=> document.getElementById('rack').scrollLeft);
   expect(moved).toBeGreaterThan(0);
   // 掴んで動かしただけなのに挿し変わると、操作として気持ち悪い
-  await expect(page.locator('#capTitle')).toHaveText('こもれびのカード村');
+  await expect(page.locator('#capTitle')).toHaveText('へっぽこ勇者');
 });
 
 // ロゴは画像をやめてCSSで組んだ。画像ロゴは、それを載せる暗いパネルごと
